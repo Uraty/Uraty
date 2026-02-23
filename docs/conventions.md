@@ -196,13 +196,14 @@
 ### ブランチ名
 - 形式: `<type>/<ticket-id>-<short-description>`（`kebab-case`）
 - ルール:
-  - 種別を先頭に付ける（`feature`, `fix`, `refactor`, `chore`, `hotfix`, `docs`）
+  - 種別を先頭に付ける
     - `feature` 新機能
     - `fix` バグ修正
     - `refactor` 振る舞いを変えない整理
     - `chore` 雑務/設定更新（乱用禁止）
-    - `hotfix` 緊急修正
     - `docs` ドキュメント修正
+    - `test` テストコードの追加/修正
+    - `ci` CI/CD の修正
   - Issue番号を原則含めること
   - 何をしたブランチかが一目で分かるようにする
   - 日本語は避ける

@@ -1,0 +1,89 @@
+#!/bin/sh
+#
+# commit-msg
+# Enforce:
+# - Allowed types only: feat|fix|refactor|chore|docs|test|ci
+# - Conventional Commits (scope optional)
+# - Subject <= 50 chars
+# - ASCII only in subject
+# - Imperative mood (basic)
+# - Blank line after subject
+# - Issue required ONLY for feat commits (in body)
+# - If feat has "(...)" then it must NOT be empty and must NOT be TODO
+#
+
+COMMIT_MSG_FILE=$1
+
+SUBJECT=$(head -n 1 "$COMMIT_MSG_FILE")
+SECOND_LINE=$(sed -n '2p' "$COMMIT_MSG_FILE")
+
+# 1) Conventional + allowed types
+#    - scope optional
+#    - if scope exists, must be non-empty and match [a-z0-9_-]+
+echo "$SUBJECT" | grep -Eq '^(feat|fix|refactor|chore|docs|test|ci)(\([a-z0-9_-]+\))?: [a-z].+'
+if [ $? -ne 0 ]; then
+  echo "❌ Invalid format."
+  echo "   Use: <type>(scope): summary  OR  <type>: summary"
+  echo "   Types: feat, fix, refactor, chore, docs, test, ci"
+  echo "   Example: feat(player): add jump"
+  echo "   Example: feat: add jump"
+  exit 1
+fi
+
+# 2) Subject length <= 50
+LENGTH=$(printf "%s" "$SUBJECT" | wc -c | tr -d ' ')
+if [ "$LENGTH" -gt 50 ]; then
+  echo "❌ Subject must be 50 characters or less."
+  exit 1
+fi
+
+# 3) ASCII only in subject
+printf "%s" "$SUBJECT" | LC_ALL=C grep -q '[^ -~]'
+if [ $? -eq 0 ]; then
+  echo "❌ Subject must be ASCII (English only)."
+  exit 1
+fi
+
+# 4) Imperative mood (basic heuristic)
+echo "$SUBJECT" | grep -Eiq ' (added|fixed|changed|removed|updated|improved|refactored)\b'
+if [ $? -eq 0 ]; then
+  echo "❌ Use imperative mood (add/fix/change/...), not past tense."
+  exit 1
+fi
+
+# 5) Blank line after subject
+if [ -n "$SECOND_LINE" ]; then
+  echo "❌ Blank line required after subject (line 2 must be empty)."
+  exit 1
+fi
+
+# 6) If feat has scope, reject TODO / empty ()
+IS_FEAT=0
+printf "%s" "$SUBJECT" | grep -Eq '^feat(\([a-z0-9_-]+\))?: ' && IS_FEAT=1
+
+if [ "$IS_FEAT" -eq 1 ]; then
+  # Reject feat(TODO):
+  printf "%s" "$SUBJECT" | grep -Eq '^feat\(TODO\): ' && {
+    echo "❌ Scope is TODO. Either set a real scope (e.g., feat(player): ...) or remove scope (feat: ...)."
+    exit 1
+  }
+
+  # Extra guard: reject feat():
+  printf "%s" "$SUBJECT" | grep -Eq '^feat\(\): ' && {
+    echo "❌ Empty scope is not allowed. Use feat: ... or feat(player): ..."
+    exit 1
+  }
+
+  # 7) Issue required ONLY for feat commits (search entire message; do not rely on line numbers)
+  grep -Eiq '(^|[[:space:]])(Issue:?[[:space:]]*#?[0-9]+|Closes[[:space:]]+#?[0-9]+|Refs[[:space:]]+#?[0-9]+|#[0-9]+)($|[[:space:]])' "$COMMIT_MSG_FILE"
+  if [ $? -ne 0 ]; then
+    echo "❌ Issue reference required for feat commits."
+    echo "   Add one of these in the body (after the blank line):"
+    echo "   - Issue: 123"
+    echo "   - Closes #123"
+    echo "   - Refs #123"
+    exit 1
+  fi
+fi
+
+exit 0
