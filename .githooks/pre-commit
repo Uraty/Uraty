@@ -1,0 +1,206 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "=== Pre-commit (Unity) ==="
+
+# しきい値
+WARN_SIZE=$((50 * 1024 * 1024))      # 50MB 警告
+ERROR_SIZE=$((100 * 1024 * 1024))    # 100MB エラー（GitHub制限にも一致）
+
+# -----------------------------
+# A) main直コミット警告（警告のみ）
+# -----------------------------
+BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
+if [[ "$BRANCH" == "main" ]]; then
+  echo "[WARNING] main への直接コミットです（推奨: ブランチを切ってPR）"
+fi
+
+# -----------------------------
+# B) マージコンフリクト残骸検出（エラー）
+# -----------------------------
+if git diff --cached | grep -E '<<<<<<<|=======|>>>>>>>' >/dev/null; then
+  echo "[ERROR] マージコンフリクト残骸が含まれています"
+  exit 1
+fi
+
+# -----------------------------
+# C) 禁止ディレクトリ検出（エラー）
+#     ※rename/new/modify 全部対象にするため name-status から拾う
+# -----------------------------
+is_forbidden_path() {
+  local p="$1"
+  case "$p" in
+    Library/*|Temp/*|Logs/*|obj/*|UserSettings/*)
+      return 0 ;;
+    *)
+      return 1 ;;
+  esac
+}
+
+# -----------------------------
+# D) Unity .meta 整合（追加/変更/rename/削除 すべて対応）
+#     - Assets配下のファイル(非.meta)が追加/変更/renameされたら、対応する .meta が存在すること
+#     - Assets配下のファイルが削除されたら、対応する .meta も削除されること
+#     - .meta だけ削除されたら、本体も削除されていること（片方消しを防ぐ）
+# -----------------------------
+declare -A deleted
+declare -A changed_or_added
+
+# name-status を NUL 区切りで取得して安全にパース
+# フォーマット:
+#   M\0path\0
+#   A\0path\0
+#   D\0path\0
+#   R100\0old\0new\0
+#   C100\0old\0new\0
+while IFS= read -r -d '' status; do
+  # Rename/Copy
+  if [[ "$status" == R* || "$status" == C* ]]; then
+    IFS= read -r -d '' oldpath
+    IFS= read -r -d '' newpath
+
+    # 禁止ディレクトリ（new側で判定）
+    if is_forbidden_path "$newpath"; then
+      echo "[ERROR] 禁止ディレクトリがステージされています: $newpath"
+      exit 1
+    fi
+
+    # old は削除扱い、new は追加/変更扱いとして扱う
+    deleted["$oldpath"]=1
+    changed_or_added["$newpath"]=1
+  else
+    IFS= read -r -d '' path
+
+    # 禁止ディレクトリ
+    if is_forbidden_path "$path"; then
+      echo "[ERROR] 禁止ディレクトリがステージされています: $path"
+      exit 1
+    fi
+
+    case "$status" in
+      D) deleted["$path"]=1 ;;
+      A|M) changed_or_added["$path"]=1 ;;
+      *) : ;;
+    esac
+  fi
+done < <(git diff --cached --name-status -z)
+
+# メタチェック：追加/変更/renameされた Assets 配下(非 .meta)は .meta が存在すること
+for p in "${!changed_or_added[@]}"; do
+  case "$p" in
+    Assets/*)
+      case "$p" in
+        *.meta) : ;;
+        *)
+          if [[ ! -f "$p.meta" ]]; then
+            echo "[ERROR] .meta が不足しています: $p.meta"
+            exit 1
+          fi
+          ;;
+      esac
+      ;;
+  esac
+done
+
+# メタチェック：削除された Assets 配下(非 .meta)は .meta も削除されていること
+for p in "${!deleted[@]}"; do
+  case "$p" in
+    Assets/*)
+      case "$p" in
+        *.meta) : ;; # meta自体の削除は後で別途検証
+        *)
+          # 本体が削除されているのに meta が残ると事故
+          if [[ -f "$p.meta" ]] && [[ -z "${deleted["$p.meta"]+x}" ]]; then
+            echo "[ERROR] 本体を削除していますが .meta が削除されていません: $p.meta"
+            exit 1
+          fi
+          ;;
+      esac
+      ;;
+  esac
+done
+
+# メタチェック：.meta だけ削除されていないか（本体も削除されている必要）
+for p in "${!deleted[@]}"; do
+  case "$p" in
+    Assets/*.meta)
+      base="${p%.meta}"
+      # base がまだ存在し、かつ削除扱いでもないなら「metaだけ消した」事故
+      if [[ -f "$base" ]] && [[ -z "${deleted["$base"]+x}" ]]; then
+        echo "[ERROR] .meta だけ削除されています（本体が残っています）: $p"
+        exit 1
+      fi
+      ;;
+  esac
+done
+
+# -----------------------------
+# E) 巨大ファイル検出（50MB警告 / 100MBエラー）
+#     ※ステージされた各ファイルのblobサイズで判定
+# -----------------------------
+# 対象は name-only -z で拾う（rename後の新パスも含む）
+while IFS= read -r -d '' p; do
+  # 削除はblobが無いのでスキップ
+  if [[ -n "${deleted["$p"]+x}" ]]; then
+    continue
+  fi
+
+  # サブモジュール等で取れない場合があるので安全に
+  hash="$(git ls-files -s "$p" 2>/dev/null | awk '{print $2}' || true)"
+  if [[ -z "$hash" ]]; then
+    continue
+  fi
+
+  size="$(git cat-file -s "$hash" 2>/dev/null || echo 0)"
+
+  if (( size > ERROR_SIZE )); then
+    echo "[ERROR] 100MB超のファイルがステージされています: $p (${size} bytes)"
+    echo "        Git LFS等を検討してください。"
+    exit 1
+  elif (( size > WARN_SIZE )); then
+    echo "[WARNING] 50MB超のファイル: $p (${size} bytes)  ※GitHub推奨上限超え"
+  fi
+done < <(git diff --cached --name-only -z)
+
+# -----------------------------
+# F) CRLFチェック（エラー）
+#     ※ステージ内容を取り出して CR(\r) を含むか確認
+#     ※対象拡張子はUnityでテキスト扱いが多いものに限定
+# -----------------------------
+is_text_like() {
+  case "$1" in
+    *.cs|*.meta|*.unity|*.prefab|*.asset|*.json|*.txt|*.md|*.yml|*.yaml|.githooks/*)
+      return 0 ;;
+    *)
+      return 1 ;;
+  esac
+}
+
+while IFS= read -r -d '' p; do
+  if [[ -n "${deleted["$p"]+x}" ]]; then
+    continue
+  fi
+  if ! is_text_like "$p"; then
+    continue
+  fi
+
+  # ステージされた内容を取り出して \r があればNG
+  # $'\r' を使うので bash 前提
+  if git show ":$p" 2>/dev/null | grep -q $'\r'; then
+    echo "[ERROR] CRLF(\\r\\n) が含まれています（LFにしてください）: $p"
+    exit 1
+  fi
+done < <(git diff --cached --name-only -z)
+
+# -----------------------------
+# G) Debug.Log / TODO（警告）
+# -----------------------------
+if git diff --cached | grep -i 'Debug.Log(' >/dev/null; then
+  echo "[WARNING] Debug.Log が含まれています"
+fi
+if git diff --cached | grep -i 'TODO' >/dev/null; then
+  echo "[WARNING] TODO が含まれています"
+fi
+
+echo "[OK] Pre-commit passed"
+exit 0
