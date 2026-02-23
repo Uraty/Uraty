@@ -1,0 +1,110 @@
+name: Quality Gate
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 1) マージコンフリクトマーカー検出
+      - name: Reject merge conflict markers
+        run: |
+          set -euo pipefail
+          if git grep -nE '^(<<<<<<<|=======|>>>>>>>)' -- .; then
+            echo "::error::Merge conflict markers found."
+            exit 1
+          fi
+
+      # 2) 禁止ディレクトリ検出
+      - name: Reject forbidden Unity directories
+        run: |
+          set -euo pipefail
+          # PRなら差分、pushなら直近コミット差分を対象にする
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
+            files=$(git diff --name-only -z "$base" "$head" || true)
+          else
+            files=$(git diff --name-only -z HEAD~1 HEAD || true)
+          fi
+
+          echo "$files" | tr '\0' '\n' | grep -E '^(Library/|Temp/|Logs/|obj/|UserSettings/)' && {
+            echo "::error::Forbidden Unity directories are included."
+            exit 1
+          } || true
+
+      # 3) 巨大ファイル検出（>100MB エラー、>50MB 警告）
+      - name: Detect large files
+        run: |
+          set -euo pipefail
+          WARN_SIZE=$((50 * 1024 * 1024))
+          ERROR_SIZE=$((100 * 1024 * 1024))
+
+          # PR差分のファイル一覧を取得（追加/変更/リネーム後のパス）
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
+            mapfile -d '' paths < <(git diff --name-only -z "$base" "$head")
+          else
+            mapfile -d '' paths < <(git diff --name-only -z HEAD~1 HEAD)
+          fi
+
+          has_error=0
+          for p in "${paths[@]}"; do
+            # 削除は除外
+            if git cat-file -e "HEAD:$p" 2>/dev/null; then
+              # 現在のHEADでのblobサイズ
+              size=$(git cat-file -s "HEAD:$p")
+              if [ "$size" -gt "$ERROR_SIZE" ]; then
+                echo "::error::File >100MB: $p ($size bytes)"
+                has_error=1
+              elif [ "$size" -gt "$WARN_SIZE" ]; then
+                echo "::warning::File >50MB: $p ($size bytes)"
+              fi
+            fi
+          done
+
+          exit $has_error
+
+      # 4) CRLF検出（対象拡張子のみ）
+      - name: Reject CRLF in text assets
+        run: |
+          set -euo pipefail
+
+          is_text_like () {
+            case "$1" in
+              *.cs|*.meta|*.unity|*.prefab|*.asset|*.json|*.txt|*.md|*.yml|*.yaml|.githooks/*)
+                return 0 ;;
+              *)
+                return 1 ;;
+            esac
+          }
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
+            mapfile -d '' paths < <(git diff --name-only -z "$base" "$head")
+          else
+            mapfile -d '' paths < <(git diff --name-only -z HEAD~1 HEAD)
+          fi
+
+          bad=0
+          for p in "${paths[@]}"; do
+            is_text_like "$p" || continue
+            # バイナリや存在しないファイル（削除）を避ける
+            if git cat-file -e "HEAD:$p" 2>/dev/null; then
+              if git show "HEAD:$p" | grep -q $'\r'; then
+                echo "::error::CRLF found: $p"
+                bad=1
+              fi
+            fi
+          done
+          exit $bad
