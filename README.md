@@ -37,5 +37,5 @@
 
 1. Unity Hub から Unity 6000.3.8f1 をインストールする  
 2. 本リポジトリをクローンする
-3. scripts/SetupHooks.bat を実行する
+3. scripts/Setup.bat を実行する
 4. Unity Hub から本プロジェクトを追加し、開く
