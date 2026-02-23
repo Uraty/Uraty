@@ -58,7 +58,6 @@ if [ -n "$SECOND_LINE" ]; then
 fi
 
 # 6) If feat has scope, reject TODO / empty ()
-#    - empty () is already rejected by regex, but keep explicit guard anyway.
 IS_FEAT=0
 printf "%s" "$SUBJECT" | grep -Eq '^feat(\([a-z0-9_-]+\))?: ' && IS_FEAT=1
 
@@ -75,8 +74,8 @@ if [ "$IS_FEAT" -eq 1 ]; then
     exit 1
   }
 
-  # 7) Issue required ONLY for feat commits (body: lines 3+)
-  tail -n +3 "$COMMIT_MSG_FILE" | grep -Eiq '(^|[[:space:]])(Issue:?[[:space:]]*#?[0-9]+|Closes[[:space:]]+#?[0-9]+|Refs[[:space:]]+#?[0-9]+|#[0-9]+)($|[[:space:]])'
+  # 7) Issue required ONLY for feat commits (search entire message; do not rely on line numbers)
+  grep -Eiq '(^|[[:space:]])(Issue:?[[:space:]]*#?[0-9]+|Closes[[:space:]]+#?[0-9]+|Refs[[:space:]]+#?[0-9]+|#[0-9]+)($|[[:space:]])' "$COMMIT_MSG_FILE"
   if [ $? -ne 0 ]; then
     echo "❌ Issue reference required for feat commits."
     echo "   Add one of these in the body (after the blank line):"

@@ -1,121 +1,73 @@
 #!/bin/sh
 #
 # prepare-commit-msg
-# Prefill commit message from branch:
-#   <btype>/<ticket-id>-<desc>
-# Branch types:
-#   feature fix refactor chore docs test ci
+# Template helper (not enforcement):
+# - Prefill "type(scope): " skeleton (type/scope are TODO)
+# - Show candidate types and scope hints
+# - Extract Issue id from branch name: <any>/<digits>-<desc>  -> Issue: <digits>
 #
-# Policy:
-# - For feature/* branches: subject is "feat(TODO): add " + show suggested scope
-# - For other types: subject is "<type>: <verb> " (no scope)
-# - For feat commits: insert non-comment Issue line (required by commit-msg)
+# Notes:
+# - Do not overwrite an existing non-comment message (GUI often uses -F temp file)
 #
 
 COMMIT_MSG_FILE=$1
 COMMIT_SOURCE=$2
 
+# Skip for merges/squashes (do not touch generated messages)
 case "$COMMIT_SOURCE" in
-  merge|squash|commit) exit 0 ;;
+  merge|squash) exit 0 ;;
 esac
 
-# Don't overwrite existing message (e.g. -m)
-if [ -s "$COMMIT_MSG_FILE" ]; then
+# If there is already a real (non-comment, non-empty) line, do nothing.
+if grep -qE '^[[:space:]]*[^#[:space:]]' "$COMMIT_MSG_FILE"; then
   exit 0
 fi
 
 BRANCH=$(git symbolic-ref --quiet --short HEAD 2>/dev/null)
 
-# Detached HEAD fallback
-if [ -z "$BRANCH" ]; then
-  cat <<'EOF' > "$COMMIT_MSG_FILE"
-feat(TODO): add 
-
-Issue: <id>
-# Suggested scope: <scope>
-# Tip: Use feat(scope): ... OR remove scope: feat: ...
-# WHY:
-# WHAT:
-EOF
-  exit 0
+# Try to extract ticket id from branch: .../<digits>-...
+TICKET=""
+if [ -n "$BRANCH" ]; then
+  REST=$(printf "%s" "$BRANCH" | awk -F/ '{print $2}')
+  TICKET=$(printf "%s" "$REST" | sed -n 's/^\([0-9][0-9]*\)-.*/\1/p')
 fi
 
-BTYPE=$(printf "%s" "$BRANCH" | awk -F/ '{print $1}')
-REST=$(printf "%s" "$BRANCH" | awk -F/ '{print $2}')
-
-# Map branch type -> commit type
-case "$BTYPE" in
-  feature)  CTYPE="feat" ;;
-  fix)      CTYPE="fix" ;;
-  refactor) CTYPE="refactor" ;;
-  chore)    CTYPE="chore" ;;
-  docs)     CTYPE="docs" ;;
-  test)     CTYPE="test" ;;
-  ci)       CTYPE="ci" ;;
-  *)        CTYPE="feat" ;;  # fallback
-esac
-
-# Extract ticket id: ^digits-
-TICKET=$(printf "%s" "$REST" | sed -n 's/^\([0-9][0-9]*\)-.*/\1/p')
-
-# Extract desc after ticket id, then suggest scope = first token
-DESC=$(printf "%s" "$REST" | sed 's/^[0-9][0-9]*-//')
-SUG_SCOPE=$(printf "%s" "$DESC" | awk -F- '{print $1}')
-
-# Sanitize suggested scope (lowercase/digits/_- only); otherwise blank
-printf "%s" "$SUG_SCOPE" | grep -Eq '^[a-z0-9_-]+$' || SUG_SCOPE=""
-
-# Verb stub by type
-VERB="add"
-case "$CTYPE" in
-  feat)     VERB="add" ;;
-  fix)      VERB="fix" ;;
-  refactor) VERB="refactor" ;;
-  docs)     VERB="update" ;;
-  test)     VERB="add" ;;
-  ci)       VERB="update" ;;
-  chore)    VERB="update" ;;
-esac
-
-# Subject
-if [ "$CTYPE" = "feat" ] && [ "$BTYPE" = "feature" ]; then
-  SUBJECT="feat(TODO): ${VERB} "
-else
-  SUBJECT="${CTYPE}: ${VERB} "
-fi
-
-# Issue line
 if [ -n "$TICKET" ]; then
-  ISSUE_TEXT="Issue: $TICKET"
+  ISSUE_LINE="Issue: $TICKET"
 else
-  ISSUE_TEXT="Issue: <id>"
+  ISSUE_LINE="Issue: <id>"
 fi
 
-# feat requires Issue line non-comment; others optional (comment)
-if [ "$CTYPE" = "feat" ]; then
-  ISSUE_LINE="$ISSUE_TEXT"
-else
-  ISSUE_LINE="# $ISSUE_TEXT"
+# Suggest scope from branch description (after ticket id), first token
+SUG_SCOPE=""
+if [ -n "$BRANCH" ]; then
+  REST=$(printf "%s" "$BRANCH" | awk -F/ '{print $2}')
+  DESC=$(printf "%s" "$REST" | sed 's/^[0-9][0-9]*-//')
+  SUG_SCOPE=$(printf "%s" "$DESC" | awk -F- '{print $1}')
+  printf "%s" "$SUG_SCOPE" | grep -Eq '^[a-z0-9_-]+$' || SUG_SCOPE=""
 fi
 
-{
-  printf "%s\n\n" "$SUBJECT"
-  printf "%s\n" "$ISSUE_LINE"
+cat > "$COMMIT_MSG_FILE" <<EOF
+type(scope): summary
 
-  if [ "$CTYPE" = "feat" ] && [ "$BTYPE" = "feature" ]; then
-    if [ -n "$SUG_SCOPE" ]; then
-      printf "%s\n" "# Suggested scope: $SUG_SCOPE"
-    else
-      printf "%s\n" "# Suggested scope: <scope>"
-    fi
-    printf "%s\n" "# Tip: Use feat(scope): ... OR remove scope: feat: ..."
-  fi
+$ISSUE_LINE
 
-  cat <<'EOF'
 WHY:
 WHAT:
 
+# Types: feat | fix | refactor | chore | docs | test | ci
+# Format: <type>(<scope>): <summary>  OR  <type>: <summary>
+# Examples:
+#   feat(player): add jump
+#   fix(player): prevent null ref
+#   chore(hooks): enforce conventional commits
 EOF
-} > "$COMMIT_MSG_FILE"
+
+# If we have a suggested scope, add it as a hint (comment)
+if [ -n "$SUG_SCOPE" ]; then
+  printf "%s\n" "# Suggested scope: $SUG_SCOPE" >> "$COMMIT_MSG_FILE"
+else
+  printf "%s\n" "# Suggested scope: <scope>" >> "$COMMIT_MSG_FILE"
+fi
 
 exit 0
