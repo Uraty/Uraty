@@ -1,0 +1,7 @@
+<Project>
+  <ItemGroup Condition="'$(MSBuildProjectFile)' != 'Analyzer.csproj'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)Analyzers\Analyzer.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+</Project>
