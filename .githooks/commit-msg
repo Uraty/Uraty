@@ -1,6 +1,11 @@
 #!/bin/sh
 
 COMMIT_MSG_FILE=$1
+
+# テンプレのコメント行（先頭が # の行）をコミット前に削除する
+TMP=$(mktemp 2>/dev/null || echo "$COMMIT_MSG_FILE.tmp.$$")
+grep -Ev '^[[:space:]]*#' "$COMMIT_MSG_FILE" > "$TMP" && mv "$TMP" "$COMMIT_MSG_FILE"
+
 SUBJECT=$(head -n 1 "$COMMIT_MSG_FILE")
 
 # 件名が空
@@ -30,7 +35,6 @@ BEGIN { in_reason=0; bad=0 }
 {
   if ($0 ~ /^Reason:[[:space:]]*$/) { in_reason=1; next }
   if (in_reason==1) {
-    if ($0 ~ /^#/) next
     if ($0 ~ /^[[:space:]]*$/) next
     in_reason=0
   }
@@ -47,17 +51,14 @@ if [ $? -ne 0 ]; then
 fi
 
 # Issue 空チェック（Issue: 行があるなら、番号を書くか行を削除）
-# 例: "Issue:" や "Issue:   " をエラーにする
 if grep -Eq '^[[:space:]]*Issue:[[:space:]]*$' "$COMMIT_MSG_FILE"; then
   echo "Error: Issue が空です。Issue に番号を入力するか、Issue 行を削除してください。" >&2
   exit 1
 fi
 
 # Issue 警告のみ（feature / fix / refactor で Issue 参照が無いと警告）
-# コメント行(# ...)は判定対象から外す
 HAS_ISSUE=0
-grep -Ev '^[[:space:]]*#' "$COMMIT_MSG_FILE" | \
-  grep -Eiq 'Issue:?[[:space:]]*#?[0-9]+|Closes[[:space:]]+#?[0-9]+|Refs[[:space:]]+#?[0-9]+|#[0-9]+' \
+grep -Eiq 'Issue:?[[:space:]]*#?[0-9]+|Closes[[:space:]]+#?[0-9]+|Refs[[:space:]]+#?[0-9]+|#[0-9]+' "$COMMIT_MSG_FILE" \
   && HAS_ISSUE=1
 
 printf "%s" "$SUBJECT" | grep -Eq '^(feature|fix|refactor)'
