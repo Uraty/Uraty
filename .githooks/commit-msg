@@ -1,89 +1,62 @@
 #!/bin/sh
-#
-# commit-msg
-# Enforce:
-# - Allowed types only: feat|fix|refactor|chore|docs|test|ci
-# - Conventional Commits (scope optional)
-# - Subject <= 50 chars
-# - ASCII only in subject
-# - Imperative mood (basic)
-# - Blank line after subject
-# - Issue required ONLY for feat commits (in body)
-# - If feat has "(...)" then it must NOT be empty and must NOT be TODO
-#
 
 COMMIT_MSG_FILE=$1
 
+# テンプレのコメント行（先頭が # の行）をコミット前に削除する
+TMP=$(mktemp 2>/dev/null || echo "$COMMIT_MSG_FILE.tmp.$$")
+grep -Ev '^[[:space:]]*#' "$COMMIT_MSG_FILE" > "$TMP" && mv "$TMP" "$COMMIT_MSG_FILE"
+
 SUBJECT=$(head -n 1 "$COMMIT_MSG_FILE")
-SECOND_LINE=$(sed -n '2p' "$COMMIT_MSG_FILE")
 
-# 1) Conventional + allowed types
-#    - scope optional
-#    - if scope exists, must be non-empty and match [a-z0-9_-]+
-echo "$SUBJECT" | grep -Eq '^(feat|fix|refactor|chore|docs|test|ci)(\([a-z0-9_-]+\))?: [a-z].+'
+# 件名が空
+if [ -z "$SUBJECT" ]; then
+  echo "Error: 件名が空です。" >&2
+  exit 1
+fi
+
+# type形式チェック
+echo "$SUBJECT" | grep -Eq '^(feature|fix|refactor|chore|docs|test|ci)(\([a-z0-9_-]+\))?: .+'
 if [ $? -ne 0 ]; then
-  echo "❌ Invalid format."
-  echo "   Use: <type>(scope): summary  OR  <type>: summary"
-  echo "   Types: feat, fix, refactor, chore, docs, test, ci"
-  echo "   Example: feat(player): add jump"
-  echo "   Example: feat: add jump"
+  echo "Error: 形式が不正です。" >&2
+  echo "Use: <type>(scope): summary" >&2
   exit 1
 fi
 
-# 2) Subject length <= 50
-LENGTH=$(printf "%s" "$SUBJECT" | wc -c | tr -d ' ')
+# 長さチェック
+LENGTH=$(printf "%s" "$SUBJECT" | wc -m | tr -d ' ')
 if [ "$LENGTH" -gt 50 ]; then
-  echo "❌ Subject must be 50 characters or less."
+  echo "Error: 件名は 50 文字以内にしてください。" >&2
   exit 1
 fi
 
-# 3) ASCII only in subject
-printf "%s" "$SUBJECT" | LC_ALL=C grep -q '[^ -~]'
-if [ $? -eq 0 ]; then
-  echo "❌ Subject must be ASCII (English only)."
+# Reason 空チェック（同一行運用）
+# 例: "Reason:" だけはNG / "Reason: xxx" はOK
+if grep -Eq '^[[:space:]]*Reason:[[:space:]]*$' "$COMMIT_MSG_FILE"; then
+  echo "Error: Reason が空です。理由を書くか、Reason 行を削除してください。" >&2
   exit 1
 fi
 
-# 4) Imperative mood (basic heuristic)
-echo "$SUBJECT" | grep -Eiq ' (added|fixed|changed|removed|updated|improved|refactored)\b'
-if [ $? -eq 0 ]; then
-  echo "❌ Use imperative mood (add/fix/change/...), not past tense."
+# Notes 空チェック（同一行運用）
+# 例: "Notes:" だけはNG / "Notes: xxx" はOK
+if grep -Eq '^[[:space:]]*Notes:[[:space:]]*$' "$COMMIT_MSG_FILE"; then
+  echo "Error: Notes が空です。内容を書くか、Notes 行を削除してください。" >&2
   exit 1
 fi
 
-# 5) Blank line after subject
-if [ -n "$SECOND_LINE" ]; then
-  echo "❌ Blank line required after subject (line 2 must be empty)."
+# Issue 空チェック（Issue: 行があるなら、番号を書くか行を削除）
+if grep -Eq '^[[:space:]]*Issue:[[:space:]]*$' "$COMMIT_MSG_FILE"; then
+  echo "Error: Issue が空です。Issue に番号を入力するか、Issue 行を削除してください。" >&2
   exit 1
 fi
 
-# 6) If feat has scope, reject TODO / empty ()
-IS_FEAT=0
-printf "%s" "$SUBJECT" | grep -Eq '^feat(\([a-z0-9_-]+\))?: ' && IS_FEAT=1
+# Issue 警告のみ（feature / fix / refactor で Issue 参照が無いと警告）
+HAS_ISSUE=0
+grep -Eiq 'Issue:?[[:space:]]*#?[0-9]+|Closes[[:space:]]+#?[0-9]+|Refs[[:space:]]+#?[0-9]+|#[0-9]+' "$COMMIT_MSG_FILE" \
+  && HAS_ISSUE=1
 
-if [ "$IS_FEAT" -eq 1 ]; then
-  # Reject feat(TODO):
-  printf "%s" "$SUBJECT" | grep -Eq '^feat\(TODO\): ' && {
-    echo "❌ Scope is TODO. Either set a real scope (e.g., feat(player): ...) or remove scope (feat: ...)."
-    exit 1
-  }
-
-  # Extra guard: reject feat():
-  printf "%s" "$SUBJECT" | grep -Eq '^feat\(\): ' && {
-    echo "❌ Empty scope is not allowed. Use feat: ... or feat(player): ..."
-    exit 1
-  }
-
-  # 7) Issue required ONLY for feat commits (search entire message; do not rely on line numbers)
-  grep -Eiq '(^|[[:space:]])(Issue:?[[:space:]]*#?[0-9]+|Closes[[:space:]]+#?[0-9]+|Refs[[:space:]]+#?[0-9]+|#[0-9]+)($|[[:space:]])' "$COMMIT_MSG_FILE"
-  if [ $? -ne 0 ]; then
-    echo "❌ Issue reference required for feat commits."
-    echo "   Add one of these in the body (after the blank line):"
-    echo "   - Issue: 123"
-    echo "   - Closes #123"
-    echo "   - Refs #123"
-    exit 1
-  fi
+printf "%s" "$SUBJECT" | grep -Eq '^(feature|fix|refactor)'
+if [ $? -eq 0 ] && [ "$HAS_ISSUE" -ne 1 ]; then
+  echo "Warning: feature / fix / refactor では Issue 参照を推奨します（Issue: 123 など）。" >&2
 fi
 
 exit 0
