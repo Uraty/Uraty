@@ -29,24 +29,17 @@ if [ "$LENGTH" -gt 50 ]; then
   exit 1
 fi
 
-# Reason 空チェック（Reason: 行があるなら、理由を書くか行を削除）
-awk '
-BEGIN { in_reason=0; bad=0 }
-{
-  if ($0 ~ /^Reason:[[:space:]]*$/) { in_reason=1; next }
-  if (in_reason==1) {
-    if ($0 ~ /^[[:space:]]*$/) next
-    in_reason=0
-  }
-}
-END {
-  if (in_reason==1) bad=1
-  exit bad
-}
-' "$COMMIT_MSG_FILE"
-
-if [ $? -ne 0 ]; then
+# Reason 空チェック（同一行運用）
+# 例: "Reason:" だけはNG / "Reason: xxx" はOK
+if grep -Eq '^[[:space:]]*Reason:[[:space:]]*$' "$COMMIT_MSG_FILE"; then
   echo "Error: Reason が空です。理由を書くか、Reason 行を削除してください。" >&2
+  exit 1
+fi
+
+# Notes 空チェック（同一行運用）
+# 例: "Notes:" だけはNG / "Notes: xxx" はOK
+if grep -Eq '^[[:space:]]*Notes:[[:space:]]*$' "$COMMIT_MSG_FILE"; then
+  echo "Error: Notes が空です。内容を書くか、Notes 行を削除してください。" >&2
   exit 1
 fi
 
