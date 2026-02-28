@@ -1,18 +1,32 @@
-type(scope): summary
 
-Issue: <id>
 
-WHY:
-WHAT:
+Issue:
 
-# Types: feat | fix | refactor | chore | docs | test | ci
-# Format: <type>(<scope>): <summary>  OR  <type>: <summary>
-# Examples (with scope):
-#   feat(player): add jump
-#   fix(player): prevent null ref
-#   chore(hooks): enforce conventional commits
-# Examples (without scope):
-#   feat: add jump
-#   fix: prevent crash on null input
-#   docs: update README
-# Suggested scope: <scope>
+Reason:
+
+# コミットメッセージ規約
+#
+# 形式:
+#   <type>(<scope>): <summary>
+#   または
+#   <type>: <summary>
+#
+# type: feature | fix | refactor | chore | docs | test | ci
+# - 件名は 50 文字以内
+# - 日本語OK
+#
+# 推奨: feature / fix / refactor は Issue 参照を入れる（無い場合は警告）
+#   Issue: 123
+#   Closes #123
+#   Refs #123
+#
+# Reason: は任意
+# - 書かないなら行ごと削除
+# - 残すなら空は禁止（commit-msg がエラーにする）
+#
+# 例:
+#   feature(player): ジャンプを追加
+#
+#   Issue: 123
+#
+#   Reason: プレイヤー操作の基本機能が必要なため

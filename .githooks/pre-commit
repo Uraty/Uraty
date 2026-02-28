@@ -1,32 +1,138 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "=== Pre-commit (Unity) ==="
-
-# しきい値
-WARN_SIZE=$((50 * 1024 * 1024))      # 50MB 警告
-ERROR_SIZE=$((100 * 1024 * 1024))    # 100MB エラー（GitHub制限にも一致）
-
-# -----------------------------
-# A) main直コミット警告（警告のみ）
-# -----------------------------
-BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
-if [[ "$BRANCH" == "main" ]]; then
-  echo "[WARNING] main への直接コミットです（推奨: ブランチを切ってPR）"
-fi
-
-# -----------------------------
-# B) マージコンフリクト残骸検出（エラー）
-# -----------------------------
-if git diff --cached | grep -E '<<<<<<<|=======|>>>>>>>' >/dev/null; then
-  echo "[ERROR] マージコンフリクト残骸が含まれています"
+# Bash 4+ 必須（declare -A のため）
+if (( BASH_VERSINFO[0] < 4 )); then
+  echo "[ERROR] Bash 4+ が必要です（現在: ${BASH_VERSION}）"
+  echo "        macOS 標準 /bin/bash (3.2) では動作しません。brew の bash 等を使用してください。"
   exit 1
 fi
 
+echo "=== Pre-commit (Unity) ==="
+
+# しきい値
+readonly WARN_SIZE=$((50 * 1024 * 1024))      # 50MB 警告
+readonly ERROR_SIZE=$((100 * 1024 * 1024))    # 100MB エラー（GitHub制限にも一致）
+
 # -----------------------------
-# C) 禁止ディレクトリ検出（エラー）
-#     ※rename/new/modify 全部対象にするため name-status から拾う
+# A) protected branch 直コミット禁止（エラー）
 # -----------------------------
+BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
+case "$BRANCH" in
+  main|develop)
+    echo "[ERROR] $BRANCH への直接コミットは禁止です（ブランチを切ってPRしてください）"
+    exit 1
+    ;;
+esac
+
+# -----------------------------
+# 共通関数
+# -----------------------------
+
+# -----------------------------
+# .gitattributes ベースのテキスト判定
+#   - .gitattributes を正とする
+#   - ただし text=auto は未知バイナリ拡張子も拾い得るので、
+#     ステージ済みblobを軽く内容判定して誤爆を減らす
+# -----------------------------
+
+# git check-attr が --cached をサポートしていれば index 上の .gitattributes を参照
+declare -a GIT_CHECK_ATTR_BASE_ARGS=()
+if LC_ALL=C grep -q -- '--cached' < <(git check-attr -h 2>&1); then
+  GIT_CHECK_ATTR_BASE_ARGS=(--cached)
+fi
+
+# git attribute の値を取得（返り値例: set / unset / unspecified / auto / lf / crlf）
+git_attr_value() {
+  local p="$1"
+  local attr="$2"
+  local _path _attr _val
+
+  # 出力形式（-z）: path\0attr\0value\0
+  while IFS= read -r -d '' _path \
+    && IFS= read -r -d '' _attr \
+    && IFS= read -r -d '' _val; do
+    if [[ "$_attr" == "$attr" ]]; then
+      printf '%s\n' "$_val"
+      return 0
+    fi
+  done < <(git check-attr "${GIT_CHECK_ATTR_BASE_ARGS[@]}" -z "$attr" -- "$p" 2>/dev/null || true)
+
+  printf 'unspecified\n'
+}
+
+# ステージ済み blob が「たぶんテキスト」かをざっくり判定
+# - 空ファイルはテキスト扱い
+# - grep -I でバイナリっぽいものを除外（完全ではないが実用上かなり効く）
+staged_blob_is_probably_text() {
+  local p="$1"
+  local size
+
+  size="$(git cat-file -s ":$p" 2>/dev/null || echo 0)"
+  if (( size == 0 )); then
+    return 0
+  fi
+
+  # 空パターンでマッチ判定。-I により binary は非マッチ扱いになりやすい
+  LC_ALL=C grep -Iq '' < <(git cat-file -p ":$p" 2>/dev/null)
+}
+
+# conflict marker チェック対象か（.gitattributes ベース）
+is_text_like() {
+  local p="$1"
+  local text_attr
+  local eol_attr
+
+  text_attr="$(git_attr_value "$p" text)"
+  eol_attr="$(git_attr_value "$p" eol)"
+
+  # 明示的 binary / -text は対象外
+  if [[ "$text_attr" == "unset" ]]; then
+    return 1
+  fi
+
+  # eol が指定されているものは text 前提なので対象候補
+  # text=auto/set も対象候補
+  case "$eol_attr" in
+    lf|crlf) ;;
+    *)
+      case "$text_attr" in
+        set|auto) ;;
+        *) return 1 ;;
+      esac
+      ;;
+  esac
+
+  staged_blob_is_probably_text "$p"
+}
+
+# CRLF を禁止（LF要求）すべきか
+# -> .gitattributes の eol=lf を正とする
+should_enforce_lf() {
+  local p="$1"
+  local eol_attr
+
+  eol_attr="$(git_attr_value "$p" eol)"
+  [[ "$eol_attr" == "lf" ]] || return 1
+
+  # eol=lf でも未知バイナリが * text=auto eol=lf に引っかかる可能性があるため保険
+  staged_blob_is_probably_text "$p"
+}
+
+# .gitattributes で text/eol のどちらかが明示されているか
+# - text=set/auto/unset, eol=lf/crlf などを「明示あり」とみなす
+# - text/eol 両方 unspecified の場合のみ「未指定」
+has_explicit_text_or_eol_attr() {
+  local p="$1"
+  local text_attr
+  local eol_attr
+
+  text_attr="$(git_attr_value "$p" text)"
+  eol_attr="$(git_attr_value "$p" eol)"
+
+  [[ "$text_attr" != "unspecified" || "$eol_attr" != "unspecified" ]]
+}
+
 is_forbidden_path() {
   local p="$1"
   case "$p" in
@@ -37,80 +143,246 @@ is_forbidden_path() {
   esac
 }
 
+# index（ステージ済み）にエントリが存在するか
+index_has_entry() {
+  local p="$1"
+  git cat-file -e ":$p" 2>/dev/null
+}
+
+# Assets配下のパスについて、親フォルダの .meta が index に存在するか確認
+# 例:
+#   Assets/Foo/Bar.cs      -> Assets/Foo.meta が必要
+#   Assets/Foo/Bar/Baz.cs  -> Assets/Foo/Bar.meta, Assets/Foo.meta が必要
+#   Assets/Foo.meta        -> (親は Assets のみなので追加チェックなし)
+check_assets_parent_dir_metas() {
+  local p="$1"
+  local base dir parent
+
+  case "$p" in
+    Assets/*) ;;
+    *) return 0 ;;
+  esac
+
+  # .meta なら本体パスに戻してから親を辿る（フォルダ .meta / ファイル .meta 両方に対応）
+  if [[ "$p" == *.meta ]]; then
+    base="${p%.meta}"
+  else
+    base="$p"
+  fi
+
+  # スラッシュを含まない場合（想定上ほぼ無いが安全側）
+  if [[ "$base" != */* ]]; then
+    return 0
+  fi
+
+  dir="${base%/*}"
+
+  # Assets 自体の .meta は要求しない。Assets配下の親フォルダのみチェックする。
+  while [[ "$dir" == Assets/* ]]; do
+    if ! index_has_entry "$dir.meta"; then
+      echo "[ERROR] 親フォルダの .meta が不足しています（ステージされていません）: $dir.meta"
+      exit 1
+    fi
+    parent="${dir%/*}"
+    [[ "$parent" == "$dir" ]] && break
+    dir="$parent"
+  done
+}
+
 # -----------------------------
-# D) Unity .meta 整合（追加/変更/rename/削除 すべて対応）
-#     - Assets配下のファイル(非.meta)が追加/変更/renameされたら、対応する .meta が存在すること
-#     - Assets配下のファイルが削除されたら、対応する .meta も削除されること
-#     - .meta だけ削除されたら、本体も削除されていること（片方消しを防ぐ）
+# 変更一覧の収集（NUL区切りで安全にパース）
+#   - deleted         : ステージ上で削除されたパス
+#   - changed_or_added: ステージ上で追加/変更/rename先/copy先/typechange のパス
 # -----------------------------
 declare -A deleted
 declare -A changed_or_added
+declare -A touched_non_deleted
 
-# name-status を NUL 区切りで取得して安全にパース
-# フォーマット:
-#   M\0path\0
-#   A\0path\0
-#   D\0path\0
-#   R100\0old\0new\0
-#   C100\0old\0new\0
 while IFS= read -r -d '' status; do
-  # Rename/Copy
-  if [[ "$status" == R* || "$status" == C* ]]; then
-    IFS= read -r -d '' oldpath
-    IFS= read -r -d '' newpath
+  case "$status" in
+    R*)
+      IFS= read -r -d '' oldpath
+      IFS= read -r -d '' newpath
 
-    # 禁止ディレクトリ（new側で判定）
-    if is_forbidden_path "$newpath"; then
-      echo "[ERROR] 禁止ディレクトリがステージされています: $newpath"
-      exit 1
-    fi
+      # 禁止ディレクトリは rename 先のみ判定（削除側は許可）
+      if is_forbidden_path "$newpath"; then
+        echo "[ERROR] 禁止ディレクトリがステージされています: $newpath"
+        exit 1
+      fi
 
-    # old は削除扱い、new は追加/変更扱いとして扱う
-    deleted["$oldpath"]=1
-    changed_or_added["$newpath"]=1
-  else
-    IFS= read -r -d '' path
+      deleted["$oldpath"]=1
+      changed_or_added["$newpath"]=1
+      touched_non_deleted["$newpath"]=1
+      ;;
 
-    # 禁止ディレクトリ
-    if is_forbidden_path "$path"; then
-      echo "[ERROR] 禁止ディレクトリがステージされています: $path"
-      exit 1
-    fi
+    C*)
+      IFS= read -r -d '' oldpath
+      IFS= read -r -d '' newpath
 
-    case "$status" in
-      D) deleted["$path"]=1 ;;
-      A|M) changed_or_added["$path"]=1 ;;
-      *) : ;;
-    esac
-  fi
-done < <(git diff --cached --name-status -z)
+      # Copy は old を削除扱いにしない
+      if is_forbidden_path "$newpath"; then
+        echo "[ERROR] 禁止ディレクトリがステージされています: $newpath"
+        exit 1
+      fi
 
-# メタチェック：追加/変更/renameされた Assets 配下(非 .meta)は .meta が存在すること
-for p in "${!changed_or_added[@]}"; do
-  case "$p" in
-    Assets/*)
-      case "$p" in
-        *.meta) : ;;
-        *)
-          if [[ ! -f "$p.meta" ]]; then
-            echo "[ERROR] .meta が不足しています: $p.meta"
+      changed_or_added["$newpath"]=1
+      touched_non_deleted["$newpath"]=1
+      ;;
+
+    *)
+      IFS= read -r -d '' path
+
+      case "$status" in
+        D)
+          # 削除は許可（禁止ディレクトリ掃除コミットを止めない）
+          deleted["$path"]=1
+          ;;
+
+        A|M|T)
+          if is_forbidden_path "$path"; then
+            echo "[ERROR] 禁止ディレクトリがステージされています: $path"
             exit 1
           fi
+          changed_or_added["$path"]=1
+          touched_non_deleted["$path"]=1
+          ;;
+
+        # unmerged は U 単独だけでなく AA/AU/UA/DD/DU/UD/UU もあり得る
+        U|AA|AU|UA|DD|DU|UD|UU)
+          echo "[ERROR] unmerged 状態のファイルがあります: $path (status=$status)"
+          exit 1
+          ;;
+
+        *)
+          echo "[ERROR] 未対応ステータスを検出しました: status='$status' path='$path'"
+          echo "        このフックは fail-closed 設計です。ステータス対応を追加してください。"
+          exit 1
           ;;
       esac
       ;;
   esac
+done < <(git diff --cached --name-status -z)
+
+# 念のため二重防御：unmerged index エントリが残っていたら即エラー
+if git ls-files -u --error-unmatch -- ':/' >/dev/null 2>&1; then
+  echo "[ERROR] unmerged 状態の index エントリが残っています（競合を解消してからコミットしてください）"
+  exit 1
+fi
+
+# -----------------------------
+# B) マージコンフリクト残骸検出（エラー）
+#     ※diff本文ではなく「ステージ済みblob」を見る（削除行の誤検知を防ぐ）
+#     ※'=======' 単体は false positive を避けるため無視
+# -----------------------------
+for p in "${!touched_non_deleted[@]}"; do
+  if ! is_text_like "$p"; then
+    continue
+  fi
+
+  has_conflict_start=0
+  has_conflict_end=0
+
+  if LC_ALL=C grep -aqE '^<<<<<<< ' < <(git cat-file -p ":$p" 2>/dev/null); then
+    has_conflict_start=1
+  fi
+  if LC_ALL=C grep -aqE '^>>>>>>> ' < <(git cat-file -p ":$p" 2>/dev/null); then
+    has_conflict_end=1
+  fi
+
+  if (( has_conflict_start && has_conflict_end )); then
+    echo "[ERROR] マージコンフリクト残骸が含まれています（開始/終了マーカー両方を検出）: $p"
+    exit 1
+  fi
+
+  if (( has_conflict_start || has_conflict_end )); then
+    echo "[ERROR] 壊れたマージコンフリクト残骸の可能性があります（片側マーカーのみ検出）: $p"
+    echo "        conflict markers: start=$has_conflict_start end=$has_conflict_end"
+    exit 1
+  fi
 done
 
-# メタチェック：削除された Assets 配下(非 .meta)は .meta も削除されていること
+# -----------------------------
+# C) .gitattributes 未指定のテキストっぽいファイル検出（エラー）
+#     - text/eol が両方 unspecified
+#     - かつ staged blob がテキストっぽい
+# -----------------------------
+for p in "${!touched_non_deleted[@]}"; do
+  # text/eol のどちらかが明示されていればOK
+  if has_explicit_text_or_eol_attr "$p"; then
+    continue
+  fi
+
+  # 未指定だがテキストっぽいならエラー
+  if staged_blob_is_probably_text "$p"; then
+    echo "[ERROR] .gitattributes 未指定のテキストっぽいファイルがステージされています: $p"
+    echo "        .gitattributes に text/eol（例: text eol=lf）または -text を明示してください。"
+    echo "        check-attr: text=$(git_attr_value "$p" text), eol=$(git_attr_value "$p" eol)"
+    exit 1
+  fi
+done
+
+# -----------------------------
+# D) Unity .meta 整合（追加/変更/rename/削除 すべて対応）
+#     - Assets配下のファイル(非.meta)が追加/変更/rename/copyされたら、対応する .meta が index に存在すること
+#     - Assets配下のファイルが削除されたら、対応する .meta も削除されること
+#     - .meta だけ削除されたら、本体も削除されていること（片方消し防止）
+#   [P0追加]
+#     - Assets配下で新規/移動されたファイルに対して、親フォルダ .meta も index に存在すること
+#     - .meta だけ追加/変更/rename されていないか（本体 or フォルダ実体が必要）
+#   ※フォルダ実体は Git index で直接表現されないため、フォルダ .meta 判定のみ一部ワーキングツリーも参照
+# -----------------------------
+
+# 追加/変更/rename/copyされた Assets 配下(非 .meta)は .meta が index に存在すること
+for p in "${!changed_or_added[@]}"; do
+  case "$p" in
+    Assets/*)
+      case "$p" in
+        *.meta)
+          : ;;
+        *)
+          if ! index_has_entry "$p.meta"; then
+            echo "[ERROR] .meta が不足しています（ステージされていません）: $p.meta"
+            exit 1
+          fi
+          ;;
+      esac
+
+      # [P0] 親フォルダ .meta も検査（新規フォルダ作成時の取りこぼし防止）
+      check_assets_parent_dir_metas "$p"
+      ;;
+  esac
+done
+
+# [P0] .meta だけ追加/変更/rename されていないか（本体 or フォルダが必要）
+for p in "${!changed_or_added[@]}"; do
+  case "$p" in
+    Assets/*.meta)
+      base="${p%.meta}"
+
+      # 1) 本体が index に存在（ファイル/シンボリックリンク等）
+      if index_has_entry "$base"; then
+        :
+      # 2) フォルダ本体がワーキングツリーに存在（Git index で直接追えない）
+      elif [[ -d "$base" ]]; then
+        :
+      else
+        echo "[ERROR] .meta だけが追加/変更されています（本体/フォルダが見つかりません）: $p"
+        exit 1
+      fi
+      ;;
+  esac
+done
+
+# 削除された Assets 配下(非 .meta)は .meta も削除されていること
 for p in "${!deleted[@]}"; do
   case "$p" in
     Assets/*)
       case "$p" in
-        *.meta) : ;; # meta自体の削除は後で別途検証
+        *.meta)
+          : ;; # 後段で別途検証
         *)
-          # 本体が削除されているのに meta が残ると事故
-          if [[ -f "$p.meta" ]] && [[ -z "${deleted["$p.meta"]+x}" ]]; then
+          # index にまだ meta が残っていて、かつ削除扱いでもないなら事故
+          if index_has_entry "$p.meta" && [[ -z "${deleted["$p.meta"]+x}" ]]; then
             echo "[ERROR] 本体を削除していますが .meta が削除されていません: $p.meta"
             exit 1
           fi
@@ -120,14 +392,21 @@ for p in "${!deleted[@]}"; do
   esac
 done
 
-# メタチェック：.meta だけ削除されていないか（本体も削除されている必要）
+# .meta だけ削除されていないか（本体も削除されている必要）
 for p in "${!deleted[@]}"; do
   case "$p" in
     Assets/*.meta)
       base="${p%.meta}"
-      # base がまだ存在し、かつ削除扱いでもないなら「metaだけ消した」事故
-      if [[ -f "$base" ]] && [[ -z "${deleted["$base"]+x}" ]]; then
-        echo "[ERROR] .meta だけ削除されています（本体が残っています）: $p"
+
+      # 1) base が index に残っている（= ファイル/シンボリックリンク等）ならNG
+      if index_has_entry "$base" && [[ -z "${deleted["$base"]+x}" ]]; then
+        echo "[ERROR] .meta だけ削除されています（本体がステージ上に残っています）: $p"
+        exit 1
+      fi
+
+      # 2) base がディレクトリとしてワーキングツリーに残っているならNG（フォルダは index で直接追えない）
+      if [[ -d "$base" ]] && [[ -z "${deleted["$base"]+x}" ]]; then
+        echo "[ERROR] フォルダ .meta だけ削除されています（フォルダ本体が残っています）: $p"
         exit 1
       fi
       ;;
@@ -136,22 +415,11 @@ done
 
 # -----------------------------
 # E) 巨大ファイル検出（50MB警告 / 100MBエラー）
-#     ※ステージされた各ファイルのblobサイズで判定
+#     ※ステージされた blob サイズで判定（index 直接参照）
 # -----------------------------
-# 対象は name-only -z で拾う（rename後の新パスも含む）
-while IFS= read -r -d '' p; do
-  # 削除はblobが無いのでスキップ
-  if [[ -n "${deleted["$p"]+x}" ]]; then
-    continue
-  fi
-
+for p in "${!touched_non_deleted[@]}"; do
   # サブモジュール等で取れない場合があるので安全に
-  hash="$(git ls-files -s "$p" 2>/dev/null | awk '{print $2}' || true)"
-  if [[ -z "$hash" ]]; then
-    continue
-  fi
-
-  size="$(git cat-file -s "$hash" 2>/dev/null || echo 0)"
+  size="$(git cat-file -s ":$p" 2>/dev/null || echo 0)"
 
   if (( size > ERROR_SIZE )); then
     echo "[ERROR] 100MB超のファイルがステージされています: $p (${size} bytes)"
@@ -160,47 +428,48 @@ while IFS= read -r -d '' p; do
   elif (( size > WARN_SIZE )); then
     echo "[WARNING] 50MB超のファイル: $p (${size} bytes)  ※GitHub推奨上限超え"
   fi
-done < <(git diff --cached --name-only -z)
+done
 
 # -----------------------------
 # F) CRLFチェック（エラー）
 #     ※ステージ内容を取り出して CR(\r) を含むか確認
-#     ※対象拡張子はUnityでテキスト扱いが多いものに限定
 # -----------------------------
-is_text_like() {
-  case "$1" in
-    *.cs|*.meta|*.unity|*.prefab|*.asset|*.json|*.txt|*.md|*.yml|*.yaml|.githooks/*)
-      return 0 ;;
-    *)
-      return 1 ;;
-  esac
-}
-
-while IFS= read -r -d '' p; do
-  if [[ -n "${deleted["$p"]+x}" ]]; then
-    continue
-  fi
-  if ! is_text_like "$p"; then
+for p in "${!touched_non_deleted[@]}"; do
+  # .gitattributes で eol=lf のものだけLF強制
+  # （eol=crlf の .bat/.cmd/.ps1 はここで除外される）
+  if ! should_enforce_lf "$p"; then
     continue
   fi
 
-  # ステージされた内容を取り出して \r があればNG
-  # $'\r' を使うので bash 前提
-  if git show ":$p" 2>/dev/null | grep -q $'\r'; then
-    echo "[ERROR] CRLF(\\r\\n) が含まれています（LFにしてください）: $p"
+  if LC_ALL=C grep -aq $'\r' < <(git cat-file -p ":$p" 2>/dev/null); then
+    echo "[ERROR] CRLF(\\r\\n) が含まれています（.gitattributes では LF 指定）: $p"
     exit 1
   fi
-done < <(git diff --cached --name-only -z)
+done
 
 # -----------------------------
-# G) Debug.Log / TODO（警告）
+# G) Unity EditorSettings 強制（Force Text）
+#     - ProjectSettings/EditorSettings.asset の m_SerializationMode: 2 を要求
 # -----------------------------
-if git diff --cached | grep -i 'Debug.Log(' >/dev/null; then
-  echo "[WARNING] Debug.Log が含まれています"
-fi
-if git diff --cached | grep -i 'TODO' >/dev/null; then
-  echo "[WARNING] TODO が含まれています"
-fi
+check_unity_editor_settings() {
+  local p="ProjectSettings/EditorSettings.asset"
+  local content
+
+  # Unityプロジェクトでない / 未追跡ならスキップ（必要ならここはエラーにしても良い）
+  if ! index_has_entry "$p"; then
+    return 0
+  fi
+
+  content="$(git cat-file -p ":$p" 2>/dev/null || true)"
+
+  if ! LC_ALL=C grep -qE '^  m_SerializationMode: 2$' < <(git cat-file -p ":$p" 2>/dev/null); then
+  echo "[ERROR] Unity Asset Serialization Mode が Force Text ではありません: $p"
+  echo "        Edit > Project Settings > Editor > Asset Serialization > Mode = Force Text"
+  exit 1
+  fi
+}
+
+check_unity_editor_settings
 
 echo "[OK] Pre-commit passed"
 exit 0
