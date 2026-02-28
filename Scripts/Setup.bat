@@ -22,6 +22,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
+echo === Setting fetch.prune ===
+git config --local fetch.prune true
+if errorlevel 1 (
+    echo [ERROR] fetch.prune 設定失敗
+    exit /b 1
+)
+
 echo.
 echo [OK] 設定完了
 echo.
@@ -30,5 +37,8 @@ git config --local core.hooksPath
 echo.
 echo commit.template:
 git config --local commit.template
+echo.
+echo fetch.prune:
+git config --local fetch.prune
 
 exit /b 0
