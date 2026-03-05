@@ -73,6 +73,11 @@ mono_crash.*
 *.unitypackage.meta
 *.app
 
+# Archives (avoid committing packed artifacts)
+*.zip
+*.7z
+*.rar
+
 # Crashlytics generated file
 crashlytics-build.properties
 
