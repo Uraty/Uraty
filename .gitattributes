@@ -1,141 +1,149 @@
-# 1) デフォルト: テキストは自動判定 + LFへ統一
-* text=auto eol=lf
+# =========================
+# .gitattributes (Unity / C# / LFS / EOL)
+# =========================
 
-# 2) Git hooksは必ずLF（hookがCRLFだと壊れる）
-.githooks/* text eol=lf
+# デフォルト: テキストは自動判定 + LFへ統一
+* text=auto eol=lf
 
 # -----------------------------
 # C# / .NET / Unity scripts
 # -----------------------------
-*.cs         text eol=lf
-*.csproj     text eol=lf
-*.sln        text eol=lf
-*.props      text eol=lf
-*.targets    text eol=lf
-*.editorconfig text eol=lf
+*.cs            text eol=lf
+*.csproj        text eol=lf
+*.sln           text eol=lf
+*.props         text eol=lf
+*.targets       text eol=lf
+*.editorconfig  text eol=lf
 
 # -----------------------------
 # Unity YAML系
 # -----------------------------
-*.meta       text eol=lf
-*.unity      text eol=lf
-*.prefab     text eol=lf
-*.asset      text eol=lf
-*.mat        text eol=lf
-*.anim       text eol=lf
-*.controller text eol=lf
+*.meta              text eol=lf
+*.unity             text eol=lf
+*.prefab            text eol=lf
+*.asset             text eol=lf
+*.mat               text eol=lf
+*.anim              text eol=lf
+*.controller        text eol=lf
 *.overrideController text eol=lf
-*.playable   text eol=lf
-*.mask       text eol=lf
-*.guiskin    text eol=lf
-*.physicMaterial text eol=lf
+*.playable          text eol=lf
+*.mask              text eol=lf
+*.guiskin           text eol=lf
+*.physicMaterial    text eol=lf
 *.physicsMaterial2D text eol=lf
 
 # Assembly definitions
-*.asmdef     text eol=lf
-*.asmref     text eol=lf
+*.asmdef        text eol=lf
+*.asmref        text eol=lf
 
 # Unity settings / packages
-ProjectSettings/*.asset text eol=lf
-Packages/*.json text eol=lf
-Packages/*/*.json text eol=lf
-*.manifest   text eol=lf
+ProjectSettings/** text eol=lf
+Packages/**        text eol=lf
 
 # -----------------------------
 # Shaders
 # -----------------------------
-*.shader     text eol=lf
-*.cginc      text eol=lf
-*.hlsl       text eol=lf
-*.compute    text eol=lf
-*.glsl       text eol=lf
+*.shader        text eol=lf
+*.cginc         text eol=lf
+*.hlsl          text eol=lf
+*.compute       text eol=lf
+*.glsl          text eol=lf
 
 # -----------------------------
 # UI Toolkit
 # -----------------------------
-*.uxml       text eol=lf
-*.uss        text eol=lf
+*.uxml          text eol=lf
+*.uss           text eol=lf
 
 # -----------------------------
 # Config / Docs / Data (text)
 # -----------------------------
-*.md         text eol=lf
-*.txt        text eol=lf
-*.json       text eol=lf
-*.xml        text eol=lf
-*.yml        text eol=lf
-*.yaml       text eol=lf
-*.csv        text eol=lf
-*.tsv        text eol=lf
-*.ini        text eol=lf
-*.cfg        text eol=lf
-*.toml       text eol=lf
-*.rsp        text eol=lf
-*.bat        text eol=crlf
-*.ps1        text eol=crlf
-*.cmd        text eol=crlf
+*.md            text eol=lf
+*.txt           text eol=lf
+*.json          text eol=lf
+*.xml           text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+*.csv           text eol=lf
+*.tsv           text eol=lf
+*.ini           text eol=lf
+*.cfg           text eol=lf
+*.toml          text eol=lf
+*.rsp           text eol=lf
+
+# Windows scripts (CRLFが必要なもの)
+*.bat           text eol=crlf
+*.cmd           text eol=crlf
+*.ps1           text eol=crlf
 
 # Git files
-*.gitignore      text eol=lf
-*.gitattributes  text eol=lf
+*.gitignore     text eol=lf
+*.gitattributes text eol=lf
 
-# -----------------------------
-# Treat as binary (no text transforms, no diffs)
-# -----------------------------
-# Images
-*.png  binary
-*.jpg  binary
-*.jpeg binary
-*.tga  binary
-*.gif  binary
-*.bmp  binary
-*.psd  binary
-*.tif  binary
-*.tiff binary
-*.exr  binary
-*.hdr  binary
-*.webp binary
-*.ico  binary
+# =========================
+# Git LFS (repo-wide)
+# =========================
 
-# Models / animation
-*.fbx  binary
-*.obj  binary
-*.dae  binary
-*.blend binary
-*.max  binary
-*.mb   binary
+# --- Audio ---
+*.wav   filter=lfs diff=lfs merge=lfs -text
+*.mp3   filter=lfs diff=lfs merge=lfs -text
+*.ogg   filter=lfs diff=lfs merge=lfs -text
+*.aiff  filter=lfs diff=lfs merge=lfs -text
+*.flac  filter=lfs diff=lfs merge=lfs -text
+*.m4a   filter=lfs diff=lfs merge=lfs -text
 
-# Audio
-*.wav  binary
-*.mp3  binary
-*.ogg  binary
-*.flac binary
-*.aiff binary
+# --- Models / 3D ---
+*.fbx   filter=lfs diff=lfs merge=lfs -text
+*.obj   filter=lfs diff=lfs merge=lfs -text
+*.blend filter=lfs diff=lfs merge=lfs -text
+*.gltf  filter=lfs diff=lfs merge=lfs -text
+*.glb   filter=lfs diff=lfs merge=lfs -text
+*.dae   filter=lfs diff=lfs merge=lfs -text
+*.3ds   filter=lfs diff=lfs merge=lfs -text
+*.stl   filter=lfs diff=lfs merge=lfs -text
+*.abc   filter=lfs diff=lfs merge=lfs -text
+*.usd   filter=lfs diff=lfs merge=lfs -text
+*.usda  filter=lfs diff=lfs merge=lfs -text
+*.usdc  filter=lfs diff=lfs merge=lfs -text
 
-# Video
-*.mp4  binary
-*.mov  binary
-*.avi  binary
-*.mkv  binary
-*.webm binary
+# --- Textures / Images ---
+*.png   filter=lfs diff=lfs merge=lfs -text
+*.jpg   filter=lfs diff=lfs merge=lfs -text
+*.jpeg  filter=lfs diff=lfs merge=lfs -text
+*.tga   filter=lfs diff=lfs merge=lfs -text
+*.psd   filter=lfs diff=lfs merge=lfs -text
+*.psb   filter=lfs diff=lfs merge=lfs -text
+*.exr   filter=lfs diff=lfs merge=lfs -text
+*.hdr   filter=lfs diff=lfs merge=lfs -text
+*.gif   filter=lfs diff=lfs merge=lfs -text
+*.bmp   filter=lfs diff=lfs merge=lfs -text
+*.tif   filter=lfs diff=lfs merge=lfs -text
+*.tiff  filter=lfs diff=lfs merge=lfs -text
+*.dds   filter=lfs diff=lfs merge=lfs -text
+*.ktx   filter=lfs diff=lfs merge=lfs -text
+*.ktx2  filter=lfs diff=lfs merge=lfs -text
+*.svg   filter=lfs diff=lfs merge=lfs -text
+*.webp  filter=lfs diff=lfs merge=lfs -text
+*.ico   filter=lfs diff=lfs merge=lfs -text
 
-# Archives / executables
-*.zip  binary
-*.7z   binary
-*.rar  binary
-*.dll  binary
-*.exe  binary
-*.pdb  binary
+# --- Movies / Video ---
+*.mp4   filter=lfs diff=lfs merge=lfs -text
+*.mov   filter=lfs diff=lfs merge=lfs -text
+*.webm  filter=lfs diff=lfs merge=lfs -text
+*.mkv   filter=lfs diff=lfs merge=lfs -text
+*.avi   filter=lfs diff=lfs merge=lfs -text
 
-# Fonts
-*.ttf  binary
-*.otf  binary
-*.woff binary
-*.woff2 binary
+# --- Fonts ---
+*.ttf   filter=lfs diff=lfs merge=lfs -text
+*.otf   filter=lfs diff=lfs merge=lfs -text
+*.woff  filter=lfs diff=lfs merge=lfs -text
+*.woff2 filter=lfs diff=lfs merge=lfs -text
 
-# Unity bundles / packages
-*.unitypackage binary
+# --- Docs (optional) ---
+*.pdf   filter=lfs diff=lfs merge=lfs -text
 
-# Optional: treat these as binary if you store them
-*.bin  binary
-*.dat  binary
+# =========================
+# Git hooksは必ずLF（hookがCRLFだと壊れる）
+# ※ここを最後に置いて、*.ps1 等の CRLF 指定より「後勝ち」で必ず上書きさせる
+# =========================
+.githooks/** text eol=lf
