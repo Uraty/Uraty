@@ -1,9 +1,5 @@
 ﻿# CONTRIBUTING
 
-## ブランチ戦略
-- main: 常にビルド可能な状態を保つ
-- develop: 開発中のコードを統合するブランチ
-
 ## Pull Request
 - PRは必ず１つの目的に限定する
 - main への 直接Push は禁止とする

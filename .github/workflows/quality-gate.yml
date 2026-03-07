@@ -2,109 +2,525 @@ name: Quality Gate
 
 on:
   pull_request:
+    branches:
+      - main
   push:
-    branches: [ main ]
+    branches:
+      - main
+
+permissions:
+  contents: read
 
 jobs:
-  checks:
+  quality-gate:
+    name: Quality Gate
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        shell: bash
+
     steps:
-      - name: Checkout (full history)
-        uses: actions/checkout@v4
+      - name: Checkout PR head
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Checkout non-PR ref
+        if: github.event_name != 'pull_request'
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      # 1) マージコンフリクトマーカー検出
-      - name: Reject merge conflict markers
+      - name: Resolve diff range
+        id: range
         run: |
           set -euo pipefail
-          if git grep -nE '^(<<<<<<<|=======|>>>>>>>)' -- .; then
-            echo "::error::Merge conflict markers found."
-            exit 1
-          fi
 
-      # 2) 禁止ディレクトリ検出
-      - name: Reject forbidden Unity directories
-        run: |
-          set -euo pipefail
-          # PRなら差分、pushなら直近コミット差分を対象にする
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          event_name="${{ github.event_name }}"
+
+          if [[ "$event_name" == "pull_request" ]]; then
             base="${{ github.event.pull_request.base.sha }}"
             head="${{ github.event.pull_request.head.sha }}"
-            files=$(git diff --name-only -z "$base" "$head" || true)
+            from="$(git merge-base "$base" "$head")"
+            to="$head"
+
+          # merge queue を使うなら有効化
+          # elif [[ "$event_name" == "merge_group" ]]; then
+          #   to="${{ github.sha }}"
+          #   read -r -a parents <<< "$(git rev-list --parents -n 1 "$to")"
+          #
+          #   if (( ${#parents[@]} >= 2 )); then
+          #     from="${parents[1]}"
+          #   else
+          #     from="$(git hash-object -t tree /dev/null)"
+          #   fi
+
           else
-            files=$(git diff --name-only -z HEAD~1 HEAD || true)
-          fi
+            before="${{ github.event.before }}"
+            to="${{ github.sha }}"
 
-          echo "$files" | tr '\0' '\n' | grep -E '^(Library/|Temp/|Logs/|obj/|UserSettings/)' && {
-            echo "::error::Forbidden Unity directories are included."
-            exit 1
-          } || true
-
-      # 3) 巨大ファイル検出（>100MB エラー、>50MB 警告）
-      - name: Detect large files
-        run: |
-          set -euo pipefail
-          WARN_SIZE=$((50 * 1024 * 1024))
-          ERROR_SIZE=$((100 * 1024 * 1024))
-
-          # PR差分のファイル一覧を取得（追加/変更/リネーム後のパス）
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            base="${{ github.event.pull_request.base.sha }}"
-            head="${{ github.event.pull_request.head.sha }}"
-            mapfile -d '' paths < <(git diff --name-only -z "$base" "$head")
-          else
-            mapfile -d '' paths < <(git diff --name-only -z HEAD~1 HEAD)
-          fi
-
-          has_error=0
-          for p in "${paths[@]}"; do
-            # 削除は除外
-            if git cat-file -e "HEAD:$p" 2>/dev/null; then
-              # 現在のHEADでのblobサイズ
-              size=$(git cat-file -s "HEAD:$p")
-              if [ "$size" -gt "$ERROR_SIZE" ]; then
-                echo "::error::File >100MB: $p ($size bytes)"
-                has_error=1
-              elif [ "$size" -gt "$WARN_SIZE" ]; then
-                echo "::warning::File >50MB: $p ($size bytes)"
-              fi
+            if [[ "$before" =~ ^0+$ ]]; then
+              from="$(git hash-object -t tree /dev/null)"
+            else
+              from="$before"
             fi
-          done
+          fi
 
-          exit $has_error
+          echo "from=$from" >> "$GITHUB_OUTPUT"
+          echo "to=$to" >> "$GITHUB_OUTPUT"
 
-      # 4) CRLF検出（対象拡張子のみ）
-      - name: Reject CRLF in text assets
+      - name: Run quality gate
+        env:
+          FROM: ${{ steps.range.outputs.from }}
+          TO: ${{ steps.range.outputs.to }}
         run: |
           set -euo pipefail
+          export LC_ALL=C
 
-          is_text_like () {
-            case "$1" in
-              *.cs|*.meta|*.unity|*.prefab|*.asset|*.json|*.txt|*.md|*.yml|*.yaml|.githooks/*)
-                return 0 ;;
+          echo "=== Quality Gate (Unity) ==="
+          echo "FROM=$FROM"
+          echo "TO=$TO"
+
+          readonly WARN_SIZE=$((50 * 1024 * 1024))
+          readonly ERROR_SIZE=$((100 * 1024 * 1024))
+
+          declare -A deleted=()
+          declare -A changed_or_added=()
+          declare -A touched_non_deleted=()
+
+          err() {
+            echo "::error::$*"
+          }
+
+          errf() {
+            local p="$1"
+            shift
+            echo "::error file=$p::$*"
+          }
+
+          warnf() {
+            local p="$1"
+            shift
+            echo "::warning file=$p::$*"
+          }
+
+          # --------------------------------------------------
+          # TO 側コミットの .gitattributes を正とするため temp index を使う
+          # --------------------------------------------------
+          TMP_INDEX="$(mktemp)"
+          trap 'rm -f "$TMP_INDEX"' EXIT
+
+          export GIT_INDEX_FILE="$TMP_INDEX"
+          git read-tree "$TO"
+
+          declare -a GIT_CHECK_ATTR_BASE_ARGS=()
+          if LC_ALL=C grep -q -- '--cached' < <(git check-attr -h 2>&1); then
+            GIT_CHECK_ATTR_BASE_ARGS=(--cached)
+          fi
+
+          git_attr_value() {
+            local p="$1"
+            local attr="$2"
+            local _path _attr _val
+
+            while IFS= read -r -d '' _path \
+              && IFS= read -r -d '' _attr \
+              && IFS= read -r -d '' _val; do
+              if [[ "$_attr" == "$attr" ]]; then
+                printf '%s\n' "$_val"
+                return 0
+              fi
+            done < <(git check-attr "${GIT_CHECK_ATTR_BASE_ARGS[@]}" -z "$attr" -- "$p" 2>/dev/null || true)
+
+            printf 'unspecified\n'
+          }
+
+          show_to_path() {
+            local p="$1"
+            git cat-file -p "$TO:$p" 2>/dev/null
+          }
+
+          commit_has_entry() {
+            local p="$1"
+            git cat-file -e "$TO:$p" 2>/dev/null
+          }
+
+          commit_entry_type() {
+            local p="$1"
+            git cat-file -t "$TO:$p" 2>/dev/null || true
+          }
+
+          # Git は空ディレクトリを保持しない。
+          # そのため CI では「本体ファイル」または「非空ディレクトリ」のどちらかを
+          # 検出できた場合にのみ ".meta に対応する本体あり" とみなす。
+          commit_has_tracked_descendant() {
+            local dir="$1"
+            git ls-tree -r --name-only "$TO" -- "$dir/" | LC_ALL=C grep -q .
+          }
+
+          commit_has_file_or_nonempty_dir() {
+            local p="$1"
+
+            if commit_has_entry "$p"; then
+              return 0
+            fi
+
+            commit_has_tracked_descendant "$p"
+          }
+
+          staged_blob_is_probably_text() {
+            local p="$1"
+            local size
+
+            if ! commit_has_entry "$p"; then
+              return 1
+            fi
+
+            if [[ "$(commit_entry_type "$p")" != "blob" ]]; then
+              return 1
+            fi
+
+            size="$(git cat-file -s "$TO:$p" 2>/dev/null || echo 0)"
+            if (( size == 0 )); then
+              return 0
+            fi
+
+            LC_ALL=C grep -Iq '' < <(show_to_path "$p")
+          }
+
+          is_text_like() {
+            local p="$1"
+            local text_attr
+            local eol_attr
+
+            text_attr="$(git_attr_value "$p" text)"
+            eol_attr="$(git_attr_value "$p" eol)"
+
+            # 明示的 binary / -text は対象外
+            if [[ "$text_attr" == "unset" ]]; then
+              return 1
+            fi
+
+            # eol 指定があれば text 前提
+            # text=set/auto も対象候補
+            case "$eol_attr" in
+              lf|crlf) ;;
               *)
-                return 1 ;;
+                case "$text_attr" in
+                  set|auto) ;;
+                  *) return 1 ;;
+                esac
+                ;;
+            esac
+
+            staged_blob_is_probably_text "$p"
+          }
+
+          should_enforce_lf() {
+            local p="$1"
+            local eol_attr
+
+            eol_attr="$(git_attr_value "$p" eol)"
+            [[ "$eol_attr" == "lf" ]] || return 1
+
+            staged_blob_is_probably_text "$p"
+          }
+
+          has_explicit_text_or_eol_attr() {
+            local p="$1"
+            local text_attr
+            local eol_attr
+
+            text_attr="$(git_attr_value "$p" text)"
+            eol_attr="$(git_attr_value "$p" eol)"
+
+            [[ "$text_attr" != "unspecified" || "$eol_attr" != "unspecified" ]]
+          }
+
+          is_forbidden_path() {
+            local p="$1"
+            case "$p" in
+              Library/*|Temp/*|Logs/*|obj/*|UserSettings/*)
+                return 0
+                ;;
+              *)
+                return 1
+                ;;
             esac
           }
 
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            base="${{ github.event.pull_request.base.sha }}"
-            head="${{ github.event.pull_request.head.sha }}"
-            mapfile -d '' paths < <(git diff --name-only -z "$base" "$head")
-          else
-            mapfile -d '' paths < <(git diff --name-only -z HEAD~1 HEAD)
-          fi
+          check_assets_parent_dir_metas() {
+            local p="$1"
+            local base dir parent
 
-          bad=0
-          for p in "${paths[@]}"; do
-            is_text_like "$p" || continue
-            # バイナリや存在しないファイル（削除）を避ける
-            if git cat-file -e "HEAD:$p" 2>/dev/null; then
-              if git show "HEAD:$p" | grep -q $'\r'; then
-                echo "::error::CRLF found: $p"
-                bad=1
+            case "$p" in
+              Assets/*) ;;
+              *) return 0 ;;
+            esac
+
+            if [[ "$p" == *.meta ]]; then
+              base="${p%.meta}"
+            else
+              base="$p"
+            fi
+
+            if [[ "$base" != */* ]]; then
+              return 0
+            fi
+
+            dir="${base%/*}"
+
+            # Assets 自体の .meta は要求しない
+            while [[ "$dir" == Assets/* ]]; do
+              if ! commit_has_entry "$dir.meta"; then
+                errf "$dir.meta" "親フォルダの .meta が不足しています"
+                exit 1
               fi
+              parent="${dir%/*}"
+              [[ "$parent" == "$dir" ]] && break
+              dir="$parent"
+            done
+          }
+
+          # --------------------------------------------------
+          # 変更一覧の収集
+          #   - PR: merge-base..head
+          #   - push: before..sha
+          # --------------------------------------------------
+          while IFS= read -r -d '' status; do
+            case "$status" in
+              R*)
+                IFS= read -r -d '' oldpath
+                IFS= read -r -d '' newpath
+
+                if is_forbidden_path "$newpath"; then
+                  errf "$newpath" "禁止ディレクトリが変更対象に含まれています"
+                  exit 1
+                fi
+
+                deleted["$oldpath"]=1
+                changed_or_added["$newpath"]=1
+                touched_non_deleted["$newpath"]=1
+                ;;
+
+              C*)
+                IFS= read -r -d '' oldpath
+                IFS= read -r -d '' newpath
+
+                if is_forbidden_path "$newpath"; then
+                  errf "$newpath" "禁止ディレクトリが変更対象に含まれています"
+                  exit 1
+                fi
+
+                changed_or_added["$newpath"]=1
+                touched_non_deleted["$newpath"]=1
+                ;;
+
+              *)
+                IFS= read -r -d '' path
+
+                case "$status" in
+                  D)
+                    # 削除は許可（禁止ディレクトリ掃除を止めない）
+                    deleted["$path"]=1
+                    ;;
+
+                  A|M|T)
+                    if is_forbidden_path "$path"; then
+                      errf "$path" "禁止ディレクトリが変更対象に含まれています"
+                      exit 1
+                    fi
+                    changed_or_added["$path"]=1
+                    touched_non_deleted["$path"]=1
+                    ;;
+
+                  U|AA|AU|UA|DD|DU|UD|UU)
+                    errf "$path" "unmerged 状態のパスを検出しました: status=$status"
+                    exit 1
+                    ;;
+
+                  *)
+                    err "未対応ステータスを検出しました: status='$status' path='$path'"
+                    exit 1
+                    ;;
+                esac
+                ;;
+            esac
+          done < <(git diff --find-renames --find-copies --name-status -z "$FROM" "$TO")
+
+          # --------------------------------------------------
+          # B) マージコンフリクト残骸検出
+          #     - TO 側 blob を見る
+          #     - ======= 単体は無視
+          # --------------------------------------------------
+          for p in "${!touched_non_deleted[@]}"; do
+            if ! is_text_like "$p"; then
+              continue
+            fi
+
+            has_conflict_start=0
+            has_conflict_end=0
+
+            if LC_ALL=C grep -aqE '^<<<<<<< ' < <(show_to_path "$p"); then
+              has_conflict_start=1
+            fi
+            if LC_ALL=C grep -aqE '^>>>>>>> ' < <(show_to_path "$p"); then
+              has_conflict_end=1
+            fi
+
+            if (( has_conflict_start && has_conflict_end )); then
+              errf "$p" "マージコンフリクト残骸が含まれています"
+              exit 1
+            fi
+
+            if (( has_conflict_start || has_conflict_end )); then
+              errf "$p" "壊れたマージコンフリクト残骸の可能性があります: start=$has_conflict_start end=$has_conflict_end"
+              exit 1
             fi
           done
-          exit $bad
+
+          # --------------------------------------------------
+          # C) .gitattributes 未指定のテキストっぽいファイル検出
+          # --------------------------------------------------
+          for p in "${!touched_non_deleted[@]}"; do
+            if has_explicit_text_or_eol_attr "$p"; then
+              continue
+            fi
+
+            if staged_blob_is_probably_text "$p"; then
+              errf "$p" ".gitattributes 未指定のテキストっぽいファイルです: text=$(git_attr_value "$p" text), eol=$(git_attr_value "$p" eol)"
+              exit 1
+            fi
+          done
+
+          # --------------------------------------------------
+          # D) Unity .meta 整合
+          # --------------------------------------------------
+          # 追加/変更/rename/copy された Assets配下(非 .meta)は .meta が TO に存在すること
+          for p in "${!changed_or_added[@]}"; do
+            case "$p" in
+              Assets/*)
+                case "$p" in
+                  *.meta) ;;
+                  *)
+                    if ! commit_has_entry "$p.meta"; then
+                      errf "$p.meta" ".meta が不足しています"
+                      exit 1
+                    fi
+                    ;;
+                esac
+
+                check_assets_parent_dir_metas "$p"
+                ;;
+            esac
+          done
+
+          # .meta だけ追加/変更/rename されていないか
+          # CI では空ディレクトリは検出不能なので「本体ファイル」または「非空フォルダ」が必要
+          for p in "${!changed_or_added[@]}"; do
+            case "$p" in
+              Assets/*.meta)
+                base="${p%.meta}"
+
+                if commit_has_file_or_nonempty_dir "$base"; then
+                  :
+                else
+                  errf "$p" ".meta だけが追加/変更されています（本体ファイルまたは非空フォルダが見つかりません）"
+                  exit 1
+                fi
+                ;;
+            esac
+          done
+
+          # 削除された Assets配下(非 .meta)は .meta も削除されていること
+          for p in "${!deleted[@]}"; do
+            case "$p" in
+              Assets/*)
+                case "$p" in
+                  *.meta) ;;
+                  *)
+                    if commit_has_entry "$p.meta"; then
+                      errf "$p.meta" "本体削除後も .meta が残っています"
+                      exit 1
+                    fi
+                    ;;
+                esac
+                ;;
+            esac
+          done
+
+          # .meta だけ削除されていないか
+          for p in "${!deleted[@]}"; do
+            case "$p" in
+              Assets/*.meta)
+                base="${p%.meta}"
+
+                if commit_has_file_or_nonempty_dir "$base"; then
+                  errf "$p" ".meta だけ削除されています（本体ファイルまたは非空フォルダが残っています）"
+                  exit 1
+                fi
+                ;;
+            esac
+          done
+
+          # --------------------------------------------------
+          # E) 巨大ファイル検出
+          # --------------------------------------------------
+          for p in "${!touched_non_deleted[@]}"; do
+            if [[ "$(commit_entry_type "$p")" != "blob" ]]; then
+              continue
+            fi
+
+            size="$(git cat-file -s "$TO:$p" 2>/dev/null || echo 0)"
+
+            if (( size > ERROR_SIZE )); then
+              errf "$p" "100MB超のファイルです: $size bytes"
+              exit 1
+            elif (( size > WARN_SIZE )); then
+              warnf "$p" "50MB超のファイルです: $size bytes"
+            fi
+          done
+
+          # --------------------------------------------------
+          # F) CRLF チェック（.gitattributes の eol=lf を正とする）
+          # --------------------------------------------------
+          for p in "${!touched_non_deleted[@]}"; do
+            if ! should_enforce_lf "$p"; then
+              continue
+            fi
+
+            if LC_ALL=C grep -aq $'\r' < <(show_to_path "$p"); then
+              errf "$p" "CRLF(\\r\\n) が含まれています（.gitattributes では LF 指定）"
+              exit 1
+            fi
+          done
+
+          # --------------------------------------------------
+          # G) Unity EditorSettings 強制（Force Text）
+          # --------------------------------------------------
+          check_unity_editor_settings() {
+            local p="ProjectSettings/EditorSettings.asset"
+
+            if ! commit_has_entry "$p"; then
+              return 0
+            fi
+
+            if [[ "$(commit_entry_type "$p")" != "blob" ]]; then
+              errf "$p" "ProjectSettings/EditorSettings.asset が通常ファイルではありません"
+              exit 1
+            fi
+
+            if ! LC_ALL=C grep -qE '^  m_SerializationMode: 2$' < <(show_to_path "$p"); then
+              errf "$p" "Unity Asset Serialization Mode が Force Text ではありません"
+              echo "Edit > Project Settings > Editor > Asset Serialization > Mode = Force Text"
+              exit 1
+            fi
+          }
+
+          check_unity_editor_settings
+
+          echo "[OK] Quality Gate passed"
