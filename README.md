@@ -25,6 +25,7 @@
 
 ### 要求
 - Git for Windows
+- Git LFS
 
 ### 確認
 - PowerShell または　コマンドプロンプトで `git --version` を実行し、Git のバージョンが表示されることを確認する
