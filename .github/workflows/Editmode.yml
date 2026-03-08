@@ -49,16 +49,18 @@ jobs:
 
       - name: Verify restored R3 core
         run: |
-          find Packages/nuget-packages -type f | grep -Ei '/R3(\.|/)|R3\.dll' || true
+          find Packages/nuget-packages -type f | grep -Ei '/R3(\.|/)|R3\.dll'
 
       - name: Cache Library
+        id: cache-library
         uses: actions/cache@v4
         with:
           path: Library
           key: Library-EditMode-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**', 'Packages/nuget-packages/packages.config', 'Packages/nuget-packages/NuGet.config') }}
-          restore-keys: |
-            Library-EditMode-
-            Library-
+
+      - name: Remove stale Library on non-exact cache hit
+        if: steps.cache-library.outputs.cache-hit != 'true'
+        run: rm -rf Library
 
       - name: Run EditMode tests
         id: tests
