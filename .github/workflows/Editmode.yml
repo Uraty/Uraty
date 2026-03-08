@@ -33,11 +33,29 @@ jobs:
           git lfs install --local
           git lfs pull
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install NuGetForUnity CLI
+        run: |
+          dotnet new tool-manifest || true
+          dotnet tool install NuGetForUnity.Cli || dotnet tool update NuGetForUnity.Cli
+
+      - name: Restore NuGet packages before Unity
+        run: |
+          dotnet nugetforunity restore .
+
+      - name: Verify restored R3 core
+        run: |
+          find Packages/nuget-packages -type f | grep -Ei '/R3(\.|/)|R3\.dll' || true
+
       - name: Cache Library
         uses: actions/cache@v4
         with:
           path: Library
-          key: Library-EditMode-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          key: Library-EditMode-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**', 'Packages/nuget-packages/packages.config', 'Packages/nuget-packages/NuGet.config') }}
           restore-keys: |
             Library-EditMode-
             Library-
