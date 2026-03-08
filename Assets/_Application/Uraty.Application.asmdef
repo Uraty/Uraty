@@ -2,7 +2,8 @@
     "name": "Uraty.Application",
     "rootNamespace": "Uraty.Application",
     "references": [
-        "GUID:3dde77a25fee2b24cad8cf7ec3779c8c"
+        "GUID:3dde77a25fee2b24cad8cf7ec3779c8c",
+        "GUID:77221876cc6b8244180b96e320b1bcd4"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
