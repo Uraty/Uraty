@@ -19,6 +19,20 @@ jobs:
         with:
           lfs: false
 
+      - name: Cache Git LFS objects
+        uses: actions/cache@v4
+        with:
+          path: .git/lfs
+          key: LFS-EditMode-${{ hashFiles('.gitattributes', '.lfsconfig', 'Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            LFS-EditMode-
+            LFS-
+
+      - name: Pull Git LFS files
+        run: |
+          git lfs install --local
+          git lfs pull
+
       - name: Cache Library
         uses: actions/cache@v4
         with:
