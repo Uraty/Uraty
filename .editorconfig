@@ -1,9 +1,5 @@
+
 # .editorconfig
-# ============================================================
-# 目的:
-# - 文字コード/改行/インデントの揺れを潰す
-# - C#(Unity) のスタイル/命名を「error中心」で強制する
-# ============================================================
 
 root = true
 
@@ -58,27 +54,36 @@ indent_size = 4
 tab_width = 4
 
 # ============================================================
-# Analyzer/Style の基本方針（error中心）
+# Analyzer/Style の基本方針
 # ============================================================
 
-# Style/Naming は強めに
-dotnet_analyzer_diagnostic.category-Style.severity = error
+# Style は warning ベース
+dotnet_analyzer_diagnostic.category-Style.severity = warning
+
+# Naming は強めに
 dotnet_analyzer_diagnostic.category-Naming.severity = error
 
 # 未使用 using をエラー（溜めない）
 dotnet_diagnostic.IDE0005.severity = error
 
-# 命名規則に関係するIDEの一部（環境差で揺れが出るなら warning に落としてもいい）
+# 命名違反はビルドで強制
 dotnet_diagnostic.IDE1006.severity = error
+
+# var 関連は suggestion に下げる
+dotnet_diagnostic.IDE0007.severity = suggestion
+dotnet_diagnostic.IDE0008.severity = suggestion
+
+# 自動実装プロパティは suggestion に下げる
+dotnet_diagnostic.IDE0032.severity = suggestion
 
 # using 順序・配置
 dotnet_sort_system_directives_first = true
 dotnet_separate_import_directive_groups = true
 csharp_using_directive_placement = outside_namespace
 
-# アクセス修飾子は明示（曖昧さ排除）
-# 既存の for_non_interface_members をさらに強くしたいなら always にする
-dotnet_style_require_accessibility_modifiers = always:error
+# アクセス修飾子は明示
+# interface の public メンバーまでは強制しない
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:error
 
 # this. は基本不要
 dotnet_style_qualification_for_field = false:suggestion
@@ -112,7 +117,7 @@ csharp_indent_labels = one_less_than_current
 csharp_preserve_single_line_blocks = false
 csharp_preserve_single_line_statements = false
 
-# var 方針（あなたの元設定を踏襲）
+# var 方針
 # - 組み込み型は明示を優先
 # - 右辺から明白なら var は許容
 csharp_style_var_for_built_in_types = false:suggestion
@@ -134,7 +139,7 @@ dotnet_style_collection_initializer = true:suggestion
 dotnet_style_object_initializer = true:suggestion
 
 # ============================================================
-# C# 命名規則（error中心）
+# C# 命名規則
 # ============================================================
 
 # ---- 命名スタイル定義 ----
@@ -170,31 +175,24 @@ dotnet_naming_symbols.parameters.applicable_accessibilities = *
 dotnet_naming_symbols.locals.applicable_kinds = local
 dotnet_naming_symbols.locals.applicable_accessibilities = *
 
-# ---- 命名ルール定義（全部 error） ----
+# ---- 命名ルール定義 ----
 dotnet_naming_rule.interfaces_must_start_with_i.symbols = interfaces
 dotnet_naming_rule.interfaces_must_start_with_i.style = interface_prefix_i
-dotnet_naming_rule.interfaces_must_start_with_i.severity = error
 
 dotnet_naming_rule.types_pascal_case.symbols = types
 dotnet_naming_rule.types_pascal_case.style = pascal_case
-dotnet_naming_rule.types_pascal_case.severity = error
 
 dotnet_naming_rule.methods_properties_events_pascal_case.symbols = methods_properties_events
 dotnet_naming_rule.methods_properties_events_pascal_case.style = pascal_case
-dotnet_naming_rule.methods_properties_events_pascal_case.severity = error
 
 dotnet_naming_rule.private_fields_underscore_camel.symbols = private_fields
 dotnet_naming_rule.private_fields_underscore_camel.style = private_field_underscore
-dotnet_naming_rule.private_fields_underscore_camel.severity = error
 
 dotnet_naming_rule.const_fields_pascal_case.symbols = const_fields
 dotnet_naming_rule.const_fields_pascal_case.style = pascal_case
-dotnet_naming_rule.const_fields_pascal_case.severity = error
 
 dotnet_naming_rule.parameters_camel_case.symbols = parameters
 dotnet_naming_rule.parameters_camel_case.style = camel_case
-dotnet_naming_rule.parameters_camel_case.severity = error
 
 dotnet_naming_rule.locals_camel_case.symbols = locals
 dotnet_naming_rule.locals_camel_case.style = camel_case
-dotnet_naming_rule.locals_camel_case.severity = error
