@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 309b71b22efccb949b8b396cbd64deeb, type: 3}
+  m_Name: MainSceneCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::SceneCatalog
+  scenes:
+  - id: 0
+    scenePath: Assets/_Sandboxes/Akane/Scenes/Title.unity
+  - id: 1
+    scenePath: Assets/_Sandboxes/Akane/Scenes/Lobby.unity
+  - id: 2
+    scenePath: Assets/_Sandboxes/Akane/Scenes/CharacterMake.unity
+  - id: 3
+    scenePath: Assets/_Sandboxes/Akane/Scenes/RoleSelect.unity
+  - id: 4
+    scenePath: Assets/_Sandboxes/Akane/Scenes/Battle.unity
+  - id: 5
+    scenePath: Assets/_Sandboxes/Akane/Scenes/Result.unity
