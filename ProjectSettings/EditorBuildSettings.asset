@@ -8,6 +8,27 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
+  - enabled: 1
+    path: Assets/_Sandboxes/Akane/SceneManagement/Scenes/Systems.unity
+    guid: 82fd0af784534e24d97bd7ad42e67975
+  - enabled: 1
+    path: Assets/_Sandboxes/Akane/SceneManagement/Scenes/Title.unity
+    guid: a3049d71e541a984f80dd5a22de98f1a
+  - enabled: 1
+    path: Assets/_Sandboxes/Akane/SceneManagement/Scenes/Lobby.unity
+    guid: e1358afdda7c9b34ba074b62ff1b860a
+  - enabled: 1
+    path: Assets/_Sandboxes/Akane/SceneManagement/Scenes/CharacterMake.unity
+    guid: cac43819b7bf5a947801ff2b0fd41e3a
+  - enabled: 1
+    path: Assets/_Sandboxes/Akane/SceneManagement/Scenes/RoleSelect.unity
+    guid: 770404f5896e06d4a9c4fc92870bbb40
+  - enabled: 1
+    path: Assets/_Sandboxes/Akane/SceneManagement/Scenes/Battle.unity
+    guid: 325b86c38a23bcb4e9daaaf56ba55090
+  - enabled: 1
+    path: Assets/_Sandboxes/Akane/SceneManagement/Scenes/Result.unity
+    guid: 3e15c8b2a250ab748a2aac13b2ff6fa4
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0
