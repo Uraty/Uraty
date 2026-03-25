@@ -41,6 +41,9 @@ namespace Uraty.Feature.Player
 
         private void Update()
         {
+            // Attackはそのフレームだけ有効にする
+            _isAttack = false;
+
             Mouse mouse = Mouse.current;
             if (mouse == null || _camera == null)
             {
@@ -74,7 +77,7 @@ namespace Uraty.Feature.Player
 #if UNITY_EDITOR
                 Debug.Log("PlayerAttack");
 #endif
-                _isAttack = true;
+                _isAttack = _hasValidAimPoint;
                 _isAiming = false;
 
                 if (_hideLineWhenNotAiming || !_hasValidAimPoint)
