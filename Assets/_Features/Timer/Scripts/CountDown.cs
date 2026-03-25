@@ -6,7 +6,7 @@ namespace Uraty.Feature.Timer
 {
     public class CountDown : MonoBehaviour
     {
-        [SerializeField] private float _durationSeconds = 60f;
+        [SerializeField] private float _durationSeconds = 180f;
         [SerializeField] private TextMeshProUGUI _timerText;
 
         private float _remainingSeconds;
