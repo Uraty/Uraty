@@ -8,7 +8,6 @@ namespace Uraty.Feature.Player
     {
         [Header("Aim")]
         [SerializeField] private Camera _camera;
-        private Transform _shotOrigin;
 
         [Header("Prediction Line")]
         [SerializeField] private float _lineWidth = 0.08f;
@@ -31,7 +30,8 @@ namespace Uraty.Feature.Player
             _lineRenderer.useWorldSpace = true;
             _lineRenderer.startWidth = _lineWidth;
             _lineRenderer.endWidth = _lineWidth;
-            _lineRenderer.enabled = !_hideLineWhenNotAiming;
+
+            _lineRenderer.enabled = false;
         }
 
         private void Update()
@@ -44,12 +44,11 @@ namespace Uraty.Feature.Player
 
             if (mouse.leftButton.wasPressedThisFrame)
             {
+#if UNITY_EDITOR
                 Debug.Log("AimStart");
+#endif
                 _isAiming = true;
                 _isAttack = false;
-
-                UpdateAim();
-                UpdatePredictionLine();
             }
 
             if (_isAiming && mouse.leftButton.isPressed)
@@ -60,7 +59,9 @@ namespace Uraty.Feature.Player
 
             if (_isAiming && mouse.leftButton.wasReleasedThisFrame)
             {
-                Debug.Log("Attack");
+#if UNITY_EDITOR
+                Debug.Log("PlayerAttack");
+#endif
                 _isAttack = true;
                 _isAiming = false;
 
@@ -99,7 +100,7 @@ namespace Uraty.Feature.Player
                 return;
             }
 
-            Vector3 origin = _shotOrigin != null ? _shotOrigin.position : transform.position;
+            Vector3 origin = transform.position;
             Vector3 endPoint = _releasePoint;
             Vector3 direction = endPoint - origin;
 
