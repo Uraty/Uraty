@@ -6,19 +6,24 @@ namespace Uraty.Feature.Player
     [RequireComponent(typeof(LineRenderer))]
     public class PlayerAttack : MonoBehaviour
     {
+        private const float MinDirectionSqrMagnitude = 0.0001f;
+
         [Header("Aim")]
         [SerializeField] private Camera _camera;
+
+        [Header("Attack")]
+        [SerializeField] private float _attackRange = 5.0f;
 
         [Header("Prediction Line")]
         [SerializeField] private float _lineWidth = 0.08f;
         [SerializeField] private bool _hideLineWhenNotAiming = true;
 
-        private Vector3 _releasePoint;
+        private Vector3 _aimPoint;
         private Vector3 _targetDirection = Vector3.forward;
 
-        // 左クリックしているか
         private bool _isAiming = false;
         private bool _isAttack = false;
+        private bool _hasValidAimPoint = false;
 
         private LineRenderer _lineRenderer;
 
@@ -31,7 +36,7 @@ namespace Uraty.Feature.Player
             _lineRenderer.startWidth = _lineWidth;
             _lineRenderer.endWidth = _lineWidth;
 
-            _lineRenderer.enabled = false;
+            InitializePredictionLine();
         }
 
         private void Update()
@@ -53,8 +58,15 @@ namespace Uraty.Feature.Player
 
             if (_isAiming && mouse.leftButton.isPressed)
             {
-                UpdateAim();
-                UpdatePredictionLine();
+                bool hasAimPoint = TryUpdateAim();
+                if (hasAimPoint)
+                {
+                    UpdatePredictionLine();
+                }
+                else
+                {
+                    ResetPredictionLine();
+                }
             }
 
             if (_isAiming && mouse.leftButton.wasReleasedThisFrame)
@@ -65,32 +77,57 @@ namespace Uraty.Feature.Player
                 _isAttack = true;
                 _isAiming = false;
 
-                if (_hideLineWhenNotAiming)
+                if (_hideLineWhenNotAiming || !_hasValidAimPoint)
                 {
-                    _lineRenderer.enabled = false;
+                    ResetPredictionLine();
                 }
             }
         }
 
-        private void UpdateAim()
+        private void InitializePredictionLine()
         {
-            Vector2 mouseScreenPosition = Mouse.current.position.ReadValue();
-            Ray ray = _camera.ScreenPointToRay(mouseScreenPosition);
+            Vector3 origin = transform.position;
+            _aimPoint = origin;
 
+            _lineRenderer.SetPosition(0, origin);
+            _lineRenderer.SetPosition(1, origin);
+            _lineRenderer.enabled = false;
+        }
+
+        private bool TryUpdateAim()
+        {
+            Mouse mouse = Mouse.current;
+            if (mouse == null)
+            {
+                _hasValidAimPoint = false;
+                return false;
+            }
+
+            Vector2 mouseScreenPosition = mouse.position.ReadValue();
+            Ray ray = _camera.ScreenPointToRay(mouseScreenPosition);
             Plane plane = new Plane(Vector3.up, new Vector3(0.0f, transform.position.y, 0.0f));
 
-            if (plane.Raycast(ray, out float distance))
+            if (!plane.Raycast(ray, out float distance))
             {
-                _releasePoint = ray.GetPoint(distance);
-
-                Vector3 direction = _releasePoint - transform.position;
-                direction.y = 0.0f;
-
-                if (direction.sqrMagnitude > 0.0001f)
-                {
-                    _targetDirection = direction.normalized;
-                }
+                _hasValidAimPoint = false;
+                _aimPoint = transform.position;
+                return false;
             }
+
+            _aimPoint = ray.GetPoint(distance);
+
+            Vector3 direction = _aimPoint - transform.position;
+            direction.y = 0.0f;
+
+            if (direction.sqrMagnitude <= MinDirectionSqrMagnitude)
+            {
+                _hasValidAimPoint = false;
+                return false;
+            }
+
+            _targetDirection = direction.normalized;
+            _hasValidAimPoint = true;
+            return true;
         }
 
         private void UpdatePredictionLine()
@@ -101,19 +138,29 @@ namespace Uraty.Feature.Player
             }
 
             Vector3 origin = transform.position;
-            Vector3 endPoint = _releasePoint;
-            Vector3 direction = endPoint - origin;
-
-            if (direction.sqrMagnitude > 0.0001f)
-            {
-                _targetDirection = direction.normalized;
-            }
+            Vector3 endPoint = GetLineEndPoint(origin);
 
             _lineRenderer.enabled = true;
             _lineRenderer.SetPosition(0, origin);
-            _lineRenderer.SetPosition(1, _releasePoint);
+            _lineRenderer.SetPosition(1, endPoint);
         }
 
+        private Vector3 GetLineEndPoint(Vector3 origin)
+        {
+            return origin + (_targetDirection * _attackRange);
+        }
+
+        private void ResetPredictionLine()
+        {
+            Vector3 origin = transform.position;
+
+            _aimPoint = origin;
+            _hasValidAimPoint = false;
+
+            _lineRenderer.SetPosition(0, origin);
+            _lineRenderer.SetPosition(1, origin);
+            _lineRenderer.enabled = false;
+        }
         public bool IsAiming()
         {
             return _isAiming;
@@ -127,6 +174,11 @@ namespace Uraty.Feature.Player
         public Vector3 GetTargetDirection()
         {
             return _targetDirection;
+        }
+
+        public float GetAttackRange()
+        {
+            return _attackRange;
         }
     }
 }
