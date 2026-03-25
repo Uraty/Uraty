@@ -6,16 +6,23 @@ public class CameraMove : MonoBehaviour
     [SerializeField] private GameObject targetObj;
 
     [Header("位置調整")]
-    [SerializeField] private Vector3 Offset = new Vector3(0.0f, 0.0f, 0.0f);
+    [SerializeField] private Vector3 Offset;
 
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        if (targetObj != null){
+            // Offsetが0なら自動計算
+            if (Offset == Vector3.zero){
+                Offset = transform.position - targetObj.transform.position;
+            }
+        }
     }
 
     private void Update()
     {
+
     }
 
     // Update is called once per frame
