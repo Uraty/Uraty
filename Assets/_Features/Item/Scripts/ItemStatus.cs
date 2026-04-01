@@ -66,5 +66,10 @@ namespace Uraty.Feature.Item
         {
             Destroy(gameObject);
         }
+
+        public float GetItemScore()
+        {
+            return _itemScore;
+        }
     }
 }
