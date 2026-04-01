@@ -151,6 +151,10 @@ namespace Uraty.Feature.Player
 
         private Vector3 GetLineEndPoint(Vector3 origin)
         {
+            if (_attackRange < 0)
+            {
+                _attackRange = -_attackRange;
+            }
             return origin + (_targetDirection * _attackRange);
         }
 
@@ -182,6 +186,10 @@ namespace Uraty.Feature.Player
 
         public float GetAttackRange()
         {
+            if (_attackRange < 0)
+            {
+                _attackRange = -_attackRange;
+            }
             return _attackRange;
         }
     }
