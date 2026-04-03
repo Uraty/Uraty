@@ -14,6 +14,8 @@ namespace Uraty.Feature.Item
 
         [SerializeField] private Transform _playerTransform;
 
+        private bool _canSearchPlayerByTag = true;
+
         public int ItemScore => _itemScore;
         public float ReactionRangeMeters => _reactionRangeMeters;
 
@@ -24,33 +26,54 @@ namespace Uraty.Feature.Item
 
         private void Start()
         {
-            if (_playerTransform != null)
-            {
-                return;
-            }
-
-            GameObject playerObject = GameObject.FindWithTag(PlayerTag);
-            if (playerObject == null)
-            {
-                return;
-            }
-
-            _playerTransform = playerObject.transform;
+            TryFindPlayerTransform();
         }
 
         private void Update()
         {
             if (_playerTransform == null)
             {
+                TryFindPlayerTransform();
                 return;
             }
 
-            if (IsPlayerInReactionRange() == false)
+            if (!IsPlayerInReactionRange())
             {
                 return;
             }
 
             Collect();
+        }
+
+        private void TryFindPlayerTransform()
+        {
+            if (_playerTransform != null)
+            {
+                return;
+            }
+
+            if (!_canSearchPlayerByTag)
+            {
+                return;
+            }
+
+            try
+            {
+                GameObject playerObject = GameObject.FindWithTag(PlayerTag);
+                if (playerObject == null)
+                {
+                    return;
+                }
+
+                _playerTransform = playerObject.transform;
+            }
+            catch (UnityException exception)
+            {
+                _canSearchPlayerByTag = false;
+                Debug.LogWarning(
+                    $"Tag \"{PlayerTag}\" が未定義です。TagManager に追加するか、Inspector で _playerTransform を設定してください。\n{exception.Message}"
+                );
+            }
         }
 
         private bool IsPlayerInReactionRange()
@@ -67,7 +90,7 @@ namespace Uraty.Feature.Item
             Destroy(gameObject);
         }
 
-        public float GetItemScore()
+        public int GetItemScore()
         {
             return _itemScore;
         }
