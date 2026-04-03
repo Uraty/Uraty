@@ -147,7 +147,7 @@ namespace Uraty.Feature.Player
                 return;
             }
 
-            _currentAmmo += Time.fixedDeltaTime / _roleDefinition.AmmoRecoverIntervalSeconds;
+            _currentAmmo += Time.fixedDeltaTime / _roleDefinition.ReloadIntervalSeconds;
             _currentAmmo = Mathf.Min(_currentAmmo, _roleDefinition.MaxAmmo);
         }
 
