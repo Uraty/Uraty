@@ -13,13 +13,146 @@ MonoBehaviour:
   m_Name: TankRoleDefinition
   m_EditorClassIdentifier: Assembly-CSharp::Uraty.Feature.Player.RoleDefinition
   _roleType: 0
-  _displayName: Tank
   _maxHp: 100
-  _hpRegenPerSecond: 2
-  _maxAmmo: 3
-  _ammoRecoverIntervalSeconds: 1.5
   _moveSpeed: 5
-  _attackName: 
-  _skillName: 
-  _specialName: 
-  _respawnTimeSeconds: 5
+  _maxAmmo: 3
+  _reloadIntervalSeconds: 1
+  _nonReloadSecondsAfterAttack: 0
+  _attack:
+    _isRecovery: 0
+    _canBreakWalls: 0
+    _canBreakGrass: 0
+    _attackIntervalSeconds: 0.5
+    _specialChargePercent: 0
+    _type: 2
+    _line:
+      _canPierce: 0
+      _range: 1
+      _effectiveRange: 1
+      _speedPerSecond: 1
+      _aimWidth: 1
+      _bulletCount: 1
+      _singleBullet:
+        _bulletWidth: 1
+        _bulletHeight: 1
+      _multiBullets:
+      - _spawnDelaySeconds: 0
+        _offsetFromAimLine: 0
+        _bulletWidth: 1
+        _bulletHeight: 1
+      - _spawnDelaySeconds: 0
+        _offsetFromAimLine: 0
+        _bulletWidth: 1
+        _bulletHeight: 1
+    _fan:
+      _canMultiHit: 0
+      _canPierce: 0
+      _range: 1
+      _effectiveRange: 1
+      _speedPerSecond: 1
+      _aimAngle: 60
+      _bulletCount: 1
+      _singleBullet:
+        _height: 1
+        _angle: 10
+      _multiBullets:
+      - _spawnDelaySeconds: 0
+        _offsetAngleFromAimLine: 0
+        _height: 1
+        _angle: 10
+      - _spawnDelaySeconds: 0
+        _offsetAngleFromAimLine: 0
+        _height: 1
+        _angle: 10
+    _throw:
+      _isVariableRange: 0
+      _range: 1
+      _effectiveRange: 1
+      _maxRange: 1
+      _maxEffectiveRange: 1
+      _isVariableLandingTime: 0
+      _fixedLandingTimeSeconds: 1
+      _maxLandingTimeSeconds: 1
+      _minLandingTimeSeconds: 0.2
+      _aimRadius: 1
+      _bulletCount: 1
+      _singleBullet:
+        _radius: 1
+      _multiBullets:
+      - _spawnDelaySeconds: 0
+        _radius: 1
+        _offsetDistanceFromAimLine: 0
+        _offsetAngleFromAimLine: 0
+      - _spawnDelaySeconds: 0
+        _radius: 1
+        _offsetDistanceFromAimLine: 0
+        _offsetAngleFromAimLine: 0
+  _special:
+    _isRecovery: 0
+    _canBreakWalls: 0
+    _canBreakGrass: 0
+    _attackIntervalSeconds: 0.5
+    _specialChargePercent: 0
+    _type: 0
+    _line:
+      _canPierce: 0
+      _range: 1
+      _effectiveRange: 1
+      _speedPerSecond: 1
+      _aimWidth: 1
+      _bulletCount: 1
+      _singleBullet:
+        _bulletWidth: 1
+        _bulletHeight: 1
+      _multiBullets:
+      - _spawnDelaySeconds: 0
+        _offsetFromAimLine: 0
+        _bulletWidth: 1
+        _bulletHeight: 1
+      - _spawnDelaySeconds: 0
+        _offsetFromAimLine: 0
+        _bulletWidth: 1
+        _bulletHeight: 1
+    _fan:
+      _canMultiHit: 0
+      _canPierce: 0
+      _range: 1
+      _effectiveRange: 1
+      _speedPerSecond: 1
+      _aimAngle: 60
+      _bulletCount: 1
+      _singleBullet:
+        _height: 1
+        _angle: 10
+      _multiBullets:
+      - _spawnDelaySeconds: 0
+        _offsetAngleFromAimLine: 0
+        _height: 1
+        _angle: 10
+      - _spawnDelaySeconds: 0
+        _offsetAngleFromAimLine: 0
+        _height: 1
+        _angle: 10
+    _throw:
+      _isVariableRange: 0
+      _range: 1
+      _effectiveRange: 1
+      _maxRange: 1
+      _maxEffectiveRange: 1
+      _isVariableLandingTime: 0
+      _fixedLandingTimeSeconds: 1
+      _maxLandingTimeSeconds: 1
+      _minLandingTimeSeconds: 0.2
+      _aimRadius: 1
+      _bulletCount: 1
+      _singleBullet:
+        _radius: 1
+      _multiBullets:
+      - _spawnDelaySeconds: 0
+        _radius: 1
+        _offsetDistanceFromAimLine: 0
+        _offsetAngleFromAimLine: 0
+      - _spawnDelaySeconds: 0
+        _radius: 1
+        _offsetDistanceFromAimLine: 0
+        _offsetAngleFromAimLine: 0

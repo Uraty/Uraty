@@ -13,14 +13,138 @@ MonoBehaviour:
   m_Name: RoleDefinition
   m_EditorClassIdentifier: Assembly-CSharp::Uraty.Feature.Player.RoleDefinition
   _roleType: 0
-  _maxHp: 100
-  _maxAmmo: 3
-  _ammoRecoverIntervalSeconds: 1.5
-  _attackIntervalSeconds: 0.5
-  _attackDamage: 10
-  _attackRange: 1.5
-  _aimType: 0
-  _attackWidth: 1
-  _attackAngle: 60
-  _attackRadius: 1
+  _maxHp: 454
   _moveSpeed: 5
+  _maxAmmo: 3
+  _reloadIntervalSeconds: 1
+  _nonReloadSecondsAfterAttack: 0
+  _attack:
+    _isRecovery: 0
+    _canBreakWalls: 0
+    _canBreakGrass: 0
+    _attackIntervalSeconds: 0.5
+    _specialChargePercent: 7.1
+    _type: 0
+    _line:
+      _canPierce: 0
+      _speedPerSecond: 5.44
+      _aimLineCount: 1
+      _aimLines:
+      - _offsetAngleFromAimLine: 0
+        _offsetDistanceFromAimLine: 0
+        _range: 1.7
+        _effectiveRange: 2.32
+        _width: 2.76
+      _bulletCount: 1
+      _bullets:
+      - _bulletPrefab: {fileID: 3154472693705229637, guid: 68f5fc0349e783b48809dca8b71d58b6, type: 3}
+        _spawnDelaySeconds: 0
+        _offsetFromAimLine: 0
+        _bulletWidth: 1.18
+        _bulletHeight: 1.45
+    _fan:
+      _canMultiHit: 0
+      _canPierce: 0
+      _speedPerSecond: 1
+      _aimLineCount: 1
+      _aimLines:
+      - _offsetAngleFromAimLine: 0
+        _range: 0
+        _effectiveRange: 0
+        _angle: 0
+      _bulletCount: 1
+      _bullets:
+      - _bulletPrefab: {fileID: 0}
+        _spawnDelaySeconds: 0
+        _offsetAngleFromAimLine: 0
+        _height: 1
+        _angle: 10
+    _throw:
+      _isVariableRange: 1
+      _isVariableLandingTime: 0
+      _fixedLandingTimeSeconds: 1
+      _maxLandingTimeSeconds: 2.59
+      _minLandingTimeSeconds: 0.87
+      _aimLineCount: 1
+      _aimLines:
+      - _offsetAngleFromAimLine: 0
+        _offsetDistanceFromAimLine: 0
+        _range: 0.64
+        _effectiveRange: 0.94
+        _circleRadius: 0
+        _parabolaWidth: 0
+        _fixedParabolaHeight: 1
+        _maxParabolaHeight: 1
+        _minParabolaHeight: 0.5
+      _bulletCount: 1
+      _bullets:
+      - _bulletPrefab: {fileID: 0}
+        _spawnDelaySeconds: 0
+        _radius: 1
+        _offsetDistanceFromAimLine: 0
+        _offsetAngleFromAimLine: 0
+  _special:
+    _isRecovery: 0
+    _canBreakWalls: 0
+    _canBreakGrass: 0
+    _attackIntervalSeconds: 0.5
+    _specialChargePercent: 0
+    _type: 0
+    _line:
+      _canPierce: 0
+      _speedPerSecond: 1
+      _aimLineCount: 1
+      _aimLines:
+      - _offsetAngleFromAimLine: 0
+        _offsetDistanceFromAimLine: 0
+        _range: 0
+        _effectiveRange: 0
+        _width: 0
+      _bulletCount: 1
+      _bullets:
+      - _bulletPrefab: {fileID: 0}
+        _spawnDelaySeconds: 0
+        _offsetFromAimLine: 0
+        _bulletWidth: 1
+        _bulletHeight: 1
+    _fan:
+      _canMultiHit: 0
+      _canPierce: 0
+      _speedPerSecond: 1
+      _aimLineCount: 1
+      _aimLines:
+      - _offsetAngleFromAimLine: 0
+        _range: 0
+        _effectiveRange: 0
+        _angle: 0
+      _bulletCount: 1
+      _bullets:
+      - _bulletPrefab: {fileID: 0}
+        _spawnDelaySeconds: 0
+        _offsetAngleFromAimLine: 0
+        _height: 1
+        _angle: 10
+    _throw:
+      _isVariableRange: 0
+      _isVariableLandingTime: 0
+      _fixedLandingTimeSeconds: 1
+      _maxLandingTimeSeconds: 1
+      _minLandingTimeSeconds: 0.2
+      _aimLineCount: 1
+      _aimLines:
+      - _offsetAngleFromAimLine: 0
+        _offsetDistanceFromAimLine: 0
+        _range: 0
+        _effectiveRange: 0
+        _circleRadius: 0
+        _parabolaWidth: 0
+        _fixedParabolaHeight: 1
+        _maxParabolaHeight: 1
+        _minParabolaHeight: 0.5
+      _bulletCount: 1
+      _bullets:
+      - _bulletPrefab: {fileID: 0}
+        _spawnDelaySeconds: 0
+        _radius: 1
+        _offsetDistanceFromAimLine: 0
+        _offsetAngleFromAimLine: 0
