@@ -19,6 +19,9 @@ namespace Uraty.Feature.Player
         // リスポーンまでの待機時間
         [SerializeField, Min(0.01f)] private float _respawnTimeSeconds = 5f;
 
+        // 現在保持しているスコア
+        [SerializeField, Min(0)] private int _currentScore = 0;
+
         // HP自動回復が有効かどうか
         private bool _isHpRegenActive = false;
 
@@ -40,8 +43,6 @@ namespace Uraty.Feature.Player
         // リスポーンまでの残り時間
         private float _respawnTimeRemainingSeconds = 0f;
 
-        // 現在保持しているスコア
-        private int _currentScore = 0;
 
         // 外部参照用プロパティ
         public RoleDefinition RoleDefinition => _roleDefinition;
