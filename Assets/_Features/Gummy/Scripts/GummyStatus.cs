@@ -1,7 +1,5 @@
 using System.Collections.Generic;
-
 using UnityEngine;
-
 using Uraty.Feature.Player;
 
 namespace Uraty.Feature.Gummy
@@ -96,7 +94,7 @@ namespace Uraty.Feature.Gummy
                 return;
             }
 
-            MoveGummyScore();
+            AddScoreToFollowTargetPlayer();
             Collect();
         }
 
@@ -104,7 +102,10 @@ namespace Uraty.Feature.Gummy
         {
             _itemScore = Mathf.Max(MinItemScore, _itemScore);
             _reactionRangeMeters = SanitizeNonNegativeFiniteValue(_reactionRangeMeters);
-            _followDurationSeconds = SanitizePositiveFiniteValue(_followDurationSeconds, MinFollowDurationSeconds);
+            _followDurationSeconds = SanitizePositiveFiniteValue(
+                _followDurationSeconds,
+                MinFollowDurationSeconds
+            );
             _collectDistanceMeters = SanitizeNonNegativeFiniteValue(_collectDistanceMeters);
             _playerDetectIntervalSeconds = SanitizePositiveFiniteValue(
                 _playerDetectIntervalSeconds,
@@ -149,10 +150,9 @@ namespace Uraty.Feature.Gummy
         {
             _playersInRange.Clear();
 
-            Transform firstEnteredPlayerTransform = null;
-            Collider firstEnteredPlayerCollider = null;
-            PlayerStatus firstEnteredPlayerStatus = null;
-            int firstEnteredPlayerInstanceId = int.MaxValue;
+            Transform selectedPlayerTransform = null;
+            Collider selectedPlayerCollider = null;
+            PlayerStatus selectedPlayerStatus = null;
 
             int detectedPlayerColliderCount = Physics.OverlapSphereNonAlloc(
                 transform.position,
@@ -184,29 +184,28 @@ namespace Uraty.Feature.Gummy
                     continue;
                 }
 
-                if (firstEnteredPlayerTransform != null && playerInstanceId >= firstEnteredPlayerInstanceId)
+                if (selectedPlayerTransform != null)
                 {
                     continue;
                 }
 
-                firstEnteredPlayerTransform = playerTransform;
-                firstEnteredPlayerCollider = detectedPlayerCollider;
-                firstEnteredPlayerInstanceId = playerInstanceId;
+                selectedPlayerTransform = playerTransform;
+                selectedPlayerCollider = detectedPlayerCollider;
 
                 if (playerTransform.TryGetComponent(out PlayerStatus playerStatus))
                 {
-                    firstEnteredPlayerStatus = playerStatus;
+                    selectedPlayerStatus = playerStatus;
                 }
             }
 
             RefreshPlayersInRangeInstanceIds();
 
-            if (firstEnteredPlayerTransform == null)
+            if (selectedPlayerTransform == null)
             {
                 return;
             }
 
-            BeginFollow(firstEnteredPlayerTransform, firstEnteredPlayerCollider, firstEnteredPlayerStatus);
+            BeginFollow(selectedPlayerTransform, selectedPlayerCollider, selectedPlayerStatus);
         }
 
         private Transform FindPlayerTransformFromCollider(Collider detectedPlayerCollider)
@@ -265,7 +264,6 @@ namespace Uraty.Feature.Gummy
             _followTargetTransform = targetTransform;
             _followTargetCollider = targetCollider;
             _followTargetPlayerStatus = targetPlayerStatus;
-
             _followStartPosition = transform.position;
             _followElapsedSeconds = 0.0f;
             _isFollowing = true;
@@ -325,12 +323,7 @@ namespace Uraty.Feature.Gummy
             Destroy(gameObject);
         }
 
-        public int GetItemScore()
-        {
-            return _itemScore;
-        }
-
-        public void MoveGummyScore()
+        private void AddScoreToFollowTargetPlayer()
         {
             if (_followTargetPlayerStatus == null && _followTargetTransform != null)
             {
@@ -343,6 +336,11 @@ namespace Uraty.Feature.Gummy
             }
 
             _followTargetPlayerStatus.AddScore(_itemScore);
+        }
+
+        public int GetItemScore()
+        {
+            return _itemScore;
         }
     }
 }
