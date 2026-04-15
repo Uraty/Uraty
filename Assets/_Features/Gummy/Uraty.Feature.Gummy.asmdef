@@ -1,3 +1,14 @@
 {
-	"name": "Uraty.Feature.Gummy"
+    "name": "Uraty.Feature.Gummy",
+    "rootNamespace": "Uraty.Feature.Gummy",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }
