@@ -1,6 +1,6 @@
 using System.Collections.Generic;
+
 using UnityEngine;
-using Uraty.Feature.Player;
 
 namespace Uraty.Feature.Gummy
 {
@@ -8,7 +8,7 @@ namespace Uraty.Feature.Gummy
     public sealed class GummyStatus : MonoBehaviour
     {
         private const string PlayerTag = "Player";
-        private const float MinFollowDurationSeconds = 0.01f;
+        private const float MinCollectDurationSeconds = 0.01f;
         private const float MinPlayerDetectIntervalSeconds = 0.1f;
         private const int MinItemScore = 0;
         private const int MaxDetectedPlayerColliderCount = 16;
@@ -19,11 +19,8 @@ namespace Uraty.Feature.Gummy
         [Header("追従開始距離")]
         [SerializeField] private float _reactionRangeMeters = 1.0f;
 
-        [Header("追従時間")]
-        [SerializeField] private float _followDurationSeconds = 0.5f;
-
-        [Header("Collider が使えない場合の接触判定距離")]
-        [SerializeField] private float _collectDistanceMeters = 0.1f;
+        [Header("回収完了までの秒数")]
+        [SerializeField] private float _collectDurationSeconds = 0.5f;
 
         [Header("Player 検出間隔")]
         [SerializeField] private float _playerDetectIntervalSeconds = 0.1f;
@@ -34,23 +31,28 @@ namespace Uraty.Feature.Gummy
         [Header("Player 検出に使う LayerMask")]
         [SerializeField] private LayerMask _playerLayerMask = ~0;
 
-        private readonly Collider[] _detectedPlayerColliders = new Collider[MaxDetectedPlayerColliderCount];
-        private readonly List<Transform> _playersInRange = new List<Transform>(MaxDetectedPlayerColliderCount);
+        private readonly Collider[] _detectedPlayerColliders =
+            new Collider[MaxDetectedPlayerColliderCount];
+
+        private readonly List<Transform> _playersInRange =
+            new List<Transform>(MaxDetectedPlayerColliderCount);
+
         private readonly HashSet<int> _playersInRangeInstanceIds = new HashSet<int>();
 
         private Vector3 _followStartPosition;
-        private float _followElapsedSeconds;
+        private float _collectElapsedSeconds;
         private float _playerDetectCooldownSeconds;
 
         private Transform _followTargetTransform;
-        private Collider _selfCollider;
-        private Collider _followTargetCollider;
-        private PlayerStatus _followTargetPlayerStatus;
+        private Transform _completedTargetTransform;
 
         private bool _isFollowing;
+        private bool _isCollectionCompleted;
+        private bool _isCollectionConsumed;
 
         public int ItemScore => _itemScore;
         public float ReactionRangeMeters => _reactionRangeMeters;
+        public bool IsCollectionCompleted => _isCollectionCompleted;
 
         private void OnValidate()
         {
@@ -60,53 +62,33 @@ namespace Uraty.Feature.Gummy
         private void Awake()
         {
             SanitizeSerializedFields();
-            _selfCollider = GetComponent<Collider>();
             _playerDetectCooldownSeconds = 0.0f;
         }
 
         private void Update()
         {
+            if (_isCollectionCompleted)
+            {
+                return;
+            }
+
             if (_isFollowing)
             {
+                UpdateFollowSequence();
                 return;
             }
 
             UpdatePlayerDetectCooldown();
         }
 
-        private void LateUpdate()
-        {
-            if (!_isFollowing)
-            {
-                return;
-            }
-
-            if (_followTargetTransform == null)
-            {
-                ResetFollowState();
-                return;
-            }
-
-            FollowTarget();
-
-            if (!HasReachedFollowTarget())
-            {
-                return;
-            }
-
-            AddScoreToFollowTargetPlayer();
-            Collect();
-        }
-
         private void SanitizeSerializedFields()
         {
             _itemScore = Mathf.Max(MinItemScore, _itemScore);
             _reactionRangeMeters = SanitizeNonNegativeFiniteValue(_reactionRangeMeters);
-            _followDurationSeconds = SanitizePositiveFiniteValue(
-                _followDurationSeconds,
-                MinFollowDurationSeconds
+            _collectDurationSeconds = SanitizePositiveFiniteValue(
+                _collectDurationSeconds,
+                MinCollectDurationSeconds
             );
-            _collectDistanceMeters = SanitizeNonNegativeFiniteValue(_collectDistanceMeters);
             _playerDetectIntervalSeconds = SanitizePositiveFiniteValue(
                 _playerDetectIntervalSeconds,
                 MinPlayerDetectIntervalSeconds
@@ -151,8 +133,6 @@ namespace Uraty.Feature.Gummy
             _playersInRange.Clear();
 
             Transform selectedPlayerTransform = null;
-            Collider selectedPlayerCollider = null;
-            PlayerStatus selectedPlayerStatus = null;
 
             int detectedPlayerColliderCount = Physics.OverlapSphereNonAlloc(
                 transform.position,
@@ -190,12 +170,6 @@ namespace Uraty.Feature.Gummy
                 }
 
                 selectedPlayerTransform = playerTransform;
-                selectedPlayerCollider = detectedPlayerCollider;
-
-                if (playerTransform.TryGetComponent(out PlayerStatus playerStatus))
-                {
-                    selectedPlayerStatus = playerStatus;
-                }
             }
 
             RefreshPlayersInRangeInstanceIds();
@@ -205,7 +179,7 @@ namespace Uraty.Feature.Gummy
                 return;
             }
 
-            BeginFollow(selectedPlayerTransform, selectedPlayerCollider, selectedPlayerStatus);
+            BeginFollow(selectedPlayerTransform);
         }
 
         private Transform FindPlayerTransformFromCollider(Collider detectedPlayerCollider)
@@ -245,11 +219,7 @@ namespace Uraty.Feature.Gummy
             }
         }
 
-        private void BeginFollow(
-            Transform targetTransform,
-            Collider targetCollider,
-            PlayerStatus targetPlayerStatus
-        )
+        private void BeginFollow(Transform targetTransform)
         {
             if (_isFollowing)
             {
@@ -262,85 +232,87 @@ namespace Uraty.Feature.Gummy
             }
 
             _followTargetTransform = targetTransform;
-            _followTargetCollider = targetCollider;
-            _followTargetPlayerStatus = targetPlayerStatus;
             _followStartPosition = transform.position;
-            _followElapsedSeconds = 0.0f;
+            _collectElapsedSeconds = 0.0f;
+            _completedTargetTransform = null;
+            _isCollectionCompleted = false;
+            _isCollectionConsumed = false;
             _isFollowing = true;
+        }
+
+        private void UpdateFollowSequence()
+        {
+            if (_followTargetTransform == null)
+            {
+                ResetFollowState();
+                return;
+            }
+
+            _collectElapsedSeconds += Time.deltaTime;
+
+            float normalizedTime = Mathf.Clamp01(_collectElapsedSeconds / _collectDurationSeconds);
+            Vector3 targetPosition = _followTargetTransform.position;
+            Vector3 linearPosition = Vector3.Lerp(_followStartPosition, targetPosition, normalizedTime);
+
+            float arcHeightMeters =
+                4.0f * _followArcHeightMeters * normalizedTime * (1.0f - normalizedTime);
+
+            transform.position = linearPosition + Vector3.up * arcHeightMeters;
+
+            if (_collectElapsedSeconds < _collectDurationSeconds)
+            {
+                return;
+            }
+
+            CompleteCollection();
+        }
+
+        private void CompleteCollection()
+        {
+            if (_followTargetTransform != null)
+            {
+                transform.position = _followTargetTransform.position;
+            }
+
+            _completedTargetTransform = _followTargetTransform;
+            _followTargetTransform = null;
+            _isFollowing = false;
+            _isCollectionCompleted = true;
         }
 
         private void ResetFollowState()
         {
-            _followElapsedSeconds = 0.0f;
+            _collectElapsedSeconds = 0.0f;
             _followTargetTransform = null;
-            _followTargetCollider = null;
-            _followTargetPlayerStatus = null;
+            _completedTargetTransform = null;
             _isFollowing = false;
+            _isCollectionCompleted = false;
+            _isCollectionConsumed = false;
             _playerDetectCooldownSeconds = 0.0f;
 
             _playersInRange.Clear();
             _playersInRangeInstanceIds.Clear();
         }
 
-        private void FollowTarget()
+        public bool TryConsumeCompletedCollection(out Transform playerTransform, out int itemScore)
         {
-            if (_followTargetTransform == null)
-            {
-                return;
-            }
+            playerTransform = null;
+            itemScore = 0;
 
-            _followElapsedSeconds += Time.deltaTime;
-
-            float normalizedTime = Mathf.Clamp01(_followElapsedSeconds / _followDurationSeconds);
-            Vector3 targetPosition = _followTargetTransform.position;
-            Vector3 linearPosition = Vector3.Lerp(_followStartPosition, targetPosition, normalizedTime);
-
-            float arcHeightMeters = 4.0f * _followArcHeightMeters * normalizedTime * (1.0f - normalizedTime);
-            transform.position = linearPosition + Vector3.up * arcHeightMeters;
-        }
-
-        private bool HasReachedFollowTarget()
-        {
-            if (_followTargetTransform == null)
+            if (!_isCollectionCompleted || _isCollectionConsumed)
             {
                 return false;
             }
 
-            if (_selfCollider != null && _followTargetCollider != null)
-            {
-                return _selfCollider.bounds.Intersects(_followTargetCollider.bounds);
-            }
-
-            Vector3 offset = _followTargetTransform.position - transform.position;
-            float sqrDistance = offset.sqrMagnitude;
-            float sqrCollectDistance = _collectDistanceMeters * _collectDistanceMeters;
-
-            return sqrDistance <= sqrCollectDistance;
+            _isCollectionConsumed = true;
+            playerTransform = _completedTargetTransform;
+            itemScore = _itemScore;
+            return true;
         }
 
-        private void Collect()
+        public void DestroySelf()
         {
             Destroy(gameObject);
-        }
-
-        private void AddScoreToFollowTargetPlayer()
-        {
-            if (_followTargetPlayerStatus == null && _followTargetTransform != null)
-            {
-                _ = _followTargetTransform.TryGetComponent(out _followTargetPlayerStatus);
-            }
-
-            if (_followTargetPlayerStatus == null)
-            {
-                return;
-            }
-
-            _followTargetPlayerStatus.AddScore(_itemScore);
-        }
-
-        public int GetItemScore()
-        {
-            return _itemScore;
         }
     }
 }
