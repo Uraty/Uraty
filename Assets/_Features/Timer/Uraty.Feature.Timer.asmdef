@@ -1,6 +1,6 @@
 {
     "name": "Uraty.Feature.Timer",
-    "rootNamespace": "",
+    "rootNamespace": "Uraty.Feature.Timer",
     "references": [
         "GUID:6055be8ebefd69e48b49212b09b47b2f"
     ],

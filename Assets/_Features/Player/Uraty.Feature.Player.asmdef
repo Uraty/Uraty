@@ -1,6 +1,6 @@
 {
     "name": "Uraty.Feature.Player",
-    "rootNamespace": "",
+    "rootNamespace": "Uraty.Feature.Player",
     "references": [
         "GUID:324caed91501a9c47a04ebfd87b68794",
         "GUID:75469ad4d38634e559750d17036d5f7c"

@@ -9,7 +9,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <RootNamespace></RootNamespace>
+    <RootNamespace>Uraty.Feature.Timer</RootNamespace>
     <ProjectGuid>{A5BC7E49-E57D-4F0E-A054-17D0BD793897}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
@@ -56,17 +56,17 @@
   </PropertyGroup>
   <ItemGroup>
     <Analyzer Include="C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\Extensions\Microsoft\Visual Studio Tools for Unity\Analyzers\Microsoft.Unity.Analyzers.dll" />
-    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\System.Text.Encoding.CodePages.dll" />
-    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\System.Numerics.Vectors.dll" />
-    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\Analyzer.dll" />
-    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\System.Reflection.Metadata.dll" />
-    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\Microsoft.CodeAnalysis.dll" />
-    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\System.Buffers.dll" />
-    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\System.Collections.Immutable.dll" />
-    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\Microsoft.CodeAnalysis.CSharp.dll" />
-    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\System.Runtime.CompilerServices.Unsafe.dll" />
-    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\System.Memory.dll" />
-    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\System.Threading.Tasks.Extensions.dll" />
+    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\System.Text.Encoding.CodePages.dll" />
+    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\System.Numerics.Vectors.dll" />
+    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\Analyzer.dll" />
+    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\System.Reflection.Metadata.dll" />
+    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\Microsoft.CodeAnalysis.dll" />
+    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\System.Buffers.dll" />
+    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\System.Collections.Immutable.dll" />
+    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\Microsoft.CodeAnalysis.CSharp.dll" />
+    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\System.Runtime.CompilerServices.Unsafe.dll" />
+    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\System.Memory.dll" />
+    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\System.Threading.Tasks.Extensions.dll" />
     <Analyzer Include="C:\Program Files\Unity\Hub\Editor\6000.3.8f1\Editor\Data\Tools\BuildPipeline\Unity.SourceGenerators\Unity.SourceGenerators.dll" />
     <Analyzer Include="C:\Program Files\Unity\Hub\Editor\6000.3.8f1\Editor\Data\Tools\BuildPipeline\Unity.SourceGenerators\Unity.Properties.SourceGenerator.dll" />
     <Analyzer Include="C:\Program Files\Unity\Hub\Editor\6000.3.8f1\Editor\Data\Tools\BuildPipeline\Unity.SourceGenerators\Unity.UIToolkit.SourceGenerator.dll" />
