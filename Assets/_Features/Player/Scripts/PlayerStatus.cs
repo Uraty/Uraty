@@ -281,5 +281,10 @@ namespace Uraty.Feature.Player
             _currentScore = 0;
             return score;
         }
+
+        public void ReceiveCollectedScore(int scoreAmount)
+        {
+            AddScore(scoreAmount);
+        }
     }
 }
