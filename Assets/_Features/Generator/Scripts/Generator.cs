@@ -5,7 +5,7 @@ using UnityEngine;
 public class Generator : MonoBehaviour
 {
     [Header("射出対象")]
-    [SerializeField] private GameObject emeraldObj;
+    [SerializeField] private GameObject gummyObj;
 
     [Header("射出設定")]
     [SerializeField] private float shotPower = 10.0f;
@@ -16,7 +16,7 @@ public class Generator : MonoBehaviour
     //[SerializeField] private float StartTime = 10.0f;
 
     [Header("生成の最大数")]
-    [SerializeField] private int emeraldMax = 10;
+    [SerializeField] private int gummyMax = 10;
 
     [Header("インターバル")]
     [SerializeField] private float IntervalTime = 10.0f;
@@ -33,7 +33,7 @@ public class Generator : MonoBehaviour
     private int currentIndex = 0;
     private float timer = 0.0f;
     private float shotDis;
-    //private List<GameObject> activeEmeralds = new List<GameObject>();
+    //private List<GameObject> activegummys = new List<GameObject>();
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -42,22 +42,22 @@ public class Generator : MonoBehaviour
         timer = 0.0f;
         shotDis = (180.0f - (offsetAngle * 2)) / (shotEqualDivision - 1);
 
-        if (emeraldMax < 0){
-            emeraldMax = 0;
+        if (gummyMax < 0){
+            gummyMax = 0;
         }
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (emeraldObj == null) return;
+        if (gummyObj == null) return;
         if (IntervalTime <= 0.0f) return;
 
         timer += Time.deltaTime;
 
         if (timer >= IntervalTime){
             timer = 0.0f;
-            SpawnEmerald3();
+            SpawnGummy3();
 
             currentIndex++;
 
@@ -67,7 +67,7 @@ public class Generator : MonoBehaviour
         }
     }
 
-    private void SpawnEmerald()
+    private void SpawnGummy()
     {
         Vector3 dir = Directions[currentIndex / 2];
         if (currentIndex % 2 == 1){
@@ -76,15 +76,15 @@ public class Generator : MonoBehaviour
 
         Vector3 spawnPos = transform.position + Vector3.up;
 
-        GameObject emerald = Instantiate(emeraldObj, spawnPos, Quaternion.identity);
-        Rigidbody rb = emerald.GetComponent<Rigidbody>();
+        GameObject gummy = Instantiate(gummyObj, spawnPos, Quaternion.identity);
+        Rigidbody rb = gummy.GetComponent<Rigidbody>();
         if (rb != null){
             Vector3 finalDir = (dir + Vector3.up * upwardPower).normalized;
             rb.AddForce(finalDir * shotPower, ForceMode.Impulse);
         }
     }
 
-    private void SpawnEmerald2()
+    private void SpawnGummy2()
     {
         float baseAngle = currentIndex / 2 * offsetAngle;
 
@@ -95,8 +95,8 @@ public class Generator : MonoBehaviour
         Vector3 dir = AngleToDir(baseAngle);
 
         Vector3 spawnPos = transform.position + Vector3.up;
-        GameObject emerald = Instantiate(emeraldObj, spawnPos, Quaternion.identity);
-        Rigidbody rb = emerald.GetComponent<Rigidbody>();
+        GameObject gummy = Instantiate(gummyObj, spawnPos, Quaternion.identity);
+        Rigidbody rb = gummy.GetComponent<Rigidbody>();
         if (rb != null)
         {
             Vector3 finalDir = (dir + Vector3.up * upwardPower).normalized;
@@ -104,7 +104,7 @@ public class Generator : MonoBehaviour
         }
     }
 
-    private void SpawnEmerald3()
+    private void SpawnGummy3()
     {
         float shotAngle = shotDis * (currentIndex / 2) + offsetAngle;
 
@@ -115,8 +115,8 @@ public class Generator : MonoBehaviour
         Vector3 dir = AngleToDir(shotAngle);
 
         Vector3 spawnPos = transform.position + Vector3.up;
-        GameObject emerald = Instantiate(emeraldObj, spawnPos, Quaternion.identity);
-        Rigidbody rb = emerald.GetComponent<Rigidbody>();
+        GameObject gummy = Instantiate(gummyObj, spawnPos, Quaternion.identity);
+        Rigidbody rb = gummy.GetComponent<Rigidbody>();
         if (rb != null)
         {
             Vector3 finalDir = (dir + Vector3.up * upwardPower).normalized;
