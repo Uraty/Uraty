@@ -10,17 +10,12 @@ public class SE : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        //if (isTaken) return;
-        Debug.Log("当たり");
         if (other.gameObject == playerObj){
-            Debug.Log("当たり");
             isTaken = true;
 
             if (SoundManager.Instance != null){
                 SoundManager.Instance.PlaySE(seGet, seVolume);
             }
-
-            //Destroy(gameObject);
         }
     }
 }
