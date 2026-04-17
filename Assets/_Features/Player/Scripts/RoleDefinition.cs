@@ -55,7 +55,8 @@ namespace Uraty.Feature.Player
         [SerializeField, LabelText("回復")] private bool _isRecovery = false;
         [SerializeField, LabelText("壁破壊")] private bool _canBreakWalls = false;
         [SerializeField, LabelText("草破壊")] private bool _canBreakGrass = false;
-        [SerializeField, LabelText("攻撃インターバル"), Unit("ｓ")] private float _attackIntervalSeconds = 0.5f;
+        [SerializeField, LabelText("攻撃インターバル最長"), Unit("ｓ")] private float _maxAttackIntervalSeconds = 1.0f;
+        [SerializeField, LabelText("攻撃インターバル最短"), Unit("ｓ")] private float _minAttackIntervalSeconds = 0.5f;
         [SerializeField, Range(0f, 100f), LabelText("必殺チャージ率"), Unit("％")] private float _specialChargePercent = 0f;
         [SerializeField, EnumToggleButtons, LabelText("攻撃タイプ")] private AimType _type = AimType.Line;
 
@@ -78,7 +79,8 @@ namespace Uraty.Feature.Player
         public bool IsRecovery => _isRecovery;
         public bool CanBreakWalls => _canBreakWalls;
         public bool CanBreakGrass => _canBreakGrass;
-        public float AttackIntervalSeconds => _attackIntervalSeconds;
+        public float MaxAttackIntervalSeconds => _maxAttackIntervalSeconds;
+        public float MinAttackIntervalSeconds => _minAttackIntervalSeconds;
         public float SpecialChargePercent => _specialChargePercent;
         public LineAttackDefinition Line => _line;
         public FanAttackDefinition Fan => _fan;
@@ -90,7 +92,8 @@ namespace Uraty.Feature.Player
 
         public void Validate()
         {
-            _attackIntervalSeconds = Mathf.Max(0f, _attackIntervalSeconds);
+            _maxAttackIntervalSeconds = Mathf.Max(0f, _maxAttackIntervalSeconds);
+            _minAttackIntervalSeconds = Mathf.Max(_minAttackIntervalSeconds, 1f);
             _specialChargePercent = Mathf.Clamp(_specialChargePercent, 0f, 100f);
 
             _line ??= new LineAttackDefinition();
@@ -343,8 +346,11 @@ namespace Uraty.Feature.Player
         [SerializeField, LabelText("距離オフセット"), Unit("マス")]
         private float _offsetDistanceFromAimLine = 0f;
 
-        [SerializeField, LabelText("射程"), Unit("マス")]
-        private float _range = 1f;
+        [SerializeField, LabelText("最高射程"), Unit("マス")]
+        private float _maxRange = 1f;
+
+        [SerializeField, LabelText("最低射程"), Unit("マス")]
+        private float _minRange = 1f;
 
         [SerializeField, LabelText("有効射程"), Unit("マス")]
         private float _effectiveRange = 1f;
@@ -366,7 +372,8 @@ namespace Uraty.Feature.Player
 
         public float OffsetAngleFromAimLine => _offsetAngleFromAimLine;
         public float OffsetDistanceFromAimLine => _offsetDistanceFromAimLine;
-        public float Range => _range;
+        public float MaxRange => _maxRange;
+        public float MinRange => _minRange;
         public float EffectiveRange => _effectiveRange;
         public float CircleRadius => _circleRadius;
         public float ParabolaWidth => _parabolaWidth;
@@ -376,7 +383,8 @@ namespace Uraty.Feature.Player
 
         public void Validate()
         {
-            _range = Mathf.Max(0f, _range);
+            _maxRange = Mathf.Max(0f, _maxRange);
+            _minRange = Mathf.Max(_minRange, 1.0f);
             _effectiveRange = Mathf.Max(0f, _effectiveRange);
             _circleRadius = Mathf.Max(0f, _circleRadius);
             _parabolaWidth = Mathf.Max(0f, _parabolaWidth);
