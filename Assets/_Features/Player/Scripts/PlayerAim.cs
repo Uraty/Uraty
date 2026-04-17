@@ -628,7 +628,7 @@ namespace Uraty.Feature.Player
             out float distanceRatio)
         {
             float maxEffectiveRange = Mathf.Max(0f, aimLine.EffectiveRange);
-            float maxRange = Mathf.Max(0f, aimLine.Range);
+            float maxRange = Mathf.Max(aimLine.MinRange, aimLine.MaxRange);
 
             if (!definition.IsVariableRange)
             {

@@ -64,7 +64,7 @@ namespace Uraty.Feature.Player
                 return;
             }
 
-            _nextAttackTime = Time.time + Mathf.Max(0f, attack.AttackIntervalSeconds);
+            _nextAttackTime = Time.time + Mathf.Max(attack.MinAttackIntervalSeconds, attack.MaxAttackIntervalSeconds);
             ExecuteDefinition(attack, aimPoint, aimDirection);
         }
 
@@ -86,7 +86,7 @@ namespace Uraty.Feature.Player
                 return;
             }
 
-            _nextSpecialTime = Time.time + Mathf.Max(0f, special.AttackIntervalSeconds);
+            _nextSpecialTime = Time.time + Mathf.Max(special.MinAttackIntervalSeconds, special.MaxAttackIntervalSeconds);
             ExecuteDefinition(special, aimPoint, aimDirection);
         }
 
