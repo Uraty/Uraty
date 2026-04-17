@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Uraty.Feature.Player
+namespace Uraty.Feature.Terrain
 {
     public class TerrainStatus : MonoBehaviour
     {
