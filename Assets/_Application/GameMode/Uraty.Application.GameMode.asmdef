@@ -1,0 +1,18 @@
+{
+    "name": "Uraty.Application.GameMode",
+    "rootNamespace": "",
+    "references": [
+        "GUID:e48439d916031bd409784c3a7ee13d3c",
+        "GUID:e9cdd1dee3bc43941ae6f4725c2268e9",
+        "GUID:e8c032880161b394ca2d79fddfdccc3e"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
