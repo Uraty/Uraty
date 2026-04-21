@@ -1,22 +1,26 @@
+using System.Collections.Generic;
+
 using UnityEngine;
 
 namespace Uraty.Feature.Gummy
 {
-    // このオブジェクトに Collider が必須であることを示す
     [RequireComponent(typeof(Collider))]
     public sealed class GummyStatus : MonoBehaviour
     {
-        // Player を検索するときに使用するタグ名
+        // Player 判定に使うタグ名
         private const string PlayerTag = "Player";
 
-        // Player を再探索する最小間隔
-        private const float MinPlayerSearchIntervalSeconds = 0.1f;
+        // 回収完了時間の最小値
+        private const float MinCollectDurationSeconds = 0.01f;
 
-        // 追従時間の最小値
-        private const float MinFollowDurationSeconds = 0.01f;
+        // Player 検出間隔の最小値
+        private const float MinPlayerDetectIntervalSeconds = 0.1f;
 
-        // アイテムスコアの最小値
+        // 得点の最小値
         private const int MinItemScore = 0;
+
+        // 一度に検出できる Player Collider 数の上限
+        private const int MaxDetectedPlayerColliderCount = 16;
 
         [Header("そのアイテムの得点")]
         [SerializeField] private int _itemScore = 1;
@@ -24,244 +28,247 @@ namespace Uraty.Feature.Gummy
         [Header("追従開始距離")]
         [SerializeField] private float _reactionRangeMeters = 1.0f;
 
-        [Header("追従時間")]
-        [SerializeField] private float _followDurationSeconds = 0.5f;
+        [Header("回収完了までの秒数")]
+        [SerializeField] private float _collectDurationSeconds = 0.5f;
 
-        [Header("Collider が使えない場合の接触判定距離")]
-        [SerializeField] private float _collectDistanceMeters = 0.1f;
-
-        [Header("Player を再探索する間隔")]
-        [SerializeField] private float _playerSearchIntervalSeconds = 1.0f;
+        [Header("Player 検出間隔")]
+        [SerializeField] private float _playerDetectIntervalSeconds = 0.1f;
 
         [Header("曲線追従の最大高さ")]
         [SerializeField] private float _followArcHeightMeters = 2.0f;
 
-        // Inspector から直接 Player を設定できる参照
-        [SerializeField] private Transform _playerTransform;
+        [Header("Player 検出に使う LayerMask")]
+        [SerializeField] private LayerMask _playerLayerMask = ~0;
 
-        // 追従開始時の座標
+        // OverlapSphereNonAlloc の検出結果を格納するバッファ
+        private readonly Collider[] _detectedPlayerColliders =
+            new Collider[MaxDetectedPlayerColliderCount];
+
+        // 現在検出範囲にいたプレイヤー一覧
+        private readonly List<Transform> _playersInRange =
+            new List<Transform>(MaxDetectedPlayerColliderCount);
+
+        // 直前フレームで検出済みだったプレイヤーの InstanceId
+        private readonly HashSet<int> _playersInRangeInstanceIds = new HashSet<int>();
+
+        // 追従開始地点
         private Vector3 _followStartPosition;
 
-        // 追従開始からの経過時間
-        private float _followElapsedSeconds;
+        // 回収演出の経過時間
+        private float _collectElapsedSeconds;
 
-        // 現在追従している対象
+        // 次回プレイヤー検出までのクールダウン
+        private float _playerDetectCooldownSeconds;
+
+        // 現在追従している対象プレイヤー
         private Transform _followTargetTransform;
 
-        // 自身の Collider
-        private Collider _selfCollider;
+        // 回収完了時点で記録しておく対象プレイヤー
+        private Transform _completedTargetTransform;
 
-        // 追従対象の Collider
-        private Collider _followTargetCollider;
-
-        // Player 再探索までのクールダウン時間
-        private float _playerSearchCooldownSeconds;
-
-        // Tag 検索が可能かどうか
-        private bool _canSearchPlayerByTag = true;
-
-        // 現在追従中かどうか
+        // 追従中かどうか
         private bool _isFollowing;
+
+        // 回収完了済みかどうか
+        private bool _isCollectionCompleted;
+
+        // Application 側で回収処理を消費済みかどうか
+        private bool _isCollectionConsumed;
 
         // 外部参照用プロパティ
         public int ItemScore => _itemScore;
         public float ReactionRangeMeters => _reactionRangeMeters;
+        public bool IsCollectionCompleted => _isCollectionCompleted;
 
         private void OnValidate()
         {
-            // Inspector 上で値が変更されたときに不正値を補正する
+            // Inspector 上の値を安全な範囲へ補正する
             SanitizeSerializedFields();
         }
 
         private void Awake()
         {
-            // 実行開始時にも不正値を補正する
+            // 起動時にも値を補正して不正値を防ぐ
             SanitizeSerializedFields();
 
-            // 自身の Collider を取得
-            _selfCollider = GetComponent<Collider>();
-
-            // 再探索クールダウンを初期化
-            _playerSearchCooldownSeconds = 0.0f;
-        }
-
-        private void Start()
-        {
-            // 開始時に Player を探す
-            TryFindPlayerTransform();
+            // 起動直後から検出可能なようにクールダウンを初期化する
+            _playerDetectCooldownSeconds = 0.0f;
         }
 
         private void Update()
         {
-            // 既に追従中なら通常探索は行わない
+            // 既に回収完了済みならこれ以上の処理は行わない
+            if (_isCollectionCompleted)
+            {
+                return;
+            }
+
+            // 追従中は検出ではなく追従更新のみを行う
             if (_isFollowing)
             {
+                UpdateFollowSequence();
                 return;
             }
 
-            // Player が未設定なら一定間隔で再探索する
-            if (_playerTransform == null)
-            {
-                UpdatePlayerSearchCooldown();
-                return;
-            }
-
-            // Player が反応距離内にいなければ何もしない
-            if (!IsPlayerInReactionRange())
-            {
-                return;
-            }
-
-            // 反応距離内に入ったので追従開始
-            BeginFollow(_playerTransform);
-        }
-
-        private void LateUpdate()
-        {
-            // 追従中でなければ処理しない
-            if (!_isFollowing)
-            {
-                return;
-            }
-
-            // 追従対象が消えていたら処理できない
-            if (_followTargetTransform == null)
-            {
-                return;
-            }
-
-            // 対象へ曲線追従する
-            FollowTarget();
-
-            // まだ対象に到達していないなら終了
-            if (!HasReachedFollowTarget())
-            {
-                return;
-            }
-
-            // 到達したら回収処理
-            Collect();
+            // 待機中は一定間隔でプレイヤー検出を行う
+            UpdatePlayerDetectCooldown();
         }
 
         private void SanitizeSerializedFields()
         {
-            // スコアを 0 以上に補正
+            // 得点は 0 未満にならないようにする
             _itemScore = Mathf.Max(MinItemScore, _itemScore);
 
-            // 負数や NaN などを防ぐ
+            // 各種設定値を安全な範囲へ補正する
             _reactionRangeMeters = SanitizeNonNegativeFiniteValue(_reactionRangeMeters);
-
-            // 追従時間は最小値以上に補正
-            _followDurationSeconds = SanitizePositiveFiniteValue(_followDurationSeconds, MinFollowDurationSeconds);
-
-            // 接触距離を 0 以上に補正
-            _collectDistanceMeters = SanitizeNonNegativeFiniteValue(_collectDistanceMeters);
-
-            // Player 再探索間隔を最小値以上に補正
-            _playerSearchIntervalSeconds = SanitizePositiveFiniteValue(
-                _playerSearchIntervalSeconds,
-                MinPlayerSearchIntervalSeconds
+            _collectDurationSeconds = SanitizePositiveFiniteValue(
+                _collectDurationSeconds,
+                MinCollectDurationSeconds
             );
-
-            // 曲線の高さを 0 以上に補正
+            _playerDetectIntervalSeconds = SanitizePositiveFiniteValue(
+                _playerDetectIntervalSeconds,
+                MinPlayerDetectIntervalSeconds
+            );
             _followArcHeightMeters = SanitizeNonNegativeFiniteValue(_followArcHeightMeters);
         }
 
         private float SanitizeNonNegativeFiniteValue(float value)
         {
-            // NaN や Infinity は 0 に補正
+            // NaN や Infinity は 0 として扱う
             if (float.IsNaN(value) || float.IsInfinity(value))
             {
                 return 0.0f;
             }
 
-            // 負数を 0 に補正
+            // 0 未満にならないよう補正する
             return Mathf.Max(0.0f, value);
         }
 
         private float SanitizePositiveFiniteValue(float value, float minValue)
         {
-            // NaN や Infinity は最低保証値に補正
+            // NaN や Infinity は最小値へ置き換える
             if (float.IsNaN(value) || float.IsInfinity(value))
             {
                 return minValue;
             }
 
-            // 最低保証値未満は補正
+            // 正の最小値を下回らないよう補正する
             return Mathf.Max(minValue, value);
         }
 
-        private void UpdatePlayerSearchCooldown()
+        private void UpdatePlayerDetectCooldown()
         {
-            // Tag 検索が使えないなら再探索しない
-            if (!_canSearchPlayerByTag)
+            // プレイヤー検出クールダウンを減算する
+            _playerDetectCooldownSeconds -= Time.deltaTime;
+            if (_playerDetectCooldownSeconds > 0.0f)
             {
                 return;
             }
 
-            // クールダウンを減算
-            _playerSearchCooldownSeconds -= Time.deltaTime;
-
-            // まだ再探索タイミングでなければ待機
-            if (_playerSearchCooldownSeconds > 0.0f)
-            {
-                return;
-            }
-
-            // 次の再探索タイミングをセットして検索
-            _playerSearchCooldownSeconds = _playerSearchIntervalSeconds;
-            TryFindPlayerTransform();
+            // 次回検出までの時間を再設定し、検出処理を行う
+            _playerDetectCooldownSeconds = _playerDetectIntervalSeconds;
+            TryBeginFollowByDetectedPlayer();
         }
 
-        private void TryFindPlayerTransform()
+        private void TryBeginFollowByDetectedPlayer()
         {
-            // 既に Player が設定済みなら何もしない
-            if (_playerTransform != null)
-            {
-                return;
-            }
+            // 毎回検出結果を作り直すためリストを初期化する
+            _playersInRange.Clear();
 
-            // Tag 検索が無効なら何もしない
-            if (!_canSearchPlayerByTag)
-            {
-                return;
-            }
+            Transform selectedPlayerTransform = null;
 
-            try
+            // 一定範囲内の Player Collider を取得する
+            int detectedPlayerColliderCount = Physics.OverlapSphereNonAlloc(
+                transform.position,
+                _reactionRangeMeters,
+                _detectedPlayerColliders,
+                _playerLayerMask,
+                QueryTriggerInteraction.Collide
+            );
+
+            for (int i = 0; i < detectedPlayerColliderCount; i++)
             {
-                // Player タグを持つオブジェクトを検索
-                GameObject playerObject = GameObject.FindWithTag(PlayerTag);
-                if (playerObject == null)
+                Collider detectedPlayerCollider = _detectedPlayerColliders[i];
+                Transform playerTransform = FindPlayerTransformFromCollider(detectedPlayerCollider);
+                if (playerTransform == null)
                 {
-                    return;
+                    continue;
                 }
 
-                // 見つかった Player の Transform を保持
-                _playerTransform = playerObject.transform;
-            }
-            catch (UnityException exception)
-            {
-                // Tag 未定義時は以降の Tag 検索を止める
-                _canSearchPlayerByTag = false;
+                // 同一プレイヤーの重複登録を避ける
+                if (_playersInRange.Contains(playerTransform))
+                {
+                    continue;
+                }
 
-                // 警告を出して Inspector 設定を促す
-                Debug.LogWarning(
-                    $"Tag \"{PlayerTag}\" が未定義です。TagManager に追加するか、Inspector で _playerTransform を設定してください。\n{exception.Message}"
-                );
+                _playersInRange.Add(playerTransform);
+
+                int playerInstanceId = playerTransform.GetInstanceID();
+
+                // 直前検出済みのプレイヤーは再選択しない
+                if (_playersInRangeInstanceIds.Contains(playerInstanceId))
+                {
+                    continue;
+                }
+
+                // 最初に見つけた新規プレイヤーだけを追従対象にする
+                if (selectedPlayerTransform != null)
+                {
+                    continue;
+                }
+
+                selectedPlayerTransform = playerTransform;
             }
+
+            // 今回検出したプレイヤー一覧を記録して次回判定に使う
+            RefreshPlayersInRangeInstanceIds();
+
+            if (selectedPlayerTransform == null)
+            {
+                return;
+            }
+
+            // 新規に見つかったプレイヤーへの追従を開始する
+            BeginFollow(selectedPlayerTransform);
         }
 
-        private bool IsPlayerInReactionRange()
+        private Transform FindPlayerTransformFromCollider(Collider detectedPlayerCollider)
         {
-            // Player との距離を計算
-            Vector3 offset = _playerTransform.position - transform.position;
-            float sqrDistance = offset.sqrMagnitude;
+            if (detectedPlayerCollider == null)
+            {
+                return null;
+            }
 
-            // 比較用に反応距離の二乗を計算
-            float sqrReactionRange = _reactionRangeMeters * _reactionRangeMeters;
+            // 子 Collider に当たる場合もあるので親方向へ辿って Player タグを探す
+            Transform currentTransform = detectedPlayerCollider.transform;
+            while (currentTransform != null)
+            {
+                if (currentTransform.CompareTag(PlayerTag))
+                {
+                    return currentTransform;
+                }
 
-            // 実距離の平方根を使わず高速に判定
-            return sqrDistance <= sqrReactionRange;
+                currentTransform = currentTransform.parent;
+            }
+
+            return null;
+        }
+
+        private void RefreshPlayersInRangeInstanceIds()
+        {
+            // 現在検出範囲にいるプレイヤーの InstanceId を記録する
+            _playersInRangeInstanceIds.Clear();
+
+            for (int i = 0; i < _playersInRange.Count; i++)
+            {
+                Transform playerTransform = _playersInRange[i];
+                if (playerTransform == null)
+                {
+                    continue;
+                }
+
+                _playersInRangeInstanceIds.Add(playerTransform.GetInstanceID());
+            }
         }
 
         private void BeginFollow(Transform targetTransform)
@@ -272,81 +279,108 @@ namespace Uraty.Feature.Gummy
                 return;
             }
 
-            // 対象が無効なら開始しない
             if (targetTransform == null)
             {
                 return;
             }
 
-            // 追従対象とその Collider を保持
+            // 追従開始時点の状態を初期化する
             _followTargetTransform = targetTransform;
-            _followTargetCollider = targetTransform.GetComponent<Collider>();
-
-            // 追従開始位置と経過時間を初期化
             _followStartPosition = transform.position;
-            _followElapsedSeconds = 0.0f;
-
-            // 追従開始フラグを立てる
+            _collectElapsedSeconds = 0.0f;
+            _completedTargetTransform = null;
+            _isCollectionCompleted = false;
+            _isCollectionConsumed = false;
             _isFollowing = true;
         }
 
-        private void FollowTarget()
+        private void UpdateFollowSequence()
         {
-            // 対象が無効なら何もしない
+            // 追従対象が消えた場合は状態をリセットする
             if (_followTargetTransform == null)
+            {
+                ResetFollowState();
+                return;
+            }
+
+            // 回収演出の経過時間を進める
+            _collectElapsedSeconds += Time.deltaTime;
+
+            // 指定秒数でターゲットへ到達するよう補間率を計算する
+            float normalizedTime = Mathf.Clamp01(_collectElapsedSeconds / _collectDurationSeconds);
+            Vector3 targetPosition = _followTargetTransform.position;
+            Vector3 linearPosition = Vector3.Lerp(_followStartPosition, targetPosition, normalizedTime);
+
+            // 放物線状の高さを加算して見た目を調整する
+            float arcHeightMeters =
+                4.0f * _followArcHeightMeters * normalizedTime * (1.0f - normalizedTime);
+
+            transform.position = linearPosition + Vector3.up * arcHeightMeters;
+
+            // まだ指定秒数に達していなければ追従を継続する
+            if (_collectElapsedSeconds < _collectDurationSeconds)
             {
                 return;
             }
 
-            // 経過時間を進める
-            _followElapsedSeconds += Time.deltaTime;
-
-            // 0～1 に正規化した進行度を求める
-            float normalizedTime = Mathf.Clamp01(_followElapsedSeconds / _followDurationSeconds);
-
-            // 開始位置から対象位置までを線形補間
-            Vector3 targetPosition = _followTargetTransform.position;
-            Vector3 linearPosition = Vector3.Lerp(_followStartPosition, targetPosition, normalizedTime);
-
-            // 放物線状の高さを計算
-            float arcHeightMeters = 4.0f * _followArcHeightMeters * normalizedTime * (1.0f - normalizedTime);
-
-            // 線形移動に上方向の高さを足して曲線移動にする
-            transform.position = linearPosition + Vector3.up * arcHeightMeters;
+            // 指定秒数に達したら回収完了扱いにする
+            CompleteCollection();
         }
 
-        private bool HasReachedFollowTarget()
+        private void CompleteCollection()
         {
-            // 対象が無効なら未到達
-            if (_followTargetTransform == null)
+            // 完了時はターゲット位置へ揃えて見た目のズレを抑える
+            if (_followTargetTransform != null)
+            {
+                transform.position = _followTargetTransform.position;
+            }
+
+            // Application 側へ渡す対象プレイヤーを保存する
+            _completedTargetTransform = _followTargetTransform;
+
+            // 追従状態を終了し、回収完了状態へ遷移する
+            _followTargetTransform = null;
+            _isFollowing = false;
+            _isCollectionCompleted = true;
+        }
+
+        private void ResetFollowState()
+        {
+            // 追従関連の状態を初期値へ戻す
+            _collectElapsedSeconds = 0.0f;
+            _followTargetTransform = null;
+            _completedTargetTransform = null;
+            _isFollowing = false;
+            _isCollectionCompleted = false;
+            _isCollectionConsumed = false;
+            _playerDetectCooldownSeconds = 0.0f;
+
+            _playersInRange.Clear();
+            _playersInRangeInstanceIds.Clear();
+        }
+
+        public bool TryConsumeCompletedCollection(out Transform playerTransform, out int itemScore)
+        {
+            playerTransform = null;
+            itemScore = 0;
+
+            // 回収完了済みかつ未処理のときだけ情報を引き渡す
+            if (!_isCollectionCompleted || _isCollectionConsumed)
             {
                 return false;
             }
 
-            // 両者に Collider があれば bounds の交差で判定
-            if (_selfCollider != null && _followTargetCollider != null)
-            {
-                return _selfCollider.bounds.Intersects(_followTargetCollider.bounds);
-            }
-
-            // Collider が使えない場合は距離で判定
-            Vector3 offset = _followTargetTransform.position - transform.position;
-            float sqrDistance = offset.sqrMagnitude;
-            float sqrCollectDistance = _collectDistanceMeters * _collectDistanceMeters;
-
-            return sqrDistance <= sqrCollectDistance;
+            // 二重処理防止のため消費済みフラグを立てる
+            _isCollectionConsumed = true;
+            playerTransform = _completedTargetTransform;
+            itemScore = _itemScore;
+            return true;
         }
 
-        private void Collect()
+        public void DestroySelf()
         {
-            // 回収時は自身を削除する
+            // Application 側からの回収処理完了後に自分を破棄する
             Destroy(gameObject);
-        }
-
-        public int GetItemScore()
-        {
-            // アイテムが持つスコアを返す
-            return _itemScore;
         }
     }
 }

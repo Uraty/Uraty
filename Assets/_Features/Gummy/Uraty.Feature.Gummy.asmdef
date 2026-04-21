@@ -1,11 +1,7 @@
 {
-    "name": "Uraty.Application",
-    "rootNamespace": "Uraty.Application",
-    "references": [
-        "GUID:3dde77a25fee2b24cad8cf7ec3779c8c",
-        "GUID:e8c032880161b394ca2d79fddfdccc3e",
-        "GUID:e48439d916031bd409784c3a7ee13d3c"
-    ],
+    "name": "Uraty.Feature.Gummy",
+    "rootNamespace": "Uraty.Feature.Gummy",
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
