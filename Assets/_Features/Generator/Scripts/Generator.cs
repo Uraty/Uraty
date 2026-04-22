@@ -28,7 +28,7 @@ public class Generator : MonoBehaviour
     //    new Vector3(-2, 0,  1).normalized
     //};
 
-    private Vector3[] Directions;
+    //private Vector3[] Directions;
 
     private int currentIndex = 0;
     private float timer = 0.0f;
@@ -42,7 +42,8 @@ public class Generator : MonoBehaviour
         timer = 0.0f;
         shotDis = (180.0f - (offsetAngle * 2)) / (shotEqualDivision - 1);
 
-        if (gummyMax < 0){
+        if (gummyMax < 0)
+        {
             gummyMax = 0;
         }
     }
@@ -50,65 +51,76 @@ public class Generator : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (gummyObj == null) return;
-        if (IntervalTime <= 0.0f) return;
+        if (gummyObj == null)
+        {
+            return;
+        }
+        if (IntervalTime <= 0.0f)
+        {
+            return;
+        }
 
         timer += Time.deltaTime;
 
-        if (timer >= IntervalTime){
-            timer = 0.0f;
+        while (timer >= IntervalTime)
+        {
+            timer -= IntervalTime;
             SpawnGummy3();
 
             currentIndex++;
 
-            if (currentIndex >= shotEqualDivision * 2){
+            if (currentIndex >= shotEqualDivision * 2)
+            {
                 currentIndex = 0;
             }
         }
     }
 
-    private void SpawnGummy()
-    {
-        Vector3 dir = Directions[currentIndex / 2];
-        if (currentIndex % 2 == 1){
-            dir = -dir;
-        }
+    //private void SpawnGummy()
+    //{
+    //    Vector3 dir = Directions[currentIndex / 2];
+    //    if (currentIndex % 2 == 1)
+    //    {
+    //        dir = -dir;
+    //    }
 
-        Vector3 spawnPos = transform.position + Vector3.up;
+    //    Vector3 spawnPos = transform.position + Vector3.up;
 
-        GameObject gummy = Instantiate(gummyObj, spawnPos, Quaternion.identity);
-        Rigidbody rb = gummy.GetComponent<Rigidbody>();
-        if (rb != null){
-            Vector3 finalDir = (dir + Vector3.up * upwardPower).normalized;
-            rb.AddForce(finalDir * shotPower, ForceMode.Impulse);
-        }
-    }
+    //    GameObject gummy = Instantiate(gummyObj, spawnPos, Quaternion.identity);
+    //    Rigidbody rb = gummy.GetComponent<Rigidbody>();
+    //    if (rb != null)
+    //    {
+    //        Vector3 finalDir = (dir + Vector3.up * upwardPower).normalized;
+    //        rb.AddForce(finalDir * shotPower, ForceMode.Impulse);
+    //    }
+    //}
 
-    private void SpawnGummy2()
-    {
-        float baseAngle = currentIndex / 2 * offsetAngle;
+    //private void SpawnGummy2()
+    //{
+    //    float baseAngle = currentIndex / 2 * offsetAngle;
 
-        if (currentIndex % 2 == 1){
-            baseAngle += 180.0f;
-        }
+    //    if (currentIndex % 2 == 1){
+    //        baseAngle += 180.0f;
+    //    }
 
-        Vector3 dir = AngleToDir(baseAngle);
+    //    Vector3 dir = AngleToDir(baseAngle);
 
-        Vector3 spawnPos = transform.position + Vector3.up;
-        GameObject gummy = Instantiate(gummyObj, spawnPos, Quaternion.identity);
-        Rigidbody rb = gummy.GetComponent<Rigidbody>();
-        if (rb != null)
-        {
-            Vector3 finalDir = (dir + Vector3.up * upwardPower).normalized;
-            rb.AddForce(finalDir * shotPower, ForceMode.Impulse);
-        }
-    }
+    //    Vector3 spawnPos = transform.position + Vector3.up;
+    //    GameObject gummy = Instantiate(gummyObj, spawnPos, Quaternion.identity);
+    //    Rigidbody rb = gummy.GetComponent<Rigidbody>();
+    //    if (rb != null)
+    //    {
+    //        Vector3 finalDir = (dir + Vector3.up * upwardPower).normalized;
+    //        rb.AddForce(finalDir * shotPower, ForceMode.Impulse);
+    //    }
+    //}
 
     private void SpawnGummy3()
     {
-        float shotAngle = shotDis * (currentIndex / 2) + offsetAngle;
+        float shotAngle = (shotDis * (currentIndex / 2)) + offsetAngle;
 
-        if (currentIndex % 2 == 1){
+        if (currentIndex % 2 == 1)
+        {
             shotAngle += 180.0f;
         }
 
@@ -119,7 +131,7 @@ public class Generator : MonoBehaviour
         Rigidbody rb = gummy.GetComponent<Rigidbody>();
         if (rb != null)
         {
-            Vector3 finalDir = (dir + Vector3.up * upwardPower).normalized;
+            Vector3 finalDir = (dir + (Vector3.up * upwardPower)).normalized;
             rb.AddForce(finalDir * shotPower, ForceMode.Impulse);
         }
     }
