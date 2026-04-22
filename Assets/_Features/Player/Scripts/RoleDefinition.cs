@@ -46,6 +46,36 @@ namespace Uraty.Feature.Player
             _attack.Validate();
             _special.Validate();
         }
+
+        /// <summary>
+        /// 指定された弾種が回復弾かどうかを返す。
+        /// </summary>
+        public bool IsRecovery(PlayerBulletAttackKind attackKind)
+        {
+            return attackKind == PlayerBulletAttackKind.Attack
+                ? _attack.IsRecovery
+                : _special.IsRecovery;
+        }
+
+        /// <summary>
+        /// 指定された弾種が草を破壊できるかどうかを返す。
+        /// </summary>
+        public bool CanBreakGrass(PlayerBulletAttackKind attackKind)
+        {
+            return attackKind == PlayerBulletAttackKind.Attack
+                ? _attack.CanBreakGrass
+                : _special.CanBreakGrass;
+        }
+
+        /// <summary>
+        /// 指定された弾種が壁を破壊できるかどうかを返す。
+        /// </summary>
+        public bool CanBreakWalls(PlayerBulletAttackKind attackKind)
+        {
+            return attackKind == PlayerBulletAttackKind.Attack
+                ? _attack.CanBreakWalls
+                : _special.CanBreakWalls;
+        }
     }
 
     [Serializable]
