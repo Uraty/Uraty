@@ -4,7 +4,9 @@ namespace Uraty.Feature.Terrain
 {
     public class TerrainSpawner : MonoBehaviour
     {
+        // TerrainSpawner は、Terrain を生成するためのクラス。
         [SerializeField] private int _teamId;
+        // 例えば、チームごとに異なる Terrain を生成するためのフィールド。
         [SerializeField] private bool _isInUse;
 
         public int TeamId => _teamId;
