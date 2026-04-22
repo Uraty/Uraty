@@ -1,5 +1,5 @@
 using UnityEngine;
-
+using Uraty.Feature.Terrain;
 using Uraty.Feature.Player;
 
 namespace Uraty.Application.Battle
@@ -120,7 +120,7 @@ namespace Uraty.Application.Battle
 
             switch (terrainTarget.TerrainKind)
             {
-                case BattleTerrainKind.Bush:
+                case TerrainKind.Bush:
                     if (ownerRoleDefinition.CanBreakGrass(_playerBullet.AttackKind))
                     {
                         terrainTarget.Break();
@@ -129,7 +129,7 @@ namespace Uraty.Application.Battle
                     _playerBullet.RequestDestroy();
                     return true;
 
-                case BattleTerrainKind.Wall:
+                case TerrainKind.Wall:
                     if (ownerRoleDefinition.CanBreakWalls(_playerBullet.AttackKind))
                     {
                         terrainTarget.Break();

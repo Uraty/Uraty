@@ -13,7 +13,7 @@ namespace Uraty.Application.Battle
         /// <summary>
         /// この Terrain が草か壁かを返す。
         /// </summary>
-        public BattleTerrainKind TerrainKind => _terrainKind;
+        public TerrainKind TerrainKind => _terrainKind;
 
         /// <summary>
         /// Terrain を破壊する。
