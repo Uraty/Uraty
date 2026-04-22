@@ -1,11 +1,7 @@
 {
-    "name": "Uraty.Feature.Player",
-    "rootNamespace": "Uraty.Feature.Player",
-    "references": [
-        "GUID:324caed91501a9c47a04ebfd87b68794",
-        "GUID:75469ad4d38634e559750d17036d5f7c",
-        "GUID:5c1ff9bd975acec488150743d53a93ca"
-    ],
+    "name": "Uraty.Feature.Terrain",
+    "rootNamespace": "Uraty.Feature.Terrain",
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

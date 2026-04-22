@@ -1,10 +1,9 @@
 {
-    "name": "Uraty.Feature.Player",
-    "rootNamespace": "Uraty.Feature.Player",
+    "name": "Uraty.Application.Battle",
+    "rootNamespace": "Uraty.Application.Battle",
     "references": [
-        "GUID:324caed91501a9c47a04ebfd87b68794",
-        "GUID:75469ad4d38634e559750d17036d5f7c",
-        "GUID:5c1ff9bd975acec488150743d53a93ca"
+        "GUID:04978391f70af8543a7f624f20623104",
+        "GUID:e48439d916031bd409784c3a7ee13d3c"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
