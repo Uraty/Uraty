@@ -6,16 +6,18 @@ public class SE : MonoBehaviour
     [SerializeField] private float seVolume = 1.0f;
     [SerializeField] private GameObject playerObj;
 
-    private bool isTaken = false;
+    //private bool isTaken = false;
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject == playerObj){
-            isTaken = true;
+        //if (other.gameObject == playerObj)
+        //{
+        //    //isTaken = true;
 
-            if (SoundManager.Instance != null){
-                SoundManager.Instance.PlaySE(seGet, seVolume);
-            }
-        }
+        //    if (SoundManager.Instance != null)
+        //    {
+        //        SoundManager.Instance.PlaySE(seGet, seVolume);
+        //    }
+        //}
     }
 }
