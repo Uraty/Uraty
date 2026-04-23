@@ -18,23 +18,24 @@ namespace Uraty.Feature.Player
         [SerializeField] private Transform _shotOrigin;
 
         [Header("Spawn")]
-        // 弾の生成位置を少し上げたい場合の高さオフセット
+        // 弾の生成位置を少し上げたい場合の高さオフセット。
         [SerializeField] private float _spawnHeightOffset = 0.5f;
 
         [Header("Dependencies")]
-        // Inspector から IBulletSpawner 実装を差し込むための参照
+        // Inspector から IBulletSpawner 実装を差し込むための参照。
         [SerializeField] private MonoBehaviour _bulletSpawnerBehaviour;
 
         private IBulletSpawner _bulletSpawner;
 
-        // 通常攻撃の次回発射可能時刻
+        // 通常攻撃の次回発射可能時刻。
         private float _nextAttackTime;
 
-        // 必殺技の次回発射可能時刻
+        // 必殺技の次回発射可能時刻。
         private float _nextSpecialTime;
 
         private void Awake()
         {
+            // まずは Inspector 指定を優先して解決する。
             _bulletSpawner = ResolveBulletSpawnerFromBehaviour(_bulletSpawnerBehaviour);
 
             if (_bulletSpawner != null)
@@ -42,6 +43,7 @@ namespace Uraty.Feature.Player
                 return;
             }
 
+            // 同一オブジェクトから取得を試みる。
             _bulletSpawner = ResolveBulletSpawnerFromComponents(gameObject);
 
             if (_bulletSpawner != null)
@@ -49,6 +51,7 @@ namespace Uraty.Feature.Player
                 return;
             }
 
+            // 親方向も探索して補完する。
             _bulletSpawner = ResolveBulletSpawnerFromComponentsInParent();
         }
 
@@ -59,6 +62,7 @@ namespace Uraty.Feature.Player
                 return;
             }
 
+            // 最後の補完として子階層も探索する。
             _bulletSpawner = ResolveBulletSpawnerFromComponentsInChildren();
         }
 
@@ -117,7 +121,7 @@ namespace Uraty.Feature.Player
                 return;
             }
 
-            // 攻撃間隔内なら発射しない
+            // 攻撃間隔内なら発射しない。
             if (Time.time < _nextAttackTime)
             {
                 return;
@@ -146,7 +150,7 @@ namespace Uraty.Feature.Player
                 return;
             }
 
-            // 必殺技の発動間隔内なら発射しない
+            // 必殺技の発動間隔内なら発射しない。
             if (Time.time < _nextSpecialTime)
             {
                 return;
@@ -260,7 +264,7 @@ namespace Uraty.Feature.Player
         {
             Vector3 baseDirection = GetAimDirection(aimDirection);
 
-            // AimLine 側の角度補正を加えた発射方向
+            // AimLine 側の角度補正を加えた発射方向。
             Vector3 lineDirection =
                 Quaternion.Euler(0f, aimLineDefinition.OffsetAngleFromAimLine, 0f) * baseDirection;
 
@@ -272,18 +276,21 @@ namespace Uraty.Feature.Player
 
             lineDirection.Normalize();
 
-            // 発射位置の横ずらし
+            // 発射位置の横ずらし。
             Vector3 rightDirection = GetRight(lineDirection);
             float lateralOffsetMeters =
                 aimLineDefinition.OffsetDistanceFromAimLine + bulletDefinition.OffsetFromAimLine;
 
-            Vector3 playerCenterOrigin = GetPlayerCenterOrigin();
+            // 銃口基準の生成原点を使用する。
+            Vector3 spawnOrigin = GetSpawnOrigin();
+
+            // 弾ごとのローカルオフセットを発射方向基準でワールド変換する。
             Vector3 bulletLocalOffset = TransformLocalSpawnOffset(
                 lineDirection,
                 bulletDefinition.SpawnOffsetFromPlayerCenter);
 
             Vector3 spawnPosition =
-                playerCenterOrigin
+                spawnOrigin
                 + bulletLocalOffset
                 + (rightDirection * lateralOffsetMeters);
 
@@ -364,7 +371,7 @@ namespace Uraty.Feature.Player
         {
             Vector3 baseDirection = GetAimDirection(aimDirection);
 
-            // 中心角からのオフセットを加えた発射方向
+            // 中心角からのオフセットを加えた発射方向。
             Vector3 bulletDirection =
                 Quaternion.Euler(0f, bulletDefinition.OffsetAngleFromCenter, 0f) * baseDirection;
 
@@ -376,12 +383,13 @@ namespace Uraty.Feature.Player
 
             bulletDirection.Normalize();
 
-            Vector3 playerCenterOrigin = GetPlayerCenterOrigin();
+            // 扇状弾も銃口基準の生成原点を使う。
+            Vector3 spawnOrigin = GetSpawnOrigin();
             Vector3 bulletLocalOffset = TransformLocalSpawnOffset(
                 bulletDirection,
                 bulletDefinition.SpawnOffsetFromPlayerCenter);
 
-            Vector3 spawnPosition = playerCenterOrigin + bulletLocalOffset;
+            Vector3 spawnPosition = spawnOrigin + bulletLocalOffset;
 
             _bulletSpawner.SpawnFanBullet(
                 bulletPrefab: bulletDefinition.BulletPrefab,
@@ -408,13 +416,17 @@ namespace Uraty.Feature.Player
 
         /// <summary>
         /// 弾の生成基準位置を返す。
+        /// _shotOrigin が設定されていればそれを優先し、
+        /// 未設定時は自身の位置を基準にする。
         /// </summary>
         private Vector3 GetSpawnOrigin()
         {
-            Transform originTransform = _shotOrigin != null ? _shotOrigin : transform;
-            Vector3 spawnOrigin = originTransform.position;
-            spawnOrigin.y += _spawnHeightOffset;
-            return spawnOrigin;
+            if (_shotOrigin != null)
+            {
+                return _shotOrigin.position + Vector3.up * _spawnHeightOffset;
+            }
+
+            return transform.position + Vector3.up * _spawnHeightOffset;
         }
 
         private static IBulletSpawner ResolveBulletSpawnerFromBehaviour(MonoBehaviour behaviour)
@@ -468,7 +480,7 @@ namespace Uraty.Feature.Player
         }
 
         /// <summary>
-        /// エイム方向をXZ平面上の正規化ベクトルとして返す。
+        /// エイム方向を XZ 平面上の正規化ベクトルとして返す。
         /// 方向がほぼゼロなら自身の forward を使う。
         /// </summary>
         private Vector3 GetAimDirection(Vector3 aimDirection)
@@ -511,11 +523,11 @@ namespace Uraty.Feature.Player
 
             return definitions[index];
         }
-        private Vector3 GetPlayerCenterOrigin()
-        {
-            return transform.position;
-        }
 
+        /// <summary>
+        /// 発射方向基準のローカルオフセットをワールド座標へ変換する。
+        /// x は右方向、y は上方向、z は前方向として扱う。
+        /// </summary>
         private Vector3 TransformLocalSpawnOffset(Vector3 forwardDirection, Vector3 localOffset)
         {
             Vector3 normalizedForward = forwardDirection.normalized;
