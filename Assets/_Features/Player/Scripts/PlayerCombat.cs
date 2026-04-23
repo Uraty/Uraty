@@ -258,7 +258,15 @@ namespace Uraty.Feature.Player
             float lateralOffsetMeters =
                 aimLineDefinition.OffsetDistanceFromAimLine + bulletDefinition.OffsetFromAimLine;
 
-            Vector3 spawnPosition = GetSpawnOrigin() + (rightDirection * lateralOffsetMeters);
+            Vector3 playerCenterOrigin = GetPlayerCenterOrigin();
+            Vector3 bulletLocalOffset = TransformLocalSpawnOffset(
+                lineDirection,
+                bulletDefinition.SpawnOffsetFromPlayerCenter);
+
+            Vector3 spawnPosition =
+                playerCenterOrigin
+                + bulletLocalOffset
+                + (rightDirection * lateralOffsetMeters);
 
             _bulletSpawner.SpawnLineBullet(
                 bulletPrefab: bulletDefinition.BulletPrefab,
@@ -349,7 +357,12 @@ namespace Uraty.Feature.Player
 
             bulletDirection.Normalize();
 
-            Vector3 spawnPosition = GetSpawnOrigin();
+            Vector3 playerCenterOrigin = GetPlayerCenterOrigin();
+            Vector3 bulletLocalOffset = TransformLocalSpawnOffset(
+                bulletDirection,
+                bulletDefinition.SpawnOffsetFromPlayerCenter);
+
+            Vector3 spawnPosition = playerCenterOrigin + bulletLocalOffset;
 
             _bulletSpawner.SpawnFanBullet(
                 bulletPrefab: bulletDefinition.BulletPrefab,
@@ -428,6 +441,20 @@ namespace Uraty.Feature.Player
             }
 
             return definitions[index];
+        }
+        private Vector3 GetPlayerCenterOrigin()
+        {
+            return transform.position;
+        }
+
+        private Vector3 TransformLocalSpawnOffset(Vector3 forwardDirection, Vector3 localOffset)
+        {
+            Vector3 normalizedForward = forwardDirection.normalized;
+            Vector3 rightDirection = GetRight(normalizedForward);
+
+            return (rightDirection * localOffset.x)
+                + (Vector3.up * localOffset.y)
+                + (normalizedForward * localOffset.z);
         }
     }
 }

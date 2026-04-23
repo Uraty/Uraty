@@ -9,11 +9,11 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <RootNamespace>Uraty.Feature.Sound</RootNamespace>
-    <ProjectGuid>{F03ED40E-6166-9294-CB52-6421F81260D4}</ProjectGuid>
+    <RootNamespace>Uraty.Feature.MapEditor</RootNamespace>
+    <ProjectGuid>{116400D6-1EF9-5EF7-88D3-A73B16C6BB04}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <AssemblyName>Uraty.Feature.Sound</AssemblyName>
+    <AssemblyName>Uraty.Feature.MapEditor</AssemblyName>
     <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <BaseDirectory>.</BaseDirectory>
@@ -50,7 +50,7 @@
     <UnityProjectGenerator>Package</UnityProjectGenerator>
     <UnityProjectGeneratorVersion>2.0.26</UnityProjectGeneratorVersion>
     <UnityProjectGeneratorStyle>Legacy</UnityProjectGeneratorStyle>
-    <UnityProjectType>Game:1</UnityProjectType>
+    <UnityProjectType>Editor:5</UnityProjectType>
     <UnityBuildTarget>StandaloneWindows64:19</UnityBuildTarget>
     <UnityVersion>6000.3.8f1</UnityVersion>
   </PropertyGroup>
@@ -72,10 +72,14 @@
     <Analyzer Include="C:\Program Files\Unity\Hub\Editor\6000.3.8f1\Editor\Data\Tools\BuildPipeline\Unity.SourceGenerators\Unity.UIToolkit.SourceGenerator.dll" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\_Features\Sound\Scripts\SoundManager.cs" />
+    <Compile Include="Assets\_Features\MapEditor\Scripts\StageEditorWindow.cs" />
+    <Compile Include="Assets\_Features\MapEditor\Scripts\StageDataEditor.cs" />
+    <Compile Include="Assets\_Features\MapEditor\Scripts\StageData.cs" />
+    <Compile Include="Assets\_Features\MapEditor\Scripts\StageBuilder.cs" />
+    <Compile Include="Assets\_Features\MapEditor\Scripts\StagePreviewRenderer.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Assets\_Features\Sound\Uraty.Feature.Sound.asmdef" />
+    <None Include="Assets\_Features\MapEditor\Uraty.Feature.MapEditor.asmdef" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">

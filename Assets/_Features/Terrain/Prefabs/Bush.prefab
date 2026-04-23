@@ -126,7 +126,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Uraty.Feature.Terrain::Uraty.Feature.Terrain.TerrainStatus
   _terrainKind: 2
-  _isPlayerPassable: 1
-  _isBulletPassable: 1
-  _isDestructible: 1
-  _canProvideConcealment: 0
+  _canBeDestroyedByBullet: 1
+  _destroyBulletOnWallHit: 1
+  _usePlayerPassOverride: 0
+  _canPlayerPassOverride: 0

@@ -1,5 +1,4 @@
 using UnityEngine;
-
 using Uraty.Shared.Battle;
 
 namespace Uraty.Application.Battle
@@ -12,9 +11,10 @@ namespace Uraty.Application.Battle
         public Vector3 Direction;
         public float SpeedMetersPerSecond;
         public float MaxTravelDistanceMeters;
-        public BulletPenetrationSettings PenetrationSettings;
         public bool CanBreakWalls;
         public bool CanBreakBushes;
         public bool IsRecovery;
+        public bool CanMultiHit;
+        public BulletPenetrationSettings PenetrationSettings;
     }
 }

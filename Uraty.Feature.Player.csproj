@@ -56,17 +56,17 @@
   </PropertyGroup>
   <ItemGroup>
     <Analyzer Include="C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\Extensions\Microsoft\Visual Studio Tools for Unity\Analyzers\Microsoft.Unity.Analyzers.dll" />
-    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\System.Text.Encoding.CodePages.dll" />
-    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\System.Numerics.Vectors.dll" />
-    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\Analyzer.dll" />
-    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\System.Reflection.Metadata.dll" />
-    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\Microsoft.CodeAnalysis.dll" />
-    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\System.Buffers.dll" />
-    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\System.Collections.Immutable.dll" />
-    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\Microsoft.CodeAnalysis.CSharp.dll" />
-    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\System.Runtime.CompilerServices.Unsafe.dll" />
-    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\System.Memory.dll" />
-    <Analyzer Include="C:\Users\kodokeの世界\Uraty\Assets\Analyzers\System.Threading.Tasks.Extensions.dll" />
+    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\System.Text.Encoding.CodePages.dll" />
+    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\System.Numerics.Vectors.dll" />
+    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\Analyzer.dll" />
+    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\System.Reflection.Metadata.dll" />
+    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\Microsoft.CodeAnalysis.dll" />
+    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\System.Buffers.dll" />
+    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\System.Collections.Immutable.dll" />
+    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\Microsoft.CodeAnalysis.CSharp.dll" />
+    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\System.Runtime.CompilerServices.Unsafe.dll" />
+    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\System.Memory.dll" />
+    <Analyzer Include="C:\Users\dorae\Uraty\Assets\Analyzers\System.Threading.Tasks.Extensions.dll" />
     <Analyzer Include="C:\Program Files\Unity\Hub\Editor\6000.3.8f1\Editor\Data\Tools\BuildPipeline\Unity.SourceGenerators\Unity.SourceGenerators.dll" />
     <Analyzer Include="C:\Program Files\Unity\Hub\Editor\6000.3.8f1\Editor\Data\Tools\BuildPipeline\Unity.SourceGenerators\Unity.Properties.SourceGenerator.dll" />
     <Analyzer Include="C:\Program Files\Unity\Hub\Editor\6000.3.8f1\Editor\Data\Tools\BuildPipeline\Unity.SourceGenerators\Unity.UIToolkit.SourceGenerator.dll" />
@@ -74,9 +74,11 @@
   <ItemGroup>
     <Compile Include="Assets\_Features\Player\Scripts\RoleType.cs" />
     <Compile Include="Assets\_Features\Player\Scripts\PlayerCombat.cs" />
+    <Compile Include="Assets\_Features\Player\Scripts\PlayerBulletAttackKind.cs" />
     <Compile Include="Assets\_Features\Player\Scripts\RoleDefinition.cs" />
     <Compile Include="Assets\_Features\Player\Scripts\PlayerAim.cs" />
     <Compile Include="Assets\_Features\Player\Scripts\AimType.cs" />
+    <Compile Include="Assets\_Features\Player\Scripts\PlayerTerrainMoveResolver.cs" />
     <Compile Include="Assets\_Features\Player\Scripts\PlayerSpawner.cs" />
     <Compile Include="Assets\_Features\Player\Scripts\PlayerMove.cs" />
     <Compile Include="Assets\_Features\Player\Scripts\PlayerStatus.cs" />
@@ -1209,6 +1211,10 @@
       <HintPath>Library\ScriptAssemblies\Unity.InputSystem.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Unity.ScriptableBuildPipeline">
+      <HintPath>Library\ScriptAssemblies\Unity.ScriptableBuildPipeline.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="UnityEditor.UI">
       <HintPath>Library\ScriptAssemblies\UnityEditor.UI.dll</HintPath>
       <Private>False</Private>
@@ -1219,6 +1225,14 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="Uraty.Shared.Battle.csproj">
+      <Project>{7FD05D84-DA26-137D-1EF4-2CC4BA438866}</Project>
+      <Name>Uraty.Shared.Battle</Name>
+    </ProjectReference>
+    <ProjectReference Include="Uraty.Shared.Terrain.csproj">
+      <Project>{FC094ED3-E626-7E9B-D8E3-3A7F802B087E}</Project>
+      <Name>Uraty.Shared.Terrain</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="GenerateTargetFrameworkMonikerAttribute" />
