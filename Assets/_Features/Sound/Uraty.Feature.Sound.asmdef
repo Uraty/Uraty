@@ -1,0 +1,14 @@
+{
+    "name": "Uraty.Feature.Sound",
+    "rootNamespace": "Uraty.Feature.Sound",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

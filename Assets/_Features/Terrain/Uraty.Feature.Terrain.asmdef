@@ -1,0 +1,17 @@
+{
+    "name": "Uraty.Feature.Terrain",
+    "rootNamespace": "Uraty.Feature.Terrain",
+    "references": [
+        "GUID:5475a3d47d3889e4aa9513bf66fc3413",
+        "GUID:fa6564c5ffb7f944993233c061c40114"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

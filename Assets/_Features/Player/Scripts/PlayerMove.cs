@@ -7,8 +7,11 @@ namespace Uraty.Feature.Player
     {
         private const float DefaultMoveSpeedMetersPerSecond = 5.0f;
 
-        // 移動スピード
+        [Header("移動スピード")]
         [SerializeField] private float _moveSpeedMetersPerSecond = DefaultMoveSpeedMetersPerSecond;
+
+        [Header("地形を考慮した移動解決")]
+        [SerializeField] private PlayerTerrainMoveResolver _terrainMoveResolver;
 
         private InputAction _moveAction;
         private Vector3 _moveInput;
@@ -24,6 +27,11 @@ namespace Uraty.Feature.Player
                 .With("Right", "<Keyboard>/d");
 
             _ = _moveAction.AddBinding("<Gamepad>/leftStick");
+
+            if (_terrainMoveResolver == null)
+            {
+                _terrainMoveResolver = GetComponent<PlayerTerrainMoveResolver>();
+            }
         }
 
         private void OnEnable()
@@ -41,7 +49,13 @@ namespace Uraty.Feature.Player
             _moveInput = Vector3.ClampMagnitude(_moveAction.ReadValue<Vector3>(), 1.0f);
 
             var moveDirection = new Vector3(_moveInput.x, 0.0f, _moveInput.y);
-            transform.position += moveDirection * _moveSpeedMetersPerSecond * Time.deltaTime;
+            Vector3 desiredMoveDelta = moveDirection * _moveSpeedMetersPerSecond * Time.deltaTime;
+
+            Vector3 resolvedMoveDelta = _terrainMoveResolver != null
+                ? _terrainMoveResolver.ResolveMoveDelta(transform.position, desiredMoveDelta)
+                : desiredMoveDelta;
+
+            transform.position += resolvedMoveDelta;
         }
 
         private void OnDestroy()

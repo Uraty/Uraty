@@ -1,43 +1,54 @@
 using UnityEngine;
 
-public class SoundManager : MonoBehaviour
+namespace Uraty.Feature.Sound
 {
-    public static SoundManager Instance { get; private set; }
-
-    [SerializeField] private AudioSource seSource;
-    [SerializeField] private AudioSource bgmSource;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Awake()
+    public class SoundManager : MonoBehaviour
     {
-        if (Instance == null){
-            Instance = this;
+        public static SoundManager Instance
+        {
+            get; private set;
         }
-        else{
-            Destroy(gameObject);
+
+        [SerializeField] private AudioSource seSource;
+        [SerializeField] private AudioSource bgmSource;
+        // Start is called once before the first execution of Update after the MonoBehaviour is created
+        void Awake()
+        {
+            if (Instance == null)
+            {
+                Instance = this;
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
         }
-    }
 
-    public void PlaySE(AudioClip clip, float volume = 1.0f)
-    {
-        if (clip == null || seSource == null) return;
+        public void PlaySE(AudioClip clip, float volume = 1.0f)
+        {
+            if (clip == null || seSource == null)
+                return;
 
-        seSource.PlayOneShot(clip, volume);
-    }
+            seSource.PlayOneShot(clip, volume);
+        }
 
-    public void PlayBGM(AudioClip clip, float volume = 1.0f, bool loop = true)
-    {
-        if (clip == null || bgmSource == null) return;
+        public void PlayBGM(AudioClip clip, float volume = 1.0f, bool loop = true)
+        {
+            if (clip == null || bgmSource == null)
+                return;
 
-        bgmSource.clip = clip;
-        bgmSource.volume = volume;
-        bgmSource.loop = loop;
-        bgmSource.Play();
-    }
+            bgmSource.clip = clip;
+            bgmSource.volume = volume;
+            bgmSource.loop = loop;
+            bgmSource.Play();
+        }
 
-    public void StopBGM()
-    {
-        if (bgmSource == null) return;
+        public void StopBGM()
+        {
+            if (bgmSource == null)
+                return;
 
-        bgmSource.Stop();
+            bgmSource.Stop();
+        }
     }
 }

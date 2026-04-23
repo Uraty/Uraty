@@ -1,23 +1,70 @@
 using System.Collections;
-
 using UnityEngine;
+using Uraty.Shared.Battle;
 
 namespace Uraty.Feature.Player
 {
-    public class PlayerCombat : MonoBehaviour
+    /// <summary>
+    /// プレイヤーの攻撃入力を受け取り、
+    /// RoleDefinition を参照して弾生成要求を送るクラス。
+    ///
+    /// このクラスは「撃つ判断」と「発射パラメータの組み立て」までを担当する。
+    /// 実際の弾生成や移動は IBulletSpawner 実装側に委譲する。
+    /// </summary>
+    public sealed class PlayerCombat : MonoBehaviour
     {
-        private const float MinValue = 0.0001f;
-
         [SerializeField] private PlayerStatus _playerStatus;
         [SerializeField] private PlayerAim _playerAim;
         [SerializeField] private Transform _shotOrigin;
 
         [Header("Spawn")]
+        // 弾の生成位置を少し上げたい場合の高さオフセット
         [SerializeField] private float _spawnHeightOffset = 0.5f;
 
+        [Header("Dependencies")]
+        // Inspector から IBulletSpawner 実装を差し込むための参照
+        [SerializeField] private MonoBehaviour _bulletSpawnerBehaviour;
+
+        private IBulletSpawner _bulletSpawner;
+
+        // 通常攻撃の次回発射可能時刻
         private float _nextAttackTime;
+
+        // 必殺技の次回発射可能時刻
         private float _nextSpecialTime;
 
+        private void Awake()
+        {
+            _bulletSpawner = ResolveBulletSpawnerFromBehaviour(_bulletSpawnerBehaviour);
+
+            if (_bulletSpawner != null)
+            {
+                return;
+            }
+
+            _bulletSpawner = ResolveBulletSpawnerFromComponents(gameObject);
+
+            if (_bulletSpawner != null)
+            {
+                return;
+            }
+
+            _bulletSpawner = ResolveBulletSpawnerFromComponentsInParent();
+        }
+
+        private void Start()
+        {
+            if (_bulletSpawner != null)
+            {
+                return;
+            }
+
+            _bulletSpawner = ResolveBulletSpawnerFromComponentsInChildren();
+        }
+
+        /// <summary>
+        /// コンポーネント追加時の初期参照補完。
+        /// </summary>
         private void Reset()
         {
             _playerStatus = GetComponent<PlayerStatus>();
@@ -25,8 +72,16 @@ namespace Uraty.Feature.Player
             _shotOrigin = transform;
         }
 
+        /// <summary>
+        /// Aim 側で更新された攻撃要求を回収する。
+        /// </summary>
         private void LateUpdate()
         {
+            if (_bulletSpawner == null)
+            {
+                return;
+            }
+
             if (_playerAim == null)
             {
                 return;
@@ -46,6 +101,9 @@ namespace Uraty.Feature.Player
             TryHandleSpecial();
         }
 
+        /// <summary>
+        /// 通常攻撃要求を処理する。
+        /// </summary>
         private void TryHandleAttack()
         {
             if (!_playerAim.TryConsumeAttack(out Vector3 aimPoint, out Vector3 aimDirection))
@@ -53,21 +111,28 @@ namespace Uraty.Feature.Player
                 return;
             }
 
-            AttackDefinition attack = _playerStatus.RoleDefinition.Attack;
-            if (attack == null)
+            AttackDefinition attackDefinition = _playerStatus.RoleDefinition.Attack;
+            if (attackDefinition == null)
             {
                 return;
             }
 
+            // 攻撃間隔内なら発射しない
             if (Time.time < _nextAttackTime)
             {
                 return;
             }
 
-            _nextAttackTime = Time.time + Mathf.Max(attack.MinAttackIntervalSeconds, attack.MaxAttackIntervalSeconds);
-            ExecuteDefinition(attack, aimPoint, aimDirection);
+            _nextAttackTime = Time.time + Mathf.Max(
+                attackDefinition.MinAttackIntervalSeconds,
+                attackDefinition.MaxAttackIntervalSeconds);
+
+            ExecuteDefinition(attackDefinition, aimPoint, aimDirection);
         }
 
+        /// <summary>
+        /// 必殺技要求を処理する。
+        /// </summary>
         private void TryHandleSpecial()
         {
             if (!_playerAim.TryConsumeSpecial(out Vector3 aimPoint, out Vector3 aimDirection))
@@ -75,622 +140,390 @@ namespace Uraty.Feature.Player
                 return;
             }
 
-            AttackDefinition special = _playerStatus.RoleDefinition.Special;
-            if (special == null)
+            AttackDefinition specialDefinition = _playerStatus.RoleDefinition.Special;
+            if (specialDefinition == null)
             {
                 return;
             }
 
+            // 必殺技の発動間隔内なら発射しない
             if (Time.time < _nextSpecialTime)
             {
                 return;
             }
 
-            _nextSpecialTime = Time.time + Mathf.Max(special.MinAttackIntervalSeconds, special.MaxAttackIntervalSeconds);
-            ExecuteDefinition(special, aimPoint, aimDirection);
+            _nextSpecialTime = Time.time + Mathf.Max(
+                specialDefinition.MinAttackIntervalSeconds,
+                specialDefinition.MaxAttackIntervalSeconds);
+
+            ExecuteDefinition(specialDefinition, aimPoint, aimDirection);
         }
 
-        private void ExecuteDefinition(AttackDefinition definition, Vector3 aimPoint, Vector3 aimDirection)
+        /// <summary>
+        /// 攻撃定義の AimType に応じて発射方法を振り分ける。
+        /// </summary>
+        private void ExecuteDefinition(
+            AttackDefinition definition,
+            Vector3 aimPoint,
+            Vector3 aimDirection)
         {
             switch (definition.Type)
             {
                 case AimType.Line:
-                    FireLine(definition.Line, aimDirection);
+                    FireLine(definition, aimDirection);
                     break;
 
                 case AimType.Fan:
-                    FireFan(definition.Fan, aimDirection);
+                    FireFan(definition, aimDirection);
                     break;
 
                 case AimType.Throw:
-                    FireThrow(definition.Throw, aimPoint, aimDirection);
+                    FireThrow(definition, aimPoint, aimDirection);
                     break;
             }
         }
 
-        private void FireLine(LineAttackDefinition definition, Vector3 aimDirection)
+        /// <summary>
+        /// 直線弾を発射する。
+        /// </summary>
+        private void FireLine(AttackDefinition attackDefinition, Vector3 aimDirection)
         {
-            if (definition == null)
+            LineAttackDefinition lineDefinition = attackDefinition.Line;
+            if (lineDefinition == null)
             {
                 return;
             }
 
-            LineBulletDefinition[] bullets = definition.Bullets;
+            LineBulletDefinition[] bullets = lineDefinition.Bullets;
             if (bullets == null || bullets.Length == 0)
             {
                 return;
             }
 
-            for (int i = 0; i < bullets.Length; i++)
+            for (int bulletIndex = 0; bulletIndex < bullets.Length; bulletIndex++)
             {
-                LineBulletDefinition bullet = bullets[i];
-                if (bullet == null || bullet.BulletPrefab == null)
+                LineBulletDefinition bulletDefinition = bullets[bulletIndex];
+                if (bulletDefinition == null || bulletDefinition.BulletPrefab == null)
                 {
                     continue;
                 }
 
-                LineAimLineDefinition aimLine = GetAssignedAimLine(definition.AimLines, i);
-                if (aimLine == null)
+                LineAimLineDefinition aimLineDefinition =
+                    GetAssignedAimLine(lineDefinition.AimLines, bulletIndex);
+                if (aimLineDefinition == null)
                 {
                     continue;
                 }
 
-                StartCoroutine(SpawnLineProjectileDelayed(definition, aimLine, bullet, aimDirection));
+                StartCoroutine(SpawnLineBulletDelayed(
+                    attackDefinition,
+                    lineDefinition,
+                    aimLineDefinition,
+                    bulletDefinition,
+                    aimDirection));
             }
         }
 
-        private IEnumerator SpawnLineProjectileDelayed(
-            LineAttackDefinition definition,
-            LineAimLineDefinition aimLine,
-            LineBulletDefinition bullet,
+        /// <summary>
+        /// 直線弾の遅延生成処理。
+        /// </summary>
+        private IEnumerator SpawnLineBulletDelayed(
+            AttackDefinition attackDefinition,
+            LineAttackDefinition lineDefinition,
+            LineAimLineDefinition aimLineDefinition,
+            LineBulletDefinition bulletDefinition,
             Vector3 aimDirection)
         {
-            float delay = Mathf.Max(0f, bullet.SpawnDelaySeconds);
-            if (delay > 0f)
+            float spawnDelaySeconds = Mathf.Max(0f, bulletDefinition.SpawnDelaySeconds);
+            if (spawnDelaySeconds > 0f)
             {
-                yield return new WaitForSeconds(delay);
+                yield return new WaitForSeconds(spawnDelaySeconds);
             }
 
-            SpawnLineProjectile(definition, aimLine, bullet, aimDirection);
+            SpawnLineBullet(
+                attackDefinition,
+                lineDefinition,
+                aimLineDefinition,
+                bulletDefinition,
+                aimDirection);
         }
 
-        private void SpawnLineProjectile(
-            LineAttackDefinition definition,
-            LineAimLineDefinition aimLine,
-            LineBulletDefinition bullet,
+        /// <summary>
+        /// 直線弾を1発生成する。
+        /// </summary>
+        private void SpawnLineBullet(
+            AttackDefinition attackDefinition,
+            LineAttackDefinition lineDefinition,
+            LineAimLineDefinition aimLineDefinition,
+            LineBulletDefinition bulletDefinition,
             Vector3 aimDirection)
         {
-            Vector3 lineDirection = Quaternion.Euler(0f, aimLine.OffsetAngleFromAimLine, 0f) * GetAimDirection(aimDirection);
+            Vector3 baseDirection = GetAimDirection(aimDirection);
+
+            // AimLine 側の角度補正を加えた発射方向
+            Vector3 lineDirection =
+                Quaternion.Euler(0f, aimLineDefinition.OffsetAngleFromAimLine, 0f) * baseDirection;
+
             lineDirection.y = 0f;
-
-            if (lineDirection.sqrMagnitude <= MinValue)
+            if (lineDirection.sqrMagnitude <= 0.0001f)
             {
-                lineDirection = GetAimDirection(aimDirection);
+                lineDirection = baseDirection;
             }
 
             lineDirection.Normalize();
 
-            Vector3 right = GetRight(lineDirection);
-            float totalOffset = aimLine.OffsetDistanceFromAimLine + bullet.OffsetFromAimLine;
-            Vector3 lateralOffset = right * totalOffset;
+            // 発射位置の横ずらし
+            Vector3 rightDirection = GetRight(lineDirection);
+            float lateralOffsetMeters =
+                aimLineDefinition.OffsetDistanceFromAimLine + bulletDefinition.OffsetFromAimLine;
 
-            Vector3 start = GetSpawnOrigin() + lateralOffset;
-            Vector3 end = GetGroundOrigin() + lateralOffset + (lineDirection * Mathf.Max(0f, aimLine.EffectiveRange));
-            end.y = start.y;
+            Vector3 playerCenterOrigin = GetPlayerCenterOrigin();
+            Vector3 bulletLocalOffset = TransformLocalSpawnOffset(
+                lineDirection,
+                bulletDefinition.SpawnOffsetFromPlayerCenter);
 
-            GameObject projectile = Instantiate(
-                bullet.BulletPrefab,
-                start,
-                GetLookRotation(lineDirection));
+            Vector3 spawnPosition =
+                playerCenterOrigin
+                + bulletLocalOffset
+                + (rightDirection * lateralOffsetMeters);
 
-            ApplyBoxScale(projectile.transform, bullet.BulletWidth, bullet.BulletHeight);
-
-            float speed = Mathf.Max(MinValue, definition.SpeedPerSecond);
-            StartCoroutine(MoveLinear(projectile.transform, start, end, speed));
+            _bulletSpawner.SpawnLineBullet(
+                bulletPrefab: bulletDefinition.BulletPrefab,
+                ownerTransform: transform,
+                ownerTeamId: _playerStatus.TeamId,
+                startPosition: spawnPosition,
+                direction: lineDirection,
+                maxTravelDistanceMeters: Mathf.Max(0f, aimLineDefinition.EffectiveRange),
+                definition: lineDefinition,
+                attackDefinition: attackDefinition);
         }
 
-        private void FireFan(FanAttackDefinition definition, Vector3 aimDirection)
+        /// <summary>
+        /// 扇状弾を発射する。
+        /// </summary>
+        private void FireFan(AttackDefinition attackDefinition, Vector3 aimDirection)
         {
-            if (definition == null)
+            FanAttackDefinition fanDefinition = attackDefinition.Fan;
+            if (fanDefinition == null)
             {
                 return;
             }
 
-            FanBulletDefinition[] bullets = definition.Bullets;
+            FanBulletDefinition[] bullets = fanDefinition.Bullets;
             if (bullets == null || bullets.Length == 0)
             {
                 return;
             }
 
-            for (int i = 0; i < bullets.Length; i++)
+            for (int bulletIndex = 0; bulletIndex < bullets.Length; bulletIndex++)
             {
-                FanBulletDefinition bullet = bullets[i];
-                if (bullet == null || bullet.BulletPrefab == null)
+                FanBulletDefinition bulletDefinition = bullets[bulletIndex];
+                if (bulletDefinition == null || bulletDefinition.BulletPrefab == null)
                 {
                     continue;
                 }
 
-                FanAimLineDefinition aimLine = GetAssignedAimLine(definition.AimLines, i);
-                if (aimLine == null)
-                {
-                    continue;
-                }
-
-                StartCoroutine(SpawnFanProjectileDelayed(definition, aimLine, bullet, aimDirection));
+                StartCoroutine(SpawnFanBulletDelayed(
+                    attackDefinition,
+                    fanDefinition,
+                    bulletDefinition,
+                    aimDirection));
             }
         }
 
-        private IEnumerator SpawnFanProjectileDelayed(
-            FanAttackDefinition definition,
-            FanAimLineDefinition aimLine,
-            FanBulletDefinition bullet,
+        /// <summary>
+        /// 扇状弾の遅延生成処理。
+        /// </summary>
+        private IEnumerator SpawnFanBulletDelayed(
+            AttackDefinition attackDefinition,
+            FanAttackDefinition fanDefinition,
+            FanBulletDefinition bulletDefinition,
             Vector3 aimDirection)
         {
-            float delay = Mathf.Max(0f, bullet.SpawnDelaySeconds);
-            if (delay > 0f)
+            float spawnDelaySeconds = Mathf.Max(0f, bulletDefinition.SpawnDelaySeconds);
+            if (spawnDelaySeconds > 0f)
             {
-                yield return new WaitForSeconds(delay);
+                yield return new WaitForSeconds(spawnDelaySeconds);
             }
 
-            SpawnFanProjectile(definition, aimLine, bullet, aimDirection);
+            SpawnFanBullet(
+                attackDefinition,
+                fanDefinition,
+                bulletDefinition,
+                aimDirection);
         }
 
-        private void SpawnFanProjectile(
-            FanAttackDefinition definition,
-            FanAimLineDefinition aimLine,
-            FanBulletDefinition bullet,
+        /// <summary>
+        /// 扇状弾を1発生成する。
+        /// </summary>
+        private void SpawnFanBullet(
+            AttackDefinition attackDefinition,
+            FanAttackDefinition fanDefinition,
+            FanBulletDefinition bulletDefinition,
             Vector3 aimDirection)
         {
-            float totalAngleOffset = aimLine.OffsetAngleFromAimLine + bullet.OffsetAngleFromAimLine;
+            Vector3 baseDirection = GetAimDirection(aimDirection);
 
-            Vector3 direction = Quaternion.Euler(0f, totalAngleOffset, 0f) * GetAimDirection(aimDirection);
-            direction.y = 0f;
+            // 中心角からのオフセットを加えた発射方向
+            Vector3 bulletDirection =
+                Quaternion.Euler(0f, bulletDefinition.OffsetAngleFromCenter, 0f) * baseDirection;
 
-            if (direction.sqrMagnitude <= MinValue)
+            bulletDirection.y = 0f;
+            if (bulletDirection.sqrMagnitude <= 0.0001f)
             {
-                direction = GetAimDirection(aimDirection);
+                bulletDirection = baseDirection;
             }
 
-            direction.Normalize();
+            bulletDirection.Normalize();
 
-            Vector3 start = GetSpawnOrigin();
-            Vector3 end = GetGroundOrigin() + (direction * Mathf.Max(0f, aimLine.EffectiveRange));
-            end.y = start.y;
+            Vector3 playerCenterOrigin = GetPlayerCenterOrigin();
+            Vector3 bulletLocalOffset = TransformLocalSpawnOffset(
+                bulletDirection,
+                bulletDefinition.SpawnOffsetFromPlayerCenter);
 
-            GameObject projectile = Instantiate(
-                bullet.BulletPrefab,
-                start,
-                GetLookRotation(direction));
+            Vector3 spawnPosition = playerCenterOrigin + bulletLocalOffset;
 
-            float width = GetFanVisualWidth(bullet.Height, bullet.Angle);
-            ApplyBoxScale(projectile.transform, width, bullet.Height);
-
-            float speed = Mathf.Max(MinValue, definition.SpeedPerSecond);
-            StartCoroutine(MoveLinear(projectile.transform, start, end, speed));
+            _bulletSpawner.SpawnFanBullet(
+                bulletPrefab: bulletDefinition.BulletPrefab,
+                ownerTransform: transform,
+                ownerTeamId: _playerStatus.TeamId,
+                startPosition: spawnPosition,
+                direction: bulletDirection,
+                maxTravelDistanceMeters: Mathf.Max(0f, fanDefinition.RangeMeters),
+                definition: fanDefinition,
+                attackDefinition: attackDefinition);
         }
 
-        private void FireThrow(ThrowAttackDefinition definition, Vector3 aimPoint, Vector3 aimDirection)
-        {
-            if (definition == null)
-            {
-                return;
-            }
-
-            ThrowBulletDefinition[] bullets = definition.Bullets;
-            if (bullets == null || bullets.Length == 0)
-            {
-                return;
-            }
-
-            float currentAimDistance = GetPlanarDistance(GetGroundOrigin(), aimPoint);
-
-            for (int i = 0; i < bullets.Length; i++)
-            {
-                ThrowBulletDefinition bullet = bullets[i];
-                if (bullet == null || bullet.BulletPrefab == null)
-                {
-                    continue;
-                }
-
-                ThrowAimLineDefinition aimLine = GetAssignedAimLine(definition.AimLines, i);
-                if (aimLine == null)
-                {
-                    continue;
-                }
-
-                StartCoroutine(SpawnThrowProjectileDelayed(definition, aimLine, bullet, currentAimDistance, aimDirection));
-            }
-        }
-
-        private IEnumerator SpawnThrowProjectileDelayed(
-            ThrowAttackDefinition definition,
-            ThrowAimLineDefinition aimLine,
-            ThrowBulletDefinition bullet,
-            float currentAimDistance,
+        /// <summary>
+        /// 投擲弾の処理。
+        /// 現段階では未対応。
+        /// </summary>
+        private void FireThrow(
+            AttackDefinition attackDefinition,
+            Vector3 aimPoint,
             Vector3 aimDirection)
         {
-            float delay = Mathf.Max(0f, bullet.SpawnDelaySeconds);
-            if (delay > 0f)
-            {
-                yield return new WaitForSeconds(delay);
-            }
-
-            SpawnThrowProjectile(definition, aimLine, bullet, currentAimDistance, aimDirection);
+            // Throw は別段階で対応。
         }
 
-        private void SpawnThrowProjectile(
-            ThrowAttackDefinition definition,
-            ThrowAimLineDefinition aimLine,
-            ThrowBulletDefinition bullet,
-            float currentAimDistance,
-            Vector3 aimDirection)
-        {
-            Vector3 groundOrigin = GetGroundOrigin();
-            Vector3 start = GetSpawnOrigin();
-            Vector3 baseAimDirection = GetAimDirection(aimDirection);
-
-            Vector3 aimLineDirection = Quaternion.Euler(0f, aimLine.OffsetAngleFromAimLine, 0f) * baseAimDirection;
-            aimLineDirection.y = 0f;
-
-            if (aimLineDirection.sqrMagnitude <= MinValue)
-            {
-                aimLineDirection = baseAimDirection;
-            }
-
-            aimLineDirection.Normalize();
-
-            float baseDistance = GetThrowBaseDistance(definition, aimLine, currentAimDistance);
-            float aimLineDistance = Mathf.Max(0f, baseDistance + aimLine.OffsetDistanceFromAimLine);
-
-            Vector3 circleCenterPoint = groundOrigin + (aimLineDirection * aimLineDistance);
-            circleCenterPoint.y = groundOrigin.y;
-
-            Vector3 offsetDirection = Quaternion.Euler(0f, bullet.OffsetAngleFromAimLine, 0f) * aimLineDirection;
-            offsetDirection.y = 0f;
-
-            if (offsetDirection.sqrMagnitude <= MinValue)
-            {
-                offsetDirection = aimLineDirection;
-            }
-
-            offsetDirection.Normalize();
-
-            Vector3 landingPoint = circleCenterPoint + (offsetDirection * Mathf.Max(0f, bullet.OffsetDistanceFromAimLine));
-            landingPoint.y = groundOrigin.y;
-
-            GameObject projectile = Instantiate(
-                bullet.BulletPrefab,
-                start,
-                GetLookRotation(circleCenterPoint - start));
-
-            ApplyCircleScale(projectile.transform, bullet.Radius);
-
-            float duration = GetThrowDuration(definition, aimLine, groundOrigin, landingPoint);
-            float arcHeight = GetThrowArcHeight(definition, aimLine, groundOrigin, landingPoint);
-
-            StartCoroutine(MoveThrowParabola(
-                projectile.transform,
-                start,
-                circleCenterPoint,
-                landingPoint,
-                duration,
-                arcHeight));
-        }
-
-        private float GetThrowBaseDistance(
-            ThrowAttackDefinition definition,
-            ThrowAimLineDefinition aimLine,
-            float currentAimDistance)
-        {
-            if (!definition.IsVariableRange)
-            {
-                return Mathf.Max(0f, aimLine.EffectiveRange);
-            }
-
-            return Mathf.Min(Mathf.Max(0f, currentAimDistance), Mathf.Max(0f, aimLine.EffectiveRange));
-        }
-
-        private IEnumerator MoveLinear(Transform projectile, Vector3 start, Vector3 end, float speed)
-        {
-            if (projectile == null)
-            {
-                yield break;
-            }
-
-            Vector3 direction = end - start;
-            float distance = direction.magnitude;
-
-            if (distance <= MinValue)
-            {
-                projectile.position = end;
-                OnProjectileArrived(projectile.gameObject);
-                yield break;
-            }
-
-            Quaternion rotation = GetLookRotation(direction.normalized);
-            projectile.rotation = rotation;
-
-            float duration = distance / Mathf.Max(MinValue, speed);
-            float elapsedSeconds = 0f;
-
-            while (elapsedSeconds < duration)
-            {
-                if (projectile == null)
-                {
-                    yield break;
-                }
-
-                elapsedSeconds += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsedSeconds / duration);
-                projectile.position = Vector3.Lerp(start, end, t);
-                projectile.rotation = rotation;
-
-                yield return null;
-            }
-
-            if (projectile == null)
-            {
-                yield break;
-            }
-
-            projectile.position = end;
-            OnProjectileArrived(projectile.gameObject);
-        }
-
-        private IEnumerator MoveThrowParabola(
-            Transform projectile,
-            Vector3 start,
-            Vector3 circleCenterPoint,
-            Vector3 landingPoint,
-            float duration,
-            float arcHeight)
-        {
-            if (projectile == null)
-            {
-                yield break;
-            }
-
-            float safeDuration = Mathf.Max(MinValue, duration);
-            float elapsedSeconds = 0f;
-
-            Vector3 offsetFromCircleCenter = landingPoint - circleCenterPoint;
-
-            while (elapsedSeconds < safeDuration)
-            {
-                if (projectile == null)
-                {
-                    yield break;
-                }
-
-                elapsedSeconds += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsedSeconds / safeDuration);
-
-                Vector3 position = EvaluateThrowPosition(
-                    start,
-                    circleCenterPoint,
-                    offsetFromCircleCenter,
-                    arcHeight,
-                    t);
-
-                projectile.position = position;
-
-                float nextT = Mathf.Clamp01((elapsedSeconds + 0.01f) / safeDuration);
-                Vector3 nextPosition = EvaluateThrowPosition(
-                    start,
-                    circleCenterPoint,
-                    offsetFromCircleCenter,
-                    arcHeight,
-                    nextT);
-
-                Vector3 forward = nextPosition - position;
-                if (forward.sqrMagnitude > MinValue)
-                {
-                    projectile.rotation = GetLookRotation(forward.normalized);
-                }
-
-                yield return null;
-            }
-
-            if (projectile == null)
-            {
-                yield break;
-            }
-
-            projectile.position = landingPoint;
-            OnProjectileArrived(projectile.gameObject);
-        }
-
-        private Vector3 EvaluateThrowPosition(
-            Vector3 start,
-            Vector3 circleCenterPoint,
-            Vector3 offsetFromCircleCenter,
-            float arcHeight,
-            float t)
-        {
-            Vector3 point = EvaluateParabola(start, circleCenterPoint, arcHeight, t);
-            point += offsetFromCircleCenter * t;
-            return point;
-        }
-
-        private Vector3 EvaluateParabola(Vector3 start, Vector3 end, float height, float t)
-        {
-            Vector3 point = Vector3.Lerp(start, end, t);
-            point.y += 4f * height * t * (1f - t);
-            return point;
-        }
-
-        private float GetThrowDuration(
-            ThrowAttackDefinition definition,
-            ThrowAimLineDefinition aimLine,
-            Vector3 origin,
-            Vector3 landingPoint)
-        {
-            if (!definition.IsVariableLandingTime)
-            {
-                return Mathf.Max(MinValue, definition.FixedLandingTimeSeconds);
-            }
-
-            float maxRange = Mathf.Max(MinValue, aimLine.EffectiveRange);
-            float distance = GetPlanarDistance(origin, landingPoint);
-            float ratio = Mathf.Clamp01(distance / maxRange);
-
-            float minSeconds = Mathf.Min(definition.MinLandingTimeSeconds, definition.MaxLandingTimeSeconds);
-            float maxSeconds = Mathf.Max(definition.MinLandingTimeSeconds, definition.MaxLandingTimeSeconds);
-
-            return Mathf.Max(MinValue, Mathf.Lerp(minSeconds, maxSeconds, ratio));
-        }
-
-        private float GetThrowArcHeight(
-            ThrowAttackDefinition definition,
-            ThrowAimLineDefinition aimLine,
-            Vector3 origin,
-            Vector3 landingPoint)
-        {
-            if (!definition.IsVariableLandingTime)
-            {
-                return Mathf.Max(0f, aimLine.FixedParabolaHeight);
-            }
-
-            float maxRange = Mathf.Max(MinValue, aimLine.EffectiveRange);
-            float distance = GetPlanarDistance(origin, landingPoint);
-            float ratio = Mathf.Clamp01(distance / maxRange);
-
-            float minHeight = Mathf.Min(aimLine.MinParabolaHeight, aimLine.MaxParabolaHeight);
-            float maxHeight = Mathf.Max(aimLine.MinParabolaHeight, aimLine.MaxParabolaHeight);
-
-            return Mathf.Lerp(minHeight, maxHeight, ratio);
-        }
-
-        private float GetPlanarDistance(Vector3 a, Vector3 b)
-        {
-            Vector3 delta = b - a;
-            delta.y = 0f;
-            return delta.magnitude;
-        }
-
-        private float GetFanVisualWidth(float height, float angle)
-        {
-            float safeHeight = Mathf.Max(0.01f, height);
-            float halfAngleRad = Mathf.Max(0f, angle) * 0.5f * Mathf.Deg2Rad;
-            float width = 2f * safeHeight * Mathf.Tan(halfAngleRad);
-            return Mathf.Max(0.01f, width);
-        }
-
-        private void ApplyBoxScale(Transform target, float width, float height)
-        {
-            if (target == null)
-            {
-                return;
-            }
-
-            Vector3 scale = target.localScale;
-            scale.x = Mathf.Max(0.01f, width);
-            scale.z = Mathf.Max(0.01f, height);
-            target.localScale = scale;
-        }
-
-        private void ApplyCircleScale(Transform target, float radius)
-        {
-            if (target == null)
-            {
-                return;
-            }
-
-            float diameter = Mathf.Max(0.01f, radius * 2f);
-
-            Vector3 scale = target.localScale;
-            scale.x = diameter;
-            scale.z = diameter;
-            target.localScale = scale;
-        }
-
-        private void OnProjectileArrived(GameObject projectile)
-        {
-            if (projectile == null)
-            {
-                return;
-            }
-
-            Destroy(projectile);
-        }
-
-        private Vector3 GetGroundOrigin()
-        {
-            return transform.position;
-        }
-
+        /// <summary>
+        /// 弾の生成基準位置を返す。
+        /// </summary>
         private Vector3 GetSpawnOrigin()
         {
-            if (_shotOrigin != null)
-            {
-                return _shotOrigin.position;
-            }
-
-            return transform.position + (Vector3.up * _spawnHeightOffset);
+            Transform originTransform = _shotOrigin != null ? _shotOrigin : transform;
+            Vector3 spawnOrigin = originTransform.position;
+            spawnOrigin.y += _spawnHeightOffset;
+            return spawnOrigin;
         }
 
+        private static IBulletSpawner ResolveBulletSpawnerFromBehaviour(MonoBehaviour behaviour)
+        {
+            return behaviour as IBulletSpawner;
+        }
+
+        private static IBulletSpawner ResolveBulletSpawnerFromComponents(GameObject targetObject)
+        {
+            MonoBehaviour[] behaviours = targetObject.GetComponents<MonoBehaviour>();
+            foreach (MonoBehaviour behaviour in behaviours)
+            {
+                if (behaviour is IBulletSpawner bulletSpawner)
+                {
+                    return bulletSpawner;
+                }
+            }
+
+            return null;
+        }
+
+        private IBulletSpawner ResolveBulletSpawnerFromComponentsInParent()
+        {
+            Transform current = transform.parent;
+            while (current != null)
+            {
+                IBulletSpawner bulletSpawner = ResolveBulletSpawnerFromComponents(current.gameObject);
+                if (bulletSpawner != null)
+                {
+                    return bulletSpawner;
+                }
+
+                current = current.parent;
+            }
+
+            return null;
+        }
+
+        private IBulletSpawner ResolveBulletSpawnerFromComponentsInChildren()
+        {
+            MonoBehaviour[] behaviours = GetComponentsInChildren<MonoBehaviour>(true);
+            foreach (MonoBehaviour behaviour in behaviours)
+            {
+                if (behaviour is IBulletSpawner bulletSpawner)
+                {
+                    return bulletSpawner;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// エイム方向をXZ平面上の正規化ベクトルとして返す。
+        /// 方向がほぼゼロなら自身の forward を使う。
+        /// </summary>
         private Vector3 GetAimDirection(Vector3 aimDirection)
         {
             Vector3 direction = aimDirection;
             direction.y = 0f;
 
-            if (direction.sqrMagnitude <= MinValue)
+            if (direction.sqrMagnitude <= 0.0001f)
             {
                 direction = transform.forward;
                 direction.y = 0f;
             }
 
-            return direction.sqrMagnitude > MinValue
-                ? direction.normalized
-                : Vector3.forward;
+            return direction.normalized;
         }
 
-        private Vector3 GetRight(Vector3 forward)
+        /// <summary>
+        /// forward 方向から右方向ベクトルを返す。
+        /// </summary>
+        private Vector3 GetRight(Vector3 forwardDirection)
         {
-            Vector3 right = Vector3.Cross(Vector3.up, forward);
-            if (right.sqrMagnitude <= MinValue)
-            {
-                return transform.right;
-            }
-
-            return right.normalized;
+            return Quaternion.Euler(0f, 90f, 0f) * forwardDirection.normalized;
         }
 
-        private Quaternion GetLookRotation(Vector3 forward)
+        /// <summary>
+        /// index に対応する AimLine を返す。
+        /// index が範囲外の場合は最後の定義を使う。
+        /// </summary>
+        private static T GetAssignedAimLine<T>(T[] definitions, int index) where T : class
         {
-            Vector3 safeForward = forward;
-            safeForward.y = 0f;
-
-            if (safeForward.sqrMagnitude <= MinValue)
-            {
-                safeForward = Vector3.forward;
-            }
-
-            return Quaternion.LookRotation(safeForward.normalized, Vector3.up);
-        }
-
-        private T GetAssignedAimLine<T>(T[] aimLines, int bulletIndex) where T : class
-        {
-            if (aimLines == null || aimLines.Length == 0)
+            if (definitions == null || definitions.Length == 0)
             {
                 return null;
             }
 
-            int index = bulletIndex % aimLines.Length;
-            if (aimLines[index] != null)
+            if (index < 0 || index >= definitions.Length)
             {
-                return aimLines[index];
+                return definitions[definitions.Length - 1];
             }
 
-            for (int i = 0; i < aimLines.Length; i++)
-            {
-                if (aimLines[i] != null)
-                {
-                    return aimLines[i];
-                }
-            }
+            return definitions[index];
+        }
+        private Vector3 GetPlayerCenterOrigin()
+        {
+            return transform.position;
+        }
 
-            return null;
+        private Vector3 TransformLocalSpawnOffset(Vector3 forwardDirection, Vector3 localOffset)
+        {
+            Vector3 normalizedForward = forwardDirection.normalized;
+            Vector3 rightDirection = GetRight(normalizedForward);
+
+            return (rightDirection * localOffset.x)
+                + (Vector3.up * localOffset.y)
+                + (normalizedForward * localOffset.z);
         }
     }
 }

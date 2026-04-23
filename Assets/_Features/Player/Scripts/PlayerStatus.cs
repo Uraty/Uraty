@@ -1,8 +1,9 @@
 using UnityEngine;
+using Uraty.Shared.Battle;
 
 namespace Uraty.Feature.Player
 {
-    public class PlayerStatus : MonoBehaviour
+    public class PlayerStatus : MonoBehaviour, IBulletHittable
     {
         // プレイヤーの役職ごとの設定データ
         [SerializeField] private RoleDefinition _roleDefinition;
@@ -21,6 +22,9 @@ namespace Uraty.Feature.Player
 
         // 現在保持しているスコア
         [SerializeField, Min(0)] private int _currentScore = 0;
+
+        // プレイヤーのチームID（例: 0 = 赤チーム、1 = 青チーム）
+        [SerializeField] private TeamId _teamId;
 
         // HP自動回復が有効かどうか
         private bool _isHpRegenActive = false;
@@ -50,6 +54,8 @@ namespace Uraty.Feature.Player
         public float CurrentAmmo => _currentAmmo;
         public bool IsDead => _isDead;
         public float RespawnTimeRemainingSeconds => _respawnTimeRemainingSeconds;
+
+        public TeamId TeamId => _teamId;
 
         private void Start()
         {
@@ -285,6 +291,55 @@ namespace Uraty.Feature.Player
         public void ReceiveCollectedScore(int scoreAmount)
         {
             AddScore(scoreAmount);
+        }
+
+        public BulletHitResponse ReceiveBulletHit(BulletHitContext context)
+        {
+            if (_isDead)
+            {
+                return new BulletHitResponse
+                {
+                    TerrainReaction = TerrainHitReaction.None,
+                    BulletReaction = BulletHitReaction.None,
+                    TargetKind = BulletHitTargetKind.Player,
+                };
+            }
+
+            if (_teamId == context.OwnerTeamId)
+            {
+                return new BulletHitResponse
+                {
+                    TerrainReaction = TerrainHitReaction.None,
+                    BulletReaction = BulletHitReaction.None,
+                    TargetKind = BulletHitTargetKind.Player,
+                };
+            }
+
+            if (context.IsRecovery)
+            {
+                ApplyRecovery(1f);
+            }
+            else
+            {
+                ApplyDamage(1f);
+            }
+
+            return new BulletHitResponse
+            {
+                TerrainReaction = TerrainHitReaction.None,
+                BulletReaction = BulletHitReaction.DestroyBullet,
+                TargetKind = BulletHitTargetKind.Player,
+            };
+        }
+
+        private void ApplyRecovery(float recoveryAmount)
+        {
+            if (!_roleDefinition || _isDead || recoveryAmount <= 0f)
+            {
+                return;
+            }
+
+            _currentHp = Mathf.Min(_currentHp + recoveryAmount, _roleDefinition.MaxHp);
         }
     }
 }
