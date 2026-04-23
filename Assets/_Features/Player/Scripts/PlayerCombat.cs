@@ -35,12 +35,31 @@ namespace Uraty.Feature.Player
 
         private void Awake()
         {
-            _bulletSpawner = _bulletSpawnerBehaviour as IBulletSpawner;
+            _bulletSpawner = ResolveBulletSpawnerFromBehaviour(_bulletSpawnerBehaviour);
 
-            if (_bulletSpawner == null)
+            if (_bulletSpawner != null)
             {
-                Debug.LogError("IBulletSpawner を実装したコンポーネントが設定されていません。", this);
+                return;
             }
+
+            _bulletSpawner = ResolveBulletSpawnerFromComponents(gameObject);
+
+            if (_bulletSpawner != null)
+            {
+                return;
+            }
+
+            _bulletSpawner = ResolveBulletSpawnerFromComponentsInParent();
+        }
+
+        private void Start()
+        {
+            if (_bulletSpawner != null)
+            {
+                return;
+            }
+
+            _bulletSpawner = ResolveBulletSpawnerFromComponentsInChildren();
         }
 
         /// <summary>
@@ -396,6 +415,56 @@ namespace Uraty.Feature.Player
             Vector3 spawnOrigin = originTransform.position;
             spawnOrigin.y += _spawnHeightOffset;
             return spawnOrigin;
+        }
+
+        private static IBulletSpawner ResolveBulletSpawnerFromBehaviour(MonoBehaviour behaviour)
+        {
+            return behaviour as IBulletSpawner;
+        }
+
+        private static IBulletSpawner ResolveBulletSpawnerFromComponents(GameObject targetObject)
+        {
+            MonoBehaviour[] behaviours = targetObject.GetComponents<MonoBehaviour>();
+            foreach (MonoBehaviour behaviour in behaviours)
+            {
+                if (behaviour is IBulletSpawner bulletSpawner)
+                {
+                    return bulletSpawner;
+                }
+            }
+
+            return null;
+        }
+
+        private IBulletSpawner ResolveBulletSpawnerFromComponentsInParent()
+        {
+            Transform current = transform.parent;
+            while (current != null)
+            {
+                IBulletSpawner bulletSpawner = ResolveBulletSpawnerFromComponents(current.gameObject);
+                if (bulletSpawner != null)
+                {
+                    return bulletSpawner;
+                }
+
+                current = current.parent;
+            }
+
+            return null;
+        }
+
+        private IBulletSpawner ResolveBulletSpawnerFromComponentsInChildren()
+        {
+            MonoBehaviour[] behaviours = GetComponentsInChildren<MonoBehaviour>(true);
+            foreach (MonoBehaviour behaviour in behaviours)
+            {
+                if (behaviour is IBulletSpawner bulletSpawner)
+                {
+                    return bulletSpawner;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
