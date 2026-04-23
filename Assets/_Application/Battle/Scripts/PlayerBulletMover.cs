@@ -4,12 +4,23 @@ using Uraty.Shared.Battle;
 
 namespace Uraty.Application.Battle
 {
+    /// <summary>
+    /// 生成済みの弾をフレームごとに移動させるクラス。
+    ///
+    /// このクラスの責務は以下。
+    /// ・弾の前進
+    /// ・射程管理
+    /// ・ヒット検知
+    /// ・ヒット対象への反応要求
+    /// ・貫通可否に応じた移動継続
+    /// </summary>
     [RequireComponent(typeof(PlayerBullet))]
     public sealed class PlayerBulletMover : MonoBehaviour
     {
         private const float MinMoveDistanceMeters = 0.0001f;
         private const float PassThroughEpsilonMeters = 0.01f;
 
+        [Header("Hit Detection")]
         [SerializeField] private float _hitRadiusMeters = 0.1f;
 
         private BulletRuntimeData _runtimeData;
@@ -23,6 +34,9 @@ namespace Uraty.Application.Battle
             _hitRadiusMeters = Mathf.Max(0f, _hitRadiusMeters);
         }
 
+        /// <summary>
+        /// 弾の実行時データを受け取って初期化する。
+        /// </summary>
         public void Initialize(BulletRuntimeData runtimeData)
         {
             _runtimeData = runtimeData;
@@ -47,6 +61,9 @@ namespace Uraty.Application.Battle
             TickMove(Time.deltaTime);
         }
 
+        /// <summary>
+        /// 1フレーム分の移動処理を行う。
+        /// </summary>
         private void TickMove(float deltaTime)
         {
             float safeDeltaTime = Mathf.Max(0f, deltaTime);
@@ -103,13 +120,9 @@ namespace Uraty.Application.Battle
             float remainingMoveAfterHitMeters =
                 Mathf.Max(0f, actualMoveDistanceMeters - traveledToHitMeters);
 
-            // このフレームで実際に進んだ距離として、
-            // 衝突地点までの距離と、衝突後に残っていた移動可能距離を加算する。
             float traveledAfterHitMeters = remainingMoveAfterHitMeters;
             _traveledDistanceMeters += traveledToHitMeters + traveledAfterHitMeters;
 
-            // 次フレームで同じコライダーに即時再ヒットしにくくするため、
-            // 位置だけごく小さく前へ押し出す。
             float separationDistanceMeters = Mathf.Min(
                 PassThroughEpsilonMeters,
                 remainingMoveAfterHitMeters);
@@ -127,6 +140,9 @@ namespace Uraty.Application.Battle
             }
         }
 
+        /// <summary>
+        /// 指定距離内にヒット対象があるかを SphereCast で調べる。
+        /// </summary>
         private bool TryDetectHit(
             Vector3 moveDirection,
             float moveDistanceMeters,
@@ -149,7 +165,6 @@ namespace Uraty.Application.Battle
             GameObject hitObject = hit.collider.gameObject;
 
             // 非マルチヒット時は、既に当たった対象への再ヒットを無視する。
-            // 厚いコライダーや連続フレーム接触でも重複ダメージを防ぐ。
             if (!_playerBullet.CanHitObject(hitObject))
             {
                 return true;
@@ -158,7 +173,6 @@ namespace Uraty.Application.Battle
             BulletHitContext context = _playerBullet.CreateHitContext(hit.point);
             BulletHitResponse response = ReceiveBulletHit(hit, context);
 
-            // 受け先が存在しない場合は、この衝突は処理不能として停止扱いにする。
             if (!response.WasHandled)
             {
                 Destroy(gameObject);
@@ -169,6 +183,9 @@ namespace Uraty.Application.Battle
             return response.CanPassThrough;
         }
 
+        /// <summary>
+        /// 衝突した対象へ弾ヒット通知を送る。
+        /// </summary>
         private static BulletHitResponse ReceiveBulletHit(
             RaycastHit hit,
             BulletHitContext context)

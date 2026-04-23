@@ -3,7 +3,8 @@
     "rootNamespace": "Uraty.Feature.Terrain",
     "references": [
         "GUID:5475a3d47d3889e4aa9513bf66fc3413",
-        "GUID:fa6564c5ffb7f944993233c061c40114"
+        "GUID:fa6564c5ffb7f944993233c061c40114",
+        "GUID:324caed91501a9c47a04ebfd87b68794"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -1,24 +1,47 @@
 namespace Uraty.Shared.Battle
 {
-    public readonly struct BulletHitResponse
+    /// <summary>
+    /// 弾が何かにヒットしたときの反応結果を表す。
+    ///
+    /// Terrain や Player など複数の受け側から返される共通レスポンスとして扱う。
+    /// </summary>
+    public struct BulletHitResponse
     {
-        public static BulletHitResponse None => new(false, false);
-        public static BulletHitResponse Stop => new(true, false);
-        public static BulletHitResponse PassThrough => new(true, true);
+        /// <summary>
+        /// このヒットが受け側で正式に処理されたか。
+        /// 受け先が存在しない場合などは false を返す。
+        /// </summary>
+        public bool WasHandled;
 
-        public BulletHitResponse(bool wasHandled, bool canPassThrough)
-        {
-            WasHandled = wasHandled;
-            CanPassThrough = canPassThrough;
-        }
+        /// <summary>
+        /// 地形側で起こす反応。
+        /// </summary>
+        public TerrainHitReaction TerrainReaction;
 
-        public bool WasHandled
+        /// <summary>
+        /// 弾側で起こす反応。
+        /// </summary>
+        public BulletHitReaction BulletReaction;
+
+        /// <summary>
+        /// 何に当たったかの種別。
+        /// </summary>
+        public BulletHitTargetKind TargetKind;
+
+        /// <summary>
+        /// 未処理を表す既定値。
+        /// </summary>
+        public static BulletHitResponse None => new BulletHitResponse
         {
-            get;
-        }
-        public bool CanPassThrough
-        {
-            get;
-        }
+            WasHandled = false,
+            TerrainReaction = TerrainHitReaction.None,
+            BulletReaction = BulletHitReaction.None,
+            TargetKind = BulletHitTargetKind.None,
+        };
+
+        /// <summary>
+        /// このレスポンスで弾が貫通継続できるか。
+        /// </summary>
+        public bool CanPassThrough => BulletReaction == BulletHitReaction.Pierce;
     }
 }
