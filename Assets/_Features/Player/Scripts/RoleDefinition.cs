@@ -5,9 +5,23 @@ using Uraty.Shared.Battle;
 
 namespace Uraty.Feature.Player
 {
+    [System.Serializable]
+    public struct LegacyPenetrationSettings
+    {
+        [SerializeField] private bool _canPenetrate;
+        [SerializeField] private int _maxHitCount;
+        [SerializeField] private float _continueDistanceMeters;
+
+        public bool CanPenetrate => _canPenetrate;
+        public int MaxHitCount => _maxHitCount;
+        public float ContinueDistanceMeters => _continueDistanceMeters;
+    }
+
     [CreateAssetMenu(menuName = "Game/Player/Role Definition", fileName = "RoleDefinition")]
     public class RoleDefinition : ScriptableObject
     {
+        [SerializeField] private int _serializedDataVersion = 2;
+
         [Header("基本")]
         [SerializeField, LabelText("役職")] private RoleType _roleType;
         [SerializeField, LabelText("最大体力")] private int _maxHp = 100;
@@ -23,6 +37,15 @@ namespace Uraty.Feature.Player
         [Title("Special")]
         [InlineProperty, HideLabel]
         [SerializeField] private AttackDefinition _special = new AttackDefinition();
+
+        [Header("新フィールド")]
+        [SerializeField] private bool _canPenetrate;
+        [SerializeField] private int _maxHitCount = 1;
+        [SerializeField] private float _continueDistanceMeters;
+
+        [Header("旧データ移行用")]
+        [SerializeField, HideInInspector]
+        private LegacyPenetrationSettings _legacyPenetrationSettings;
 
         public RoleType RoleType => _roleType;
         public int MaxHp => _maxHp;
@@ -92,6 +115,36 @@ namespace Uraty.Feature.Player
             return attackKind == PlayerBulletAttackKind.Attack
                 ? _attack
                 : _special;
+        }
+
+        public void OnBeforeSerialize()
+        {
+        }
+
+        public void OnAfterDeserialize()
+        {
+            if (_serializedDataVersion >= 2)
+            {
+                return;
+            }
+
+            if (_legacyPenetrationSettings.CanPenetrate)
+            {
+                _canPenetrate = true;
+            }
+
+            if (_legacyPenetrationSettings.MaxHitCount > 0)
+            {
+                _maxHitCount = _legacyPenetrationSettings.MaxHitCount;
+            }
+
+            if (_legacyPenetrationSettings.ContinueDistanceMeters > 0.0f)
+            {
+                _continueDistanceMeters =
+                    _legacyPenetrationSettings.ContinueDistanceMeters;
+            }
+
+            _serializedDataVersion = 2;
         }
     }
 
