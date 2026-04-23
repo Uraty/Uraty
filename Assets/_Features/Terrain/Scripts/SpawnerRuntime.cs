@@ -1,10 +1,16 @@
+using System.Collections.Generic;
+
 using UnityEngine;
+
 using Uraty.Shared.Battle;
 
 namespace Uraty.Feature.Terrain
 {
     /// <summary>
     /// Spawner 地形の生成処理を担当する。
+    ///
+    /// このクラスは「一定間隔でオブジェクトを生成する」ことと、
+    /// 「同時存在数の上限を守る」ことを担当する。
     /// </summary>
     public sealed class SpawnerRuntime : MonoBehaviour
     {
@@ -23,14 +29,19 @@ namespace Uraty.Feature.Terrain
         [Header("チーム情報")]
         [SerializeField] private TeamId _teamId = TeamId.None;
 
+        // 現在シーン上に存在している生成物を追跡する。
+        private readonly List<GameObject> _spawnedObjects = new();
+
         private int _slotIndex = -1;
         private float _elapsedSeconds;
-        private int _currentSpawnCount;
 
         public TeamId TeamId => _teamId;
         public int SlotIndex => _slotIndex;
         public Transform SpawnPoint => _spawnPoint != null ? _spawnPoint : transform;
 
+        /// <summary>
+        /// Spawner にチームとスロット番号を割り当てる。
+        /// </summary>
         public void AssignTeam(TeamId teamId, int slotIndex)
         {
             _teamId = teamId;
@@ -62,7 +73,11 @@ namespace Uraty.Feature.Terrain
                 return;
             }
 
-            if (_maxSpawnCount > 0 && _currentSpawnCount >= _maxSpawnCount)
+            // 既に破棄された生成物の参照を掃除して、
+            // 現在の同時存在数を正しく保つ。
+            CleanupDestroyedObjects();
+
+            if (!CanSpawn())
             {
                 return;
             }
@@ -77,14 +92,43 @@ namespace Uraty.Feature.Terrain
             Spawn();
         }
 
+        /// <summary>
+        /// 現在の同時存在数上限に照らして生成可能かを返す。
+        /// </summary>
+        private bool CanSpawn()
+        {
+            if (_maxSpawnCount <= 0)
+            {
+                return true;
+            }
+
+            return _spawnedObjects.Count < _maxSpawnCount;
+        }
+
+        /// <summary>
+        /// 既に破棄された生成物を追跡リストから除去する。
+        /// </summary>
+        private void CleanupDestroyedObjects()
+        {
+            _spawnedObjects.RemoveAll(spawnedObject => spawnedObject == null);
+        }
+
+        /// <summary>
+        /// 生成物を1つ生成し、追跡対象に追加する。
+        /// </summary>
         private void Spawn()
         {
-            Instantiate(
+            if (!CanSpawn())
+            {
+                return;
+            }
+
+            GameObject spawnedObject = Instantiate(
                 _spawnPrefab,
                 SpawnPoint.position,
                 SpawnPoint.rotation);
 
-            _currentSpawnCount++;
+            _spawnedObjects.Add(spawnedObject);
         }
     }
 }
