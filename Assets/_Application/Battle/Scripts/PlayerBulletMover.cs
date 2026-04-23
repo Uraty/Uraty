@@ -8,6 +8,7 @@ namespace Uraty.Application.Battle
     public sealed class PlayerBulletMover : MonoBehaviour
     {
         private const float MinMoveDistanceMeters = 0.0001f;
+        private const float PassThroughEpsilonMeters = 0.01f;
 
         [SerializeField] private float _hitRadiusMeters = 0.1f;
 
@@ -54,7 +55,26 @@ namespace Uraty.Application.Battle
 
             if (TryDetectHit(moveDirection, moveDistanceMeters, out RaycastHit hit))
             {
-                HandleHit(hit);
+                bool canContinue = HandleHit(hit);
+                if (!canContinue)
+                {
+                    return;
+                }
+
+                // 通行可能なら少し先へ押し出して、同じコライダーへの連続ヒットを避ける
+                float continueDistanceMeters = Mathf.Max(
+                    0f,
+                    moveDistanceMeters - hit.distance + PassThroughEpsilonMeters);
+
+                Vector3 continueVector = moveDirection * continueDistanceMeters;
+                transform.position = hit.point + continueVector;
+                _traveledDistanceMeters += continueDistanceMeters;
+
+                if (_traveledDistanceMeters >= _runtimeData.MaxTravelDistanceMeters)
+                {
+                    Destroy(gameObject);
+                }
+
                 return;
             }
 
@@ -77,19 +97,36 @@ namespace Uraty.Application.Battle
                 maxDistance: moveDistanceMeters);
         }
 
-        private void HandleHit(RaycastHit hit)
+        /// <summary>
+        /// true のとき、このフレーム内で弾を通過継続させる。
+        /// false のとき、弾はここで止まる。
+        /// </summary>
+        private bool HandleHit(RaycastHit hit)
         {
             IBulletHittable hittable = hit.collider.GetComponentInParent<IBulletHittable>();
             if (hittable == null)
             {
                 Destroy(gameObject);
-                return;
+                return false;
             }
 
             BulletHitContext context = _playerBullet.CreateHitContext(hit.point);
             BulletHitResponse response = hittable.ReceiveBulletHit(context);
 
             _playerBullet.ApplyHitResponse(response, hit.collider.gameObject);
+
+            // ApplyHitResponse 内で Destroy された可能性がある
+            if (_playerBullet == null || gameObject == null)
+            {
+                return false;
+            }
+
+            return response.BulletReaction switch
+            {
+                BulletHitReaction.None => true,
+                BulletHitReaction.Pierce => true,
+                _ => false,
+            };
         }
     }
 }

@@ -1,13 +1,45 @@
 using UnityEngine;
+
 using Uraty.Shared.Battle;
+using Uraty.Shared.Terrain;
 
 namespace Uraty.Feature.Terrain
 {
-    public sealed class TerrainStatus : MonoBehaviour, IBulletHittable
+    /// <summary>
+    /// 地形の弾ヒット反応と Player 通行可否を管理する。
+    /// </summary>
+    public sealed class TerrainStatus : MonoBehaviour, IBulletHittable, IPlayerPassRule
     {
         [SerializeField] private TerrainKind _terrainKind;
+        [Header("Bullet 通行設定")]
         [SerializeField] private bool _canBeDestroyedByBullet;
+        [Header("Wall に Bullet が当たったときの挙動設定")]
         [SerializeField] private bool _destroyBulletOnWallHit = true;
+
+        [Header("Player 通行設定")]
+        [SerializeField] private bool _usePlayerPassOverride = false;
+        [Header("Player 通行可否のオーバーライド設定")]
+        [Tooltip("これを true にすると、地形の種類に関係なく Player の通行可否がこの値で決まる。")]
+        [SerializeField] private bool _canPlayerPassOverride = true;
+
+        public bool CanPlayerPass(PlayerPassContext context)
+        {
+            if (_usePlayerPassOverride)
+            {
+                return _canPlayerPassOverride;
+            }
+
+            return _terrainKind switch
+            {
+                TerrainKind.Wall => false,
+                TerrainKind.Fence => false,
+                TerrainKind.Water => false,
+                TerrainKind.Bush => true,
+                TerrainKind.Generator => true,
+                TerrainKind.Spawner => true,
+                _ => true,
+            };
+        }
 
         public BulletHitResponse ReceiveBulletHit(BulletHitContext context)
         {
@@ -25,12 +57,12 @@ namespace Uraty.Feature.Terrain
 
             if (canDestroyTerrain)
             {
+                // 地形を壊せた場合は、Terrain 側で弾消滅を確定しない。
+                // 実際に弾を残すかは PlayerBullet 側の貫通設定で決める。
                 return new BulletHitResponse
                 {
                     TerrainReaction = TerrainHitReaction.DestroyTerrain,
-                    BulletReaction = _destroyBulletOnWallHit
-                        ? BulletHitReaction.DestroyBullet
-                        : BulletHitReaction.Pierce,
+                    BulletReaction = BulletHitReaction.Pierce,
                     TargetKind = BulletHitTargetKind.Wall,
                 };
             }
@@ -54,8 +86,8 @@ namespace Uraty.Feature.Terrain
                 TerrainReaction = canDestroyTerrain
                     ? TerrainHitReaction.DestroyTerrain
                     : TerrainHitReaction.None,
-                BulletReaction = BulletHitReaction.None,
-                TargetKind = BulletHitTargetKind.None,
+                BulletReaction = BulletHitReaction.Pierce,
+                TargetKind = BulletHitTargetKind.Bush,
             };
         }
 
