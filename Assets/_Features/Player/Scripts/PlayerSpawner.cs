@@ -1,15 +1,20 @@
 using UnityEngine;
+using Uraty.Shared.Battle;
 
 namespace Uraty.Feature.Player
 {
-    public class PlayerSpawner : MonoBehaviour
+    public sealed class PlayerSpawner : MonoBehaviour
     {
         [SerializeField] private GameObject _playerPrefab;
         [SerializeField] private Transform _spawnPoint;
+        [SerializeField] private TeamId _teamId = TeamId.None;
+        [SerializeField] private int _slotIndex;
 
         private GameObject _spawnedPlayer;
 
         public Transform SpawnPoint => _spawnPoint;
+        public TeamId TeamId => _teamId;
+        public int SlotIndex => _slotIndex;
 
         private void Start()
         {

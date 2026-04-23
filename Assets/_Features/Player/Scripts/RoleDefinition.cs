@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using TriInspector;
+using Uraty.Shared.Battle;
 
 namespace Uraty.Feature.Player
 {
@@ -140,7 +141,7 @@ namespace Uraty.Feature.Player
     public class LineAttackDefinition
     {
         [Title("直線")]
-        [SerializeField, LabelText("貫通")] private bool _canPierce = false;
+        [SerializeField, LabelText("貫通")] private BulletPenetrationSettings _bulletPenetrationSettings = new BulletPenetrationSettings();
         [SerializeField, LabelText("弾速"), Unit("マス／ｓ")] private float _speedPerSecond = 1f;
 
         [Header("Aim")]
@@ -159,7 +160,7 @@ namespace Uraty.Feature.Player
             new LineBulletDefinition()
         };
 
-        public bool CanPierce => _canPierce;
+        public BulletPenetrationSettings PenetrationSettings => _bulletPenetrationSettings;
         public float SpeedPerSecond => _speedPerSecond;
         public int AimLineCount => _aimLineCount;
         public LineAimLineDefinition[] AimLines => _aimLines;
@@ -191,7 +192,7 @@ namespace Uraty.Feature.Player
     {
         [Title("扇")]
         [SerializeField, LabelText("多段ヒット")] private bool _canMultiHit = false;
-        [SerializeField, LabelText("貫通")] private bool _canPierce = false;
+        [SerializeField, LabelText("貫通")] private BulletPenetrationSettings _bulletPenetrationSettings = new BulletPenetrationSettings();
         [SerializeField, LabelText("弾速"), Unit("マス／ｓ")] private float _speedPerSecond = 1f;
 
         [Header("Aim")]
@@ -211,12 +212,36 @@ namespace Uraty.Feature.Player
         };
 
         public bool CanMultiHit => _canMultiHit;
-        public bool CanPierce => _canPierce;
+        public BulletPenetrationSettings PenetrationSettings => _bulletPenetrationSettings;
         public float SpeedPerSecond => _speedPerSecond;
         public int AimLineCount => _aimLineCount;
         public FanAimLineDefinition[] AimLines => _aimLines;
         public int BulletCount => _bulletCount;
         public FanBulletDefinition[] Bullets => _bullets;
+        public float RangeMeters
+        {
+            get
+            {
+                if (_aimLines == null || _aimLines.Length == 0)
+                {
+                    return 0f;
+                }
+
+                float maxEffectiveRange = 0f;
+                for (int i = 0; i < _aimLines.Length; i++)
+                {
+                    FanAimLineDefinition aimLineDefinition = _aimLines[i];
+                    if (aimLineDefinition == null)
+                    {
+                        continue;
+                    }
+
+                    maxEffectiveRange = Mathf.Max(maxEffectiveRange, aimLineDefinition.EffectiveRange);
+                }
+
+                return maxEffectiveRange;
+            }
+        }
 
         public void Validate()
         {
@@ -461,7 +486,7 @@ namespace Uraty.Feature.Player
         public float OffsetAngleFromAimLine => _offsetAngleFromAimLine;
         public float Height => _height;
         public float Angle => _angle;
-
+        public float OffsetAngleFromCenter => _offsetAngleFromAimLine;
         public void Validate()
         {
             _spawnDelaySeconds = Mathf.Max(0f, _spawnDelaySeconds);

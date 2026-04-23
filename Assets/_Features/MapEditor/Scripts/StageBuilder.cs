@@ -21,6 +21,10 @@ namespace Uraty.Feature.MapEditor
 
         public StageData StageData => _stageData;
 
+#if UNITY_EDITOR
+        private bool _isGenerateQueued;
+#endif
+
         private void Start()
         {
             if (Application.isPlaying && _generateOnStart)
@@ -43,6 +47,36 @@ namespace Uraty.Feature.MapEditor
             }
 
             if (_stageData == null)
+            {
+                return;
+            }
+
+            QueueGenerateInEditor();
+        }
+
+        private void QueueGenerateInEditor()
+        {
+            if (_isGenerateQueued)
+            {
+                return;
+            }
+
+            _isGenerateQueued = true;
+
+            EditorApplication.delayCall += HandleDelayedGenerate;
+        }
+
+        private void HandleDelayedGenerate()
+        {
+            EditorApplication.delayCall -= HandleDelayedGenerate;
+            _isGenerateQueued = false;
+
+            if (this == null)
+            {
+                return;
+            }
+
+            if (!gameObject.scene.IsValid())
             {
                 return;
             }

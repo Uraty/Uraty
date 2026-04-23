@@ -1,18 +1,72 @@
 using UnityEngine;
+using Uraty.Shared.Battle;
 
 namespace Uraty.Feature.Terrain
 {
-    public class TerrainStatus : MonoBehaviour
+    public sealed class TerrainStatus : MonoBehaviour, IBulletHittable
     {
-        // Terrain の状態を管理するクラス。
         [SerializeField] private TerrainKind _terrainKind;
-        // TerrainSpawner などのコンポーネントを参照するためのフィールド。
-        [SerializeField] private bool IsPlayerPassable;
-        // 例えば、壁や水などの Terrain はプレイヤーが通過できないようにするためのフィールド。
-        [SerializeField] private bool IsDestructible;
-        // 例えば、壁などの Terrain は破壊可能にするためのフィールド。
-        [SerializeField] private bool IsBulletPassable;
+        [SerializeField] private bool _canBeDestroyedByBullet;
+        [SerializeField] private bool _destroyBulletOnWallHit = true;
 
-        public TerrainKind TerrainKind => _terrainKind;
+        public BulletHitResponse ReceiveBulletHit(BulletHitContext context)
+        {
+            return _terrainKind switch
+            {
+                TerrainKind.Wall => ReceiveWallHit(context),
+                TerrainKind.Bush => ReceiveBushHit(context),
+                _ => ReceiveFloorHit(),
+            };
+        }
+
+        private BulletHitResponse ReceiveWallHit(BulletHitContext context)
+        {
+            bool canDestroyTerrain = _canBeDestroyedByBullet && context.CanBreakWalls;
+
+            if (canDestroyTerrain)
+            {
+                return new BulletHitResponse
+                {
+                    TerrainReaction = TerrainHitReaction.DestroyTerrain,
+                    BulletReaction = _destroyBulletOnWallHit
+                        ? BulletHitReaction.DestroyBullet
+                        : BulletHitReaction.Pierce,
+                    TargetKind = BulletHitTargetKind.Wall,
+                };
+            }
+
+            return new BulletHitResponse
+            {
+                TerrainReaction = TerrainHitReaction.None,
+                BulletReaction = _destroyBulletOnWallHit
+                    ? BulletHitReaction.DestroyBullet
+                    : BulletHitReaction.Pierce,
+                TargetKind = BulletHitTargetKind.Wall,
+            };
+        }
+
+        private BulletHitResponse ReceiveBushHit(BulletHitContext context)
+        {
+            bool canDestroyTerrain = _canBeDestroyedByBullet && context.CanBreakBushes;
+
+            return new BulletHitResponse
+            {
+                TerrainReaction = canDestroyTerrain
+                    ? TerrainHitReaction.DestroyTerrain
+                    : TerrainHitReaction.None,
+                BulletReaction = BulletHitReaction.None,
+                TargetKind = BulletHitTargetKind.None,
+            };
+        }
+
+        private BulletHitResponse ReceiveFloorHit()
+        {
+            return new BulletHitResponse
+            {
+                TerrainReaction = TerrainHitReaction.None,
+                BulletReaction = BulletHitReaction.None,
+                TargetKind = BulletHitTargetKind.None,
+            };
+        }
     }
 }
