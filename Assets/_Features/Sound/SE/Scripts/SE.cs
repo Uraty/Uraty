@@ -1,23 +1,26 @@
 using UnityEngine;
 
-public class SE : MonoBehaviour
+namespace Uraty.Feature.Sound.SE
 {
-    [SerializeField] private AudioClip seGet;
-    [SerializeField] private float seVolume = 1.0f;
-    [SerializeField] private GameObject playerObj;
-
-    //private bool isTaken = false;
-
-    private void OnTriggerEnter(Collider other)
+    public class SE : MonoBehaviour
     {
-        //if (other.gameObject == playerObj)
-        //{
-        //    //isTaken = true;
+        [SerializeField] private AudioClip seGet;
+        [SerializeField] private float seVolume = 1.0f;
+        [SerializeField] private GameObject playerObj;
 
-        //    if (SoundManager.Instance != null)
-        //    {
-        //        SoundManager.Instance.PlaySE(seGet, seVolume);
-        //    }
-        //}
+        //private bool isTaken = false;
+
+        private void OnTriggerEnter(Collider other)
+        {
+            //if (other.gameObject == playerObj)
+            //{
+            //    //isTaken = true;
+
+            //    if (SoundManager.Instance != null)
+            //    {
+            //        SoundManager.Instance.PlaySE(seGet, seVolume);
+            //    }
+            //}
+        }
     }
 }
