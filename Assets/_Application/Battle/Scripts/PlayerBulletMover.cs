@@ -44,16 +44,34 @@ namespace Uraty.Application.Battle
 
         private void TickMove(float deltaTime)
         {
-            float moveDistanceMeters = _runtimeData.SpeedMetersPerSecond * Mathf.Max(0f, deltaTime);
+            float safeDeltaTime = Mathf.Max(0f, deltaTime);
+            float moveDistanceMeters = _runtimeData.SpeedMetersPerSecond * safeDeltaTime;
             if (moveDistanceMeters <= MinMoveDistanceMeters)
             {
                 return;
             }
 
             Vector3 moveDirection = _runtimeData.Direction.normalized;
-            Vector3 moveVector = moveDirection * moveDistanceMeters;
+            if (moveDirection.sqrMagnitude <= 0f)
+            {
+                return;
+            }
 
-            if (TryDetectHit(moveDirection, moveDistanceMeters, out RaycastHit hit))
+            float remainingTravelDistanceMeters =
+                _runtimeData.MaxTravelDistanceMeters - _traveledDistanceMeters;
+            if (remainingTravelDistanceMeters <= 0f)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            float actualMoveDistanceMeters = Mathf.Min(
+                moveDistanceMeters,
+                remainingTravelDistanceMeters);
+
+            Vector3 moveVector = moveDirection * actualMoveDistanceMeters;
+
+            if (TryDetectHit(moveDirection, actualMoveDistanceMeters, out RaycastHit hit))
             {
                 bool canContinue = HandleHit(hit);
                 if (!canContinue)
@@ -61,29 +79,44 @@ namespace Uraty.Application.Battle
                     return;
                 }
 
-                // 通行可能なら少し先へ押し出して、同じコライダーへの連続ヒットを避ける
-                float continueDistanceMeters = Mathf.Max(
+                float traveledToHitMeters = Mathf.Clamp(
+                    hit.distance,
                     0f,
-                    moveDistanceMeters - hit.distance + PassThroughEpsilonMeters);
+                    actualMoveDistanceMeters);
 
-                Vector3 continueVector = moveDirection * continueDistanceMeters;
-                transform.position = hit.point + continueVector;
-                _traveledDistanceMeters += continueDistanceMeters;
+                float remainingMoveAfterHitMeters =
+                    Mathf.Max(0f, actualMoveDistanceMeters - traveledToHitMeters);
+
+                // 射程加算に含める「実際に進んだ距離」
+                float traveledAfterHitMeters = remainingMoveAfterHitMeters;
+
+                // 位置補正用のごく小さい押し出し。
+                // 射程には含めず、同一コライダーへの即時再ヒットだけ避ける。
+                float separationDistanceMeters = Mathf.Min(
+                    PassThroughEpsilonMeters,
+                    remainingMoveAfterHitMeters);
+
+                transform.position =
+                    hit.point + (moveDirection * separationDistanceMeters);
+
+                _traveledDistanceMeters += traveledToHitMeters + traveledAfterHitMeters;
 
                 if (_traveledDistanceMeters >= _runtimeData.MaxTravelDistanceMeters)
                 {
                     Destroy(gameObject);
+                    return;
                 }
 
                 return;
             }
 
             transform.position += moveVector;
-            _traveledDistanceMeters += moveDistanceMeters;
+            _traveledDistanceMeters += actualMoveDistanceMeters;
 
             if (_traveledDistanceMeters >= _runtimeData.MaxTravelDistanceMeters)
             {
                 Destroy(gameObject);
+                return;
             }
         }
 
