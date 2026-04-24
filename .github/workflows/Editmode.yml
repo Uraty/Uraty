@@ -19,12 +19,19 @@ jobs:
         with:
           lfs: false
 
+      - name: Restore NuGetForUnity packages
+        run: |
+          dotnet tool install --global NuGetForUnity.Cli
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          nugetforunity restore .
+
       - name: Cache Library
         uses: actions/cache@v4
         with:
           path: Library
-          key: Library-EditMode-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          key: Library-EditMode-${{ runner.os }}-${{ hashFiles('Assets/**', 'Packages/manifest.json', 'Packages/packages-lock.json', 'Packages/nuget-packages/packages.config', 'ProjectSettings/**') }}
           restore-keys: |
+            Library-EditMode-${{ runner.os }}-
             Library-EditMode-
             Library-
 
