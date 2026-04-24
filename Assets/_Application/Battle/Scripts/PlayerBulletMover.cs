@@ -4,12 +4,23 @@ using Uraty.Shared.Battle;
 
 namespace Uraty.Application.Battle
 {
+    /// <summary>
+    /// 生成済みの弾をフレームごとに移動させるクラス。
+    ///
+    /// このクラスの責務は以下。
+    /// ・弾の前進
+    /// ・射程管理
+    /// ・ヒット検知
+    /// ・ヒット対象への反応要求
+    /// ・貫通可否に応じた移動継続
+    /// </summary>
     [RequireComponent(typeof(PlayerBullet))]
     public sealed class PlayerBulletMover : MonoBehaviour
     {
         private const float MinMoveDistanceMeters = 0.0001f;
         private const float PassThroughEpsilonMeters = 0.01f;
 
+        [Header("Hit Detection")]
         [SerializeField] private float _hitRadiusMeters = 0.1f;
 
         private BulletRuntimeData _runtimeData;
@@ -17,10 +28,18 @@ namespace Uraty.Application.Battle
         private float _traveledDistanceMeters;
         private bool _isInitialized;
 
+        private void Awake()
+        {
+            _playerBullet = GetComponent<PlayerBullet>();
+            _hitRadiusMeters = Mathf.Max(0f, _hitRadiusMeters);
+        }
+
+        /// <summary>
+        /// 弾の実行時データを受け取って初期化する。
+        /// </summary>
         public void Initialize(BulletRuntimeData runtimeData)
         {
             _runtimeData = runtimeData;
-            _playerBullet = GetComponent<PlayerBullet>();
             _traveledDistanceMeters = 0f;
             _isInitialized = true;
 
@@ -42,6 +61,9 @@ namespace Uraty.Application.Battle
             TickMove(Time.deltaTime);
         }
 
+        /// <summary>
+        /// 1フレーム分の移動処理を行う。
+        /// </summary>
         private void TickMove(float deltaTime)
         {
             float safeDeltaTime = Mathf.Max(0f, deltaTime);
@@ -71,56 +93,60 @@ namespace Uraty.Application.Battle
 
             Vector3 moveVector = moveDirection * actualMoveDistanceMeters;
 
-            if (TryDetectHit(moveDirection, actualMoveDistanceMeters, out RaycastHit hit))
+            if (!TryDetectHit(moveDirection, actualMoveDistanceMeters, out RaycastHit hit))
             {
-                bool canContinue = HandleHit(hit);
-                if (!canContinue)
-                {
-                    return;
-                }
-
-                float traveledToHitMeters = Mathf.Clamp(
-                    hit.distance,
-                    0f,
-                    actualMoveDistanceMeters);
-
-                float remainingMoveAfterHitMeters =
-                    Mathf.Max(0f, actualMoveDistanceMeters - traveledToHitMeters);
-
-                // 射程加算に含める「実際に進んだ距離」
-                float traveledAfterHitMeters = remainingMoveAfterHitMeters;
-
-                // 位置補正用のごく小さい押し出し。
-                // 射程には含めず、同一コライダーへの即時再ヒットだけ避ける。
-                float separationDistanceMeters = Mathf.Min(
-                    PassThroughEpsilonMeters,
-                    remainingMoveAfterHitMeters);
-
-                transform.position =
-                    hit.point + (moveDirection * separationDistanceMeters);
-
-                _traveledDistanceMeters += traveledToHitMeters + traveledAfterHitMeters;
+                transform.position += moveVector;
+                _traveledDistanceMeters += actualMoveDistanceMeters;
 
                 if (_traveledDistanceMeters >= _runtimeData.MaxTravelDistanceMeters)
                 {
                     Destroy(gameObject);
-                    return;
                 }
 
                 return;
             }
 
-            transform.position += moveVector;
-            _traveledDistanceMeters += actualMoveDistanceMeters;
+            float traveledToHitMeters = Mathf.Clamp(
+                hit.distance,
+                0f,
+                actualMoveDistanceMeters);
+
+            bool canContinue = HandleHit(hit);
+            if (!canContinue)
+            {
+                return;
+            }
+
+            float remainingMoveAfterHitMeters =
+                Mathf.Max(0f, actualMoveDistanceMeters - traveledToHitMeters);
+
+            float traveledAfterHitMeters = remainingMoveAfterHitMeters;
+            _traveledDistanceMeters += traveledToHitMeters + traveledAfterHitMeters;
+
+            float separationDistanceMeters = Mathf.Min(
+                PassThroughEpsilonMeters,
+                remainingMoveAfterHitMeters);
+
+            Vector3 nextPosition =
+                hit.point +
+                (moveDirection * traveledAfterHitMeters) +
+                (moveDirection * separationDistanceMeters);
+
+            transform.position = nextPosition;
 
             if (_traveledDistanceMeters >= _runtimeData.MaxTravelDistanceMeters)
             {
                 Destroy(gameObject);
-                return;
             }
         }
 
-        private bool TryDetectHit(Vector3 moveDirection, float moveDistanceMeters, out RaycastHit hit)
+        /// <summary>
+        /// 指定距離内にヒット対象があるかを SphereCast で調べる。
+        /// </summary>
+        private bool TryDetectHit(
+            Vector3 moveDirection,
+            float moveDistanceMeters,
+            out RaycastHit hit)
         {
             return Physics.SphereCast(
                 origin: transform.position,
@@ -136,30 +162,43 @@ namespace Uraty.Application.Battle
         /// </summary>
         private bool HandleHit(RaycastHit hit)
         {
-            IBulletHittable hittable = hit.collider.GetComponentInParent<IBulletHittable>();
-            if (hittable == null)
+            GameObject hitObject = hit.collider.gameObject;
+
+            // 非マルチヒット時は、既に当たった対象への再ヒットを無視する。
+            if (!_playerBullet.CanHitObject(hitObject))
+            {
+                return true;
+            }
+
+            BulletHitContext context = _playerBullet.CreateHitContext(hit.point);
+            BulletHitResponse response = ReceiveBulletHit(hit, context);
+
+            if (!response.WasHandled)
             {
                 Destroy(gameObject);
                 return false;
             }
 
-            BulletHitContext context = _playerBullet.CreateHitContext(hit.point);
-            BulletHitResponse response = hittable.ReceiveBulletHit(context);
+            _playerBullet.ApplyHitResponse(response, hitObject);
+            return response.CanPassThrough;
+        }
 
-            _playerBullet.ApplyHitResponse(response, hit.collider.gameObject);
+        /// <summary>
+        /// 衝突した対象へ弾ヒット通知を送る。
+        /// </summary>
+        private static BulletHitResponse ReceiveBulletHit(
+            RaycastHit hit,
+            BulletHitContext context)
+        {
+            IBulletHittable hittable =
+                hit.collider.GetComponentInParent<IBulletHittable>();
 
-            // ApplyHitResponse 内で Destroy された可能性がある
-            if (_playerBullet == null || gameObject == null)
+            if (hittable == null)
             {
-                return false;
+                return BulletHitResponse.None;
             }
 
-            return response.BulletReaction switch
-            {
-                BulletHitReaction.None => true,
-                BulletHitReaction.Pierce => true,
-                _ => false,
-            };
+            return hittable.ReceiveBulletHit(context);
         }
     }
 }

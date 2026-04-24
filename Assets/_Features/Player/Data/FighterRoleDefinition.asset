@@ -12,9 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6305fb2c8cc936e4681a370af6f936a7, type: 3}
   m_Name: FighterRoleDefinition
   m_EditorClassIdentifier: Assembly-CSharp::Uraty.Feature.Player.RoleDefinition
+  _serializedDataVersion: 2
   _roleType: 0
   _maxHp: 11500
-  _moveSpeed: 3
+  _moveSpeed: 4
   _maxAmmo: 3
   _reloadIntervalSeconds: 0.8
   _nonReloadSecondsAfterAttack: 1
@@ -22,40 +23,45 @@ MonoBehaviour:
     _isRecovery: 0
     _canBreakWalls: 0
     _canBreakGrass: 0
+    _canMultiHit: 0
+    _penetrationSettings:
+      _canPiercePlayer: 1
+      _canPierceWall: 0
+      _canPierceBush: 1
     _maxAttackIntervalSeconds: 1
     _minAttackIntervalSeconds: 1
     _specialChargePercent: 10
     _type: 0
     _line:
-      _canPierce: 1
-      _speedPerSecond: 3
+      _speedPerSecond: 9
       _aimLineCount: 1
       _aimLines:
       - _offsetAngleFromAimLine: 0
-        _offsetDistanceFromAimLine: 0.1
+        _offsetDistanceFromAimLine: 0
         _range: 3
-        _effectiveRange: 3.5
-        _width: 1
+        _effectiveRange: 3
+        _width: 2
       _bulletCount: 3
       _bullets:
-      - _bulletPrefab: {fileID: 4209301208836411622, guid: 36fb8869649c824459ab19200d5e616c, type: 3}
-        _spawnDelaySeconds: 0.1
+      - _bulletPrefab: {fileID: 2034715110070550704, guid: a9484c2ec8ce66d468297e2dd7aaf9b6, type: 3}
+        _spawnDelaySeconds: 0.01
         _offsetFromAimLine: 0.2
+        _spawnOffsetFromPlayerCenter: {x: 0, y: 0, z: 0}
         _bulletWidth: 1.2
         _bulletHeight: 3
-      - _bulletPrefab: {fileID: 4209301208836411622, guid: 36fb8869649c824459ab19200d5e616c, type: 3}
-        _spawnDelaySeconds: 0.33
-        _offsetFromAimLine: 0.2
+      - _bulletPrefab: {fileID: 2034715110070550704, guid: a9484c2ec8ce66d468297e2dd7aaf9b6, type: 3}
+        _spawnDelaySeconds: 0.34
+        _offsetFromAimLine: -0.2
+        _spawnOffsetFromPlayerCenter: {x: 0, y: 0, z: 0}
         _bulletWidth: 1.2
         _bulletHeight: 3
-      - _bulletPrefab: {fileID: 4209301208836411622, guid: 36fb8869649c824459ab19200d5e616c, type: 3}
-        _spawnDelaySeconds: 0.1
+      - _bulletPrefab: {fileID: 2034715110070550704, guid: a9484c2ec8ce66d468297e2dd7aaf9b6, type: 3}
+        _spawnDelaySeconds: 0.67
         _offsetFromAimLine: 0.2
+        _spawnOffsetFromPlayerCenter: {x: 0, y: 0, z: 0}
         _bulletWidth: 1.2
         _bulletHeight: 3
     _fan:
-      _canMultiHit: 0
-      _canPierce: 0
       _speedPerSecond: 1
       _aimLineCount: 1
       _aimLines:
@@ -68,9 +74,14 @@ MonoBehaviour:
       - _bulletPrefab: {fileID: 0}
         _spawnDelaySeconds: 0
         _offsetAngleFromAimLine: 0
+        _spawnOffsetFromPlayerCenter: {x: 0, y: 0, z: 0}
         _height: 1
         _angle: 10
     _throw:
+      _bulletPenetrationSettings:
+        _canPiercePlayer: 0
+        _canPierceWall: 0
+        _canPierceBush: 0
       _isVariableRange: 0
       _isVariableLandingTime: 0
       _fixedLandingTimeSeconds: 1
@@ -95,16 +106,21 @@ MonoBehaviour:
         _radius: 1
         _offsetDistanceFromAimLine: 0
         _offsetAngleFromAimLine: 0
+        _spawnOffsetFromPlayerCenter: {x: 0, y: 0, z: 0}
   _special:
     _isRecovery: 0
     _canBreakWalls: 1
     _canBreakGrass: 1
+    _canMultiHit: 0
+    _penetrationSettings:
+      _canPiercePlayer: 1
+      _canPierceWall: 1
+      _canPierceBush: 1
     _maxAttackIntervalSeconds: 1.2
     _minAttackIntervalSeconds: 1
     _specialChargePercent: 20
     _type: 2
     _line:
-      _canPierce: 0
       _speedPerSecond: 1
       _aimLineCount: 1
       _aimLines:
@@ -118,11 +134,10 @@ MonoBehaviour:
       - _bulletPrefab: {fileID: 0}
         _spawnDelaySeconds: 0
         _offsetFromAimLine: 0
+        _spawnOffsetFromPlayerCenter: {x: 0, y: 0, z: 0}
         _bulletWidth: 1
         _bulletHeight: 1
     _fan:
-      _canMultiHit: 0
-      _canPierce: 0
       _speedPerSecond: 1
       _aimLineCount: 1
       _aimLines:
@@ -135,10 +150,15 @@ MonoBehaviour:
       - _bulletPrefab: {fileID: 0}
         _spawnDelaySeconds: 0
         _offsetAngleFromAimLine: 0
+        _spawnOffsetFromPlayerCenter: {x: 0, y: 0, z: 0}
         _height: 1
         _angle: 10
     _throw:
-      _isVariableRange: 0
+      _bulletPenetrationSettings:
+        _canPiercePlayer: 0
+        _canPierceWall: 0
+        _canPierceBush: 0
+      _isVariableRange: 1
       _isVariableLandingTime: 1
       _fixedLandingTimeSeconds: 1
       _maxLandingTimeSeconds: 1.2
@@ -146,7 +166,7 @@ MonoBehaviour:
       _aimLineCount: 1
       _aimLines:
       - _offsetAngleFromAimLine: 0
-        _offsetDistanceFromAimLine: 2
+        _offsetDistanceFromAimLine: 0.1
         _maxRange: 6
         _minRange: 1
         _effectiveRange: 6.5
@@ -157,8 +177,16 @@ MonoBehaviour:
         _minParabolaHeight: 0.5
       _bulletCount: 1
       _bullets:
-      - _bulletPrefab: {fileID: 4209301208836411622, guid: 36fb8869649c824459ab19200d5e616c, type: 3}
+      - _bulletPrefab: {fileID: 173170014500325379, guid: 8501472d86a23a44facbc3c8d238ecf3, type: 3}
         _spawnDelaySeconds: 0.1
         _radius: 2.5
         _offsetDistanceFromAimLine: 0
         _offsetAngleFromAimLine: 0
+        _spawnOffsetFromPlayerCenter: {x: 0, y: 0, z: 0}
+  _canPenetrate: 0
+  _maxHitCount: 1
+  _continueDistanceMeters: 0
+  _legacyPenetrationSettings:
+    _canPenetrate: 0
+    _maxHitCount: 0
+    _continueDistanceMeters: 0

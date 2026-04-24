@@ -7,11 +7,13 @@ namespace Uraty.Feature.Player
     {
         private const float DefaultMoveSpeedMetersPerSecond = 5.0f;
 
-        [Header("移動スピード")]
-        [SerializeField] private float _moveSpeedMetersPerSecond = DefaultMoveSpeedMetersPerSecond;
+        [SerializeField] private RoleDefinition _roleDefinition;
+
 
         [Header("地形を考慮した移動解決")]
         [SerializeField] private PlayerTerrainMoveResolver _terrainMoveResolver;
+
+        private float _moveSpeedMetersPerSecond = DefaultMoveSpeedMetersPerSecond;
 
         private InputAction _moveAction;
         private Vector3 _moveInput;
@@ -20,11 +22,20 @@ namespace Uraty.Feature.Player
         {
             _moveAction = new InputAction(name: "Move", type: InputActionType.Value);
 
+            if (_roleDefinition != null)
+            {
+                _moveSpeedMetersPerSecond = _roleDefinition.MoveSpeed;
+            }
+            else
+            {
+                Debug.LogWarning($"RoleDefinition is not assigned. Using default move speed: {_moveSpeedMetersPerSecond} m/s");
+            }
+
             _ = _moveAction.AddCompositeBinding("3DVector")
-                .With("Up", "<Keyboard>/w")
-                .With("Down", "<Keyboard>/s")
-                .With("Left", "<Keyboard>/a")
-                .With("Right", "<Keyboard>/d");
+                    .With("Up", "<Keyboard>/w")
+                    .With("Down", "<Keyboard>/s")
+                    .With("Left", "<Keyboard>/a")
+                    .With("Right", "<Keyboard>/d");
 
             _ = _moveAction.AddBinding("<Gamepad>/leftStick");
 
