@@ -4,19 +4,16 @@ using UnityEngine.InputSystem;
 namespace Uraty.Feature.Player
 {
     /// <summary>
-    /// InputActions の生の入力を、
-    /// ゲーム側で使いやすい形へ変換して保持するクラス。
+    /// InputActions の生入力を、ゲーム側で使いやすい形に変換して保持するクラス。
     ///
-    /// このクラスの主な責務
-    /// ・Move をカメラ基準のワールド方向へ変換する
-    /// ・Aim の入力元が Mouse / Gamepad のどちらかを整理する
-    /// ・Mouse / Gamepad 共通で「プレイヤー基準の照準オフセット」を更新する
-    /// ・その照準オフセットから、画面座標とワールド方向を作る
-    /// ・Attack / Super の押下状態を外へ公開する
-    /// ・Attack / Super の Release 時に、オートエイム可否を判断する
+    /// この版では、Aim を「画面座標」ではなく
+    /// 「プレイヤー基準の地面上オフセット」で管理する。
     ///
-    /// このクラスは「攻撃を実行する」「予測メッシュを出す」まではやらない。
-    /// そこは PlayerAim / PlayerCombat 側の責務。
+    /// これにより、
+    /// ・カメラ角度で着弾点の届く範囲が変わらない
+    /// ・画面外にも着弾点を伸ばせる
+    /// ・Mouse / Gamepad を同じ考え方で扱える
+    /// ようになる。
     /// </summary>
     [DefaultExecutionOrder(-100)]
     public sealed class PlayerInputInterpreter : MonoBehaviour
@@ -48,13 +45,13 @@ namespace Uraty.Feature.Player
         public struct ReleaseInfo
         {
             /// <summary>
-            /// この Release をオートエイム扱いにしてよいか。
+            /// オートエイムしてよいか。
             /// </summary>
             public bool CanAutoAim;
 
             /// <summary>
-            /// Release 時点で解決された Aim 方向。
-            /// Aim がゼロなら、最後の有効方向を使う。
+            /// Release 時点での Aim 方向。
+            /// 現フレームで方向が取れない場合は、最後の有効方向を使う。
             /// </summary>
             public Vector3 AimDirection;
 
@@ -82,18 +79,18 @@ namespace Uraty.Feature.Player
         [SerializeField] private Transform _playerCenter;
 
         [Header("Mouse Aim")]
-        [Tooltip("Mouse Delta に掛けるゲーム内感度")]
+        [Tooltip("Mouse Delta に掛ける感度。単位は『地面上距離 / 1px』")]
         [Min(0f)]
-        [SerializeField] private float _mouseAimSensitivity = 1.0f;
+        [SerializeField] private float _mouseAimSensitivity = 0.02f;
 
         [Tooltip("このピクセル以下の Mouse Delta は無視する")]
         [Min(0f)]
         [SerializeField] private float _mouseAimDeltaDeadZonePixels = 0.5f;
 
         [Header("Gamepad Aim")]
-        [Tooltip("右スティックで照準オフセットを動かす速さ（px/sec）")]
+        [Tooltip("右スティックで地面上オフセットを動かす速さ（距離/秒）")]
         [Min(0f)]
-        [SerializeField] private float _gamepadAimMoveSpeedPixelsPerSecond = 900f;
+        [SerializeField] private float _gamepadAimMoveSpeedUnitsPerSecond = 10f;
 
         [Tooltip("右スティック移動用デッドゾーン")]
         [Range(0f, 1f)]
@@ -104,20 +101,20 @@ namespace Uraty.Feature.Player
         [SerializeField] private float _gamepadAutoAimDeadZone = 0.25f;
 
         [Header("Shared Aim Offset")]
-        [Tooltip("プレイヤー基準の照準オフセット最大長（px）")]
+        [Tooltip("プレイヤー基準の地面上オフセット最大長")]
         [Min(0f)]
-        [SerializeField] private float _maxAimOffsetPixels = 600f;
+        [SerializeField] private float _maxAimOffsetDistance = 15f;
 
         [Header("Auto Aim")]
-        [Tooltip("押した時と離した時のオフセット差がこのピクセル以内なら『同じ位置』とみなす")]
+        [Tooltip("押した時と離した時のオフセット差がこの距離以内なら『動かしていない』とみなす")]
         [Min(0f)]
-        [SerializeField] private float _sameAimOffsetPixelThreshold = 2f;
+        [SerializeField] private float _sameAimOffsetDistanceThreshold = 0.05f;
 
         [Header("Debug")]
         [SerializeField] private bool _enableDebugLog = false;
 
         /// <summary>
-        /// InputActionReference から実体の InputAction を取り出すためのショートカット。
+        /// InputActionReference から実体の InputAction を取り出すショートカット。
         /// </summary>
         private InputAction MoveAction => _moveActionReference != null ? _moveActionReference.action : null;
         private InputAction AimAction => _aimActionReference != null ? _aimActionReference.action : null;
@@ -126,30 +123,35 @@ namespace Uraty.Feature.Player
 
         /// <summary>
         /// 生の Move / Aim 入力値。
-        /// Move は Vector2、Aim も Vector2。
-        ///
-        /// 前提:
-        /// ・Mouse Aim は Delta
-        /// ・Gamepad Aim は Right Stick
+        /// Aim は
+        /// ・Mouse: Delta
+        /// ・Gamepad: Right Stick
+        /// を読む前提。
         /// </summary>
         private Vector2 _rawMoveInput;
         private Vector2 _rawAimInput;
 
         /// <summary>
-        /// プレイヤー画面位置からの照準オフセット。
-        /// Mouse / Gamepad 共通でこれを更新する。
+        /// プレイヤー位置からの地面上オフセット。
+        /// Y は常に使わないので 0 として扱う。
         ///
-        /// Aim 開始時は 0 に戻すので、
-        /// 「照準開始位置はプレイヤー位置」になる。
+        /// Mouse / Gamepad 共通で、この値を更新する。
         /// </summary>
-        private Vector2 _aimScreenOffsetFromPlayer;
+        private Vector3 _aimOffsetWorldFromPlayer = Vector3.zero;
 
         /// <summary>
-        /// ゲーム側が使う変換後の値。
+        /// 変換後の出力。
         /// </summary>
         private Vector3 _moveDirectionWorld;
         private Vector3 _aimDirectionWorld;
         private Vector3 _lastNonZeroAimDirectionWorld = Vector3.forward;
+
+        /// <summary>
+        /// 現在の Aim 点が有効か。
+        /// オフセットがほぼゼロなら false になる。
+        /// </summary>
+        private bool _hasValidAimPointWorld;
+        private Vector3 _aimPointWorld;
 
         /// <summary>
         /// 現在の Aim 入力元。
@@ -157,7 +159,7 @@ namespace Uraty.Feature.Player
         private AimInputSource _currentAimSource = AimInputSource.None;
 
         /// <summary>
-        /// Attack / Super の Release を検出するための前フレーム押下状態。
+        /// Release 検出用の前フレーム押下状態。
         /// </summary>
         private bool _previousAttackPressed;
         private bool _previousSuperPressed;
@@ -172,20 +174,20 @@ namespace Uraty.Feature.Player
         private ReleaseInfo _pendingSuperRelease;
 
         /// <summary>
-        /// Aim 開始時の入力元。
-        /// Release 時の「手動指定あり / なし」判定に使う。
+        /// Attack / Super を押した瞬間の入力元。
+        /// Release 時の判定に使う。
         /// </summary>
         private ActionInputSource _attackPressSource = ActionInputSource.None;
         private ActionInputSource _superPressSource = ActionInputSource.None;
 
         /// <summary>
-        /// Attack / Super を押した瞬間の照準オフセット。
-        /// 押した時と離した時で差があるかを見る。
+        /// Attack / Super を押した瞬間のオフセット。
+        /// 「押した時からどれだけ動かしたか」を見る。
         /// </summary>
-        private Vector2 _attackPressAimOffsetFromPlayer;
-        private Vector2 _superPressAimOffsetFromPlayer;
+        private Vector3 _attackPressAimOffsetWorldFromPlayer = Vector3.zero;
+        private Vector3 _superPressAimOffsetWorldFromPlayer = Vector3.zero;
 
-        // ===== 外部公開プロパティ =====
+        // ===== 外部公開 =====
 
         public Vector2 RawMoveInput => _rawMoveInput;
         public Vector2 RawAimInput => _rawAimInput;
@@ -194,20 +196,19 @@ namespace Uraty.Feature.Player
         public Vector3 AimDirectionWorld => _aimDirectionWorld;
         public Vector3 LastNonZeroAimDirectionWorld => _lastNonZeroAimDirectionWorld;
 
+        public bool HasValidAimPointWorld => _hasValidAimPointWorld;
+        public Vector3 AimPointWorld => _aimPointWorld;
+
         public AimInputSource CurrentAimSource => _currentAimSource;
         public bool IsAimFromGamepad => _currentAimSource == AimInputSource.Gamepad;
         public bool IsAimFromMouse => _currentAimSource == AimInputSource.Mouse;
 
         /// <summary>
-        /// 現在の照準画面座標。
-        /// PlayerAimFromInterpreter 側はこれを Ray に変換して使う。
+        /// 互換用。
+        /// 画面上の照準位置が必要な UI がある時のために残している。
+        /// 中身は AimPointWorld を画面へ投影した座標。
         /// </summary>
         public Vector2 CurrentAimScreenPosition => GetCurrentAimScreenPosition();
-
-        /// <summary>
-        /// 既存コードとの互換用。
-        /// 中身は CurrentAimScreenPosition と同じ。
-        /// </summary>
         public Vector2 CurrentMouseScreenPosition => GetCurrentAimScreenPosition();
 
         // 押下状態
@@ -224,16 +225,15 @@ namespace Uraty.Feature.Player
 
         private void OnValidate()
         {
-            // Range 属性だけだと、スクリプト経由や古いシリアライズ値まで完全には守れない。
-            // なので内部でも補正しておく。
+            // Inspector でも内部でも範囲が崩れないように補正する。
             _gamepadAimMoveDeadZone = Mathf.Clamp01(_gamepadAimMoveDeadZone);
             _gamepadAutoAimDeadZone = Mathf.Clamp01(_gamepadAutoAimDeadZone);
 
             _mouseAimSensitivity = Mathf.Max(0f, _mouseAimSensitivity);
             _mouseAimDeltaDeadZonePixels = Mathf.Max(0f, _mouseAimDeltaDeadZonePixels);
-            _gamepadAimMoveSpeedPixelsPerSecond = Mathf.Max(0f, _gamepadAimMoveSpeedPixelsPerSecond);
-            _maxAimOffsetPixels = Mathf.Max(0f, _maxAimOffsetPixels);
-            _sameAimOffsetPixelThreshold = Mathf.Max(0f, _sameAimOffsetPixelThreshold);
+            _gamepadAimMoveSpeedUnitsPerSecond = Mathf.Max(0f, _gamepadAimMoveSpeedUnitsPerSecond);
+            _maxAimOffsetDistance = Mathf.Max(0f, _maxAimOffsetDistance);
+            _sameAimOffsetDistanceThreshold = Mathf.Max(0f, _sameAimOffsetDistanceThreshold);
         }
 
         private void Awake()
@@ -248,9 +248,7 @@ namespace Uraty.Feature.Player
                 _playerCenter = transform;
             }
 
-            // 照準開始前の初期値。
-            // 実際には Aim 開始時に 0 へ戻すので、ここは安全な初期値でよい。
-            _aimScreenOffsetFromPlayer = Vector2.zero;
+            _aimOffsetWorldFromPlayer = Vector3.zero;
 
             Vector3 flatForward = transform.forward;
             flatForward.y = 0f;
@@ -300,14 +298,14 @@ namespace Uraty.Feature.Player
                 Debug.Log(
                     $"[PlayerInputInterpreter] source={_currentAimSource}, " +
                     $"rawAim={_rawAimInput}, " +
-                    $"offset={_aimScreenOffsetFromPlayer}, " +
-                    $"screen={CurrentAimScreenPosition}, " +
+                    $"offsetWorld={_aimOffsetWorldFromPlayer}, " +
+                    $"aimPointWorld={_aimPointWorld}, " +
                     $"aimDir={_aimDirectionWorld}");
             }
         }
 
         /// <summary>
-        /// InputAction から生の入力値を読む。
+        /// InputAction から生入力を読む。
         /// </summary>
         private void RefreshInputs()
         {
@@ -333,7 +331,7 @@ namespace Uraty.Feature.Player
         /// <summary>
         /// Aim の入力元を決定する。
         /// まずは AimAction の activeControl を優先し、
-        /// 足りない場合は Attack / Super を押したデバイスから補完する。
+        /// 足りない時は Attack / Super を押したデバイスから補完する。
         /// </summary>
         private void RefreshAimSource()
         {
@@ -370,7 +368,7 @@ namespace Uraty.Feature.Player
         /// Aim 開始時の文脈を保存する。
         ///
         /// ここで Mouse / Gamepad 共通でオフセットを 0 に戻す。
-        /// つまり Aim 開始位置は常にプレイヤー位置になる。
+        /// つまり Aim 開始地点は常にプレイヤー位置。
         /// </summary>
         private void CachePressContext()
         {
@@ -381,8 +379,8 @@ namespace Uraty.Feature.Player
                 if (_attackPressSource == ActionInputSource.Mouse ||
                     _attackPressSource == ActionInputSource.Gamepad)
                 {
-                    _aimScreenOffsetFromPlayer = Vector2.zero;
-                    _attackPressAimOffsetFromPlayer = _aimScreenOffsetFromPlayer;
+                    _aimOffsetWorldFromPlayer = Vector3.zero;
+                    _attackPressAimOffsetWorldFromPlayer = _aimOffsetWorldFromPlayer;
                 }
             }
 
@@ -393,28 +391,33 @@ namespace Uraty.Feature.Player
                 if (_superPressSource == ActionInputSource.Mouse ||
                     _superPressSource == ActionInputSource.Gamepad)
                 {
-                    _aimScreenOffsetFromPlayer = Vector2.zero;
-                    _superPressAimOffsetFromPlayer = _aimScreenOffsetFromPlayer;
+                    _aimOffsetWorldFromPlayer = Vector3.zero;
+                    _superPressAimOffsetWorldFromPlayer = _aimOffsetWorldFromPlayer;
                 }
             }
         }
 
         /// <summary>
-        /// Aim 中の入力に応じて照準オフセットを更新する。
+        /// 現在の入力に応じて、プレイヤー基準の地面上オフセットを更新する。
         ///
         /// Mouse:
         /// ・delta に感度を掛ける
-        /// ・微小移動はデッドゾーンで無視
+        /// ・微小移動は無視する
         ///
         /// Gamepad:
         /// ・右スティックに半径デッドゾーンをかける
-        /// ・速度 × deltaTime でオフセットを動かす
+        /// ・速度 × deltaTime で動かす
         ///
         /// 最後にオフセットの最大長を制限する。
         /// </summary>
         private void UpdateAimOffsetFromCurrentInput()
         {
             if (!IsAnyAimButtonPressed())
+            {
+                return;
+            }
+
+            if (!TryGetFlatCameraBasis(out Vector3 flatRight, out Vector3 flatForward))
             {
                 return;
             }
@@ -431,14 +434,25 @@ namespace Uraty.Feature.Player
                             mouseDelta = Vector2.zero;
                         }
 
-                        _aimScreenOffsetFromPlayer += mouseDelta * _mouseAimSensitivity;
+                        // 画面上の左右移動 -> カメラ右方向
+                        // 画面上の上下移動 -> カメラ前方向
+                        Vector3 deltaWorld =
+                            flatRight * (mouseDelta.x * _mouseAimSensitivity) +
+                            flatForward * (mouseDelta.y * _mouseAimSensitivity);
+
+                        _aimOffsetWorldFromPlayer += deltaWorld;
                         break;
                     }
 
                 case AimInputSource.Gamepad:
                     {
                         Vector2 processedStick = ApplyRadialDeadZone(_rawAimInput, _gamepadAimMoveDeadZone);
-                        _aimScreenOffsetFromPlayer += processedStick * _gamepadAimMoveSpeedPixelsPerSecond * Time.deltaTime;
+
+                        Vector3 deltaWorld =
+                            flatRight * (processedStick.x * _gamepadAimMoveSpeedUnitsPerSecond * Time.deltaTime) +
+                            flatForward * (processedStick.y * _gamepadAimMoveSpeedUnitsPerSecond * Time.deltaTime);
+
+                        _aimOffsetWorldFromPlayer += deltaWorld;
                         break;
                     }
 
@@ -447,34 +461,81 @@ namespace Uraty.Feature.Player
                     break;
             }
 
-            float maxLength = Mathf.Max(0f, _maxAimOffsetPixels);
-            if (maxLength > 0f && _aimScreenOffsetFromPlayer.magnitude > maxLength)
+            // Y は使わないので固定
+            _aimOffsetWorldFromPlayer.y = 0f;
+
+            float maxLength = Mathf.Max(0f, _maxAimOffsetDistance);
+            if (maxLength > 0f)
             {
-                _aimScreenOffsetFromPlayer = _aimScreenOffsetFromPlayer.normalized * maxLength;
+                Vector3 flatOffset = _aimOffsetWorldFromPlayer;
+                flatOffset.y = 0f;
+
+                if (flatOffset.magnitude > maxLength)
+                {
+                    flatOffset = flatOffset.normalized * maxLength;
+                    _aimOffsetWorldFromPlayer = flatOffset;
+                }
             }
         }
 
         /// <summary>
-        /// 生の Move / Aim をゲーム側で使う値へ変換する。
+        /// 生入力から、ゲーム側で使う Move / Aim を作る。
         /// </summary>
         private void RefreshConvertedValues()
         {
             _moveDirectionWorld = ConvertInputToCameraRelativeDirection(_rawMoveInput);
 
-            if (_currentAimSource == AimInputSource.Mouse || _currentAimSource == AimInputSource.Gamepad)
+            if (TryBuildAimPointAndDirection(out Vector3 aimPointWorld, out Vector3 aimDirectionWorld))
             {
-                Vector2 aimScreenPosition = GetCurrentAimScreenPosition();
-                _aimDirectionWorld = ConvertScreenPointToWorldDirection(aimScreenPosition);
+                _hasValidAimPointWorld = true;
+                _aimPointWorld = aimPointWorld;
+                _aimDirectionWorld = aimDirectionWorld;
+                _lastNonZeroAimDirectionWorld = _aimDirectionWorld;
             }
             else
             {
+                _hasValidAimPointWorld = false;
+
+                if (_playerCenter != null)
+                {
+                    _aimPointWorld = _playerCenter.position;
+                }
+                else
+                {
+                    _aimPointWorld = Vector3.zero;
+                }
+
                 _aimDirectionWorld = Vector3.zero;
             }
+        }
 
-            if (_aimDirectionWorld.sqrMagnitude > MinInputSqrMagnitude)
+        /// <summary>
+        /// 現在の地面上オフセットから、
+        /// Aim 点と Aim 方向を作る。
+        /// </summary>
+        private bool TryBuildAimPointAndDirection(out Vector3 aimPointWorld, out Vector3 aimDirectionWorld)
+        {
+            aimPointWorld = Vector3.zero;
+            aimDirectionWorld = Vector3.zero;
+
+            if (_playerCenter == null)
             {
-                _lastNonZeroAimDirectionWorld = _aimDirectionWorld.normalized;
+                return false;
             }
+
+            Vector3 offset = _aimOffsetWorldFromPlayer;
+            offset.y = 0f;
+
+            if (offset.sqrMagnitude <= MinInputSqrMagnitude)
+            {
+                return false;
+            }
+
+            aimPointWorld = _playerCenter.position + offset;
+            aimPointWorld.y = _playerCenter.position.y;
+
+            aimDirectionWorld = offset.normalized;
+            return true;
         }
 
         /// <summary>
@@ -518,7 +579,7 @@ namespace Uraty.Feature.Player
         /// </summary>
         private Vector3 ConvertInputToCameraRelativeDirection(Vector2 input)
         {
-            if (_targetCamera == null)
+            if (!TryGetFlatCameraBasis(out Vector3 flatRight, out Vector3 flatForward))
             {
                 return Vector3.zero;
             }
@@ -528,22 +589,7 @@ namespace Uraty.Feature.Player
                 return Vector3.zero;
             }
 
-            Vector3 cameraForward = _targetCamera.transform.forward;
-            Vector3 cameraRight = _targetCamera.transform.right;
-
-            cameraForward.y = 0f;
-            cameraRight.y = 0f;
-
-            if (cameraForward.sqrMagnitude <= MinInputSqrMagnitude ||
-                cameraRight.sqrMagnitude <= MinInputSqrMagnitude)
-            {
-                return Vector3.zero;
-            }
-
-            cameraForward.Normalize();
-            cameraRight.Normalize();
-
-            Vector3 direction = (cameraRight * input.x) + (cameraForward * input.y);
+            Vector3 direction = (flatRight * input.x) + (flatForward * input.y);
             direction.y = 0f;
 
             if (direction.sqrMagnitude <= MinInputSqrMagnitude)
@@ -555,70 +601,57 @@ namespace Uraty.Feature.Player
         }
 
         /// <summary>
-        /// 現在の照準画面座標を、プレイヤー中心からのワールド方向へ変換する。
-        /// Mouse / Gamepad 共通。
+        /// カメラの right / forward を地面上へ投影した基底を作る。
         /// </summary>
-        private Vector3 ConvertScreenPointToWorldDirection(Vector2 screenPoint)
+        private bool TryGetFlatCameraBasis(out Vector3 flatRight, out Vector3 flatForward)
         {
-            if (_targetCamera == null || _playerCenter == null)
+            flatRight = Vector3.zero;
+            flatForward = Vector3.zero;
+
+            if (_targetCamera == null)
             {
-                return Vector3.zero;
+                return false;
             }
 
-            Ray ray = _targetCamera.ScreenPointToRay(screenPoint);
-            Plane plane = new Plane(Vector3.up, _playerCenter.position);
+            flatRight = _targetCamera.transform.right;
+            flatForward = _targetCamera.transform.forward;
 
-            if (!plane.Raycast(ray, out float enter))
+            flatRight.y = 0f;
+            flatForward.y = 0f;
+
+            if (flatRight.sqrMagnitude <= MinInputSqrMagnitude ||
+                flatForward.sqrMagnitude <= MinInputSqrMagnitude)
             {
-                return Vector3.zero;
+                return false;
             }
 
-            Vector3 hitPoint = ray.GetPoint(enter);
-            Vector3 direction = hitPoint - _playerCenter.position;
-            direction.y = 0f;
-
-            if (direction.sqrMagnitude <= MinInputSqrMagnitude)
-            {
-                return Vector3.zero;
-            }
-
-            return direction.normalized;
+            flatRight.Normalize();
+            flatForward.Normalize();
+            return true;
         }
 
         /// <summary>
-        /// 現在の照準画面座標。
-        /// プレイヤーの今の画面位置にオフセットを足して作る。
-        ///
-        /// なので、オフセットが 0 なら
-        /// プレイヤーが動いても照準はプレイヤーに追従する。
+        /// 画面上の照準位置が必要な UI 用。
+        /// AimPointWorld を画面へ投影する。
+        /// Aim 無効時はプレイヤー位置を返す。
         /// </summary>
         private Vector2 GetCurrentAimScreenPosition()
         {
-            Vector2 playerScreenPosition = GetPlayerScreenPosition();
-            Vector2 result = playerScreenPosition + _aimScreenOffsetFromPlayer;
-
-            result.x = Mathf.Clamp(result.x, 0f, Screen.width);
-            result.y = Mathf.Clamp(result.y, 0f, Screen.height);
-
-            return result;
-        }
-
-        /// <summary>
-        /// プレイヤー中心の現在画面座標を返す。
-        /// </summary>
-        private Vector2 GetPlayerScreenPosition()
-        {
-            if (_targetCamera == null || _playerCenter == null)
+            if (_targetCamera == null)
             {
                 return new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
             }
 
-            Vector3 screen = _targetCamera.WorldToScreenPoint(_playerCenter.position);
+            Vector3 world = _hasValidAimPointWorld && _playerCenter != null
+                ? _aimPointWorld
+                : (_playerCenter != null ? _playerCenter.position : Vector3.zero);
+
+            Vector3 screen = _targetCamera.WorldToScreenPoint(world);
             return new Vector2(screen.x, screen.y);
         }
 
         /// <summary>
-        /// Aim ボタンを押している間だけ、照準オフセットを更新したいので使う。
+        /// Aim ボタンを押している間だけ、オフセットを更新する。
         /// </summary>
         private bool IsAnyAimButtonPressed()
         {
@@ -644,17 +677,11 @@ namespace Uraty.Feature.Player
             return Vector3.forward;
         }
 
-        /// <summary>
-        /// Attack Release 時のオートエイム可否。
-        /// </summary>
         private bool EvaluateAutoAimForAttack()
         {
             return !IsManualAimSpecifiedForAttack();
         }
 
-        /// <summary>
-        /// Super Release 時のオートエイム可否。
-        /// </summary>
         private bool EvaluateAutoAimForSuper()
         {
             return !IsManualAimSpecifiedForSuper();
@@ -662,7 +689,7 @@ namespace Uraty.Feature.Player
 
         /// <summary>
         /// 押した時のオフセットと離した時のオフセットが違えば、
-        /// 「手動で方向指定した」とみなす。
+        /// 手動で方向指定したとみなす。
         /// Mouse / Gamepad 共通。
         /// </summary>
         private bool IsManualAimSpecifiedForAttack()
@@ -671,7 +698,7 @@ namespace Uraty.Feature.Player
             {
                 case ActionInputSource.Mouse:
                 case ActionInputSource.Gamepad:
-                    return !IsSameAimOffset(_attackPressAimOffsetFromPlayer, _aimScreenOffsetFromPlayer);
+                    return !IsSameAimOffset(_attackPressAimOffsetWorldFromPlayer, _aimOffsetWorldFromPlayer);
 
                 default:
                     return false;
@@ -684,7 +711,7 @@ namespace Uraty.Feature.Player
             {
                 case ActionInputSource.Mouse:
                 case ActionInputSource.Gamepad:
-                    return !IsSameAimOffset(_superPressAimOffsetFromPlayer, _aimScreenOffsetFromPlayer);
+                    return !IsSameAimOffset(_superPressAimOffsetWorldFromPlayer, _aimOffsetWorldFromPlayer);
 
                 default:
                     return false;
@@ -693,14 +720,15 @@ namespace Uraty.Feature.Player
 
         /// <summary>
         /// Aim 開始時と終了時のオフセット差が小さければ、
-        /// 「動かしていない」とみなす。
+        /// 動かしていないとみなす。
         /// </summary>
-        private bool IsSameAimOffset(Vector2 pressOffset, Vector2 releaseOffset)
+        private bool IsSameAimOffset(Vector3 pressOffset, Vector3 releaseOffset)
         {
-            float threshold = Mathf.Max(0f, _sameAimOffsetPixelThreshold);
-            float sqrThreshold = threshold * threshold;
+            Vector3 delta = releaseOffset - pressOffset;
+            delta.y = 0f;
 
-            return (releaseOffset - pressOffset).sqrMagnitude <= sqrThreshold;
+            float threshold = Mathf.Max(0f, _sameAimOffsetDistanceThreshold);
+            return delta.sqrMagnitude <= threshold * threshold;
         }
 
         /// <summary>
@@ -768,7 +796,7 @@ namespace Uraty.Feature.Player
             return input.normalized * normalizedMagnitude;
         }
 
-        // ===== 外から Release 情報を回収する入口 =====
+        // ===== Release 情報の回収 =====
 
         public bool TryConsumeAttackRelease(out ReleaseInfo info)
         {
