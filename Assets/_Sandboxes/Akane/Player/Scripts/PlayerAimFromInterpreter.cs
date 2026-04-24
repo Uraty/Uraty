@@ -7,9 +7,11 @@ namespace Uraty.Feature.Player
     /// <summary>
     /// 照準と予測メッシュ表示を担当するクラス。
     ///
-    /// この版では Mouse / Gamepad を分けず、
-    /// PlayerInputInterpreter が返す CurrentAimScreenPosition を使って
-    /// 共通の照準点を作る。
+    /// この版では、Mouse / Gamepad を分けず、
+    /// PlayerInputInterpreter が返す AimPointWorld をそのまま使う。
+    ///
+    /// つまり照準点の決定は interpreter 側、
+    /// その照準点をどう使って予測表示するかはこのクラス側の責務。
     /// </summary>
     public class PlayerAimFromInterpreter : MonoBehaviour
     {
@@ -26,9 +28,6 @@ namespace Uraty.Feature.Player
 
         [SerializeField] private PlayerStatus _playerStatus;
         [SerializeField] private PlayerInputInterpreter _playerInputInterpreter;
-
-        [Header("Aim")]
-        [SerializeField] private Camera _camera;
 
         [Header("Prediction Mesh")]
         [SerializeField] private Material _attackPredictionMaterial;
@@ -69,11 +68,6 @@ namespace Uraty.Feature.Player
         {
             _playerStatus = GetComponent<PlayerStatus>();
             _playerInputInterpreter = GetComponent<PlayerInputInterpreter>();
-
-            if (_camera == null)
-            {
-                _camera = Camera.main;
-            }
         }
 
         private void Awake()
@@ -111,7 +105,7 @@ namespace Uraty.Feature.Player
 
         private void Update()
         {
-            if (_playerInputInterpreter == null || _camera == null || !HasAnyDefinition())
+            if (_playerInputInterpreter == null || !HasAnyDefinition())
             {
                 if (_isAiming)
                 {
@@ -123,6 +117,7 @@ namespace Uraty.Feature.Player
                 return;
             }
 
+            // まだ照準中でない時だけ、新しい Attack / Special 開始を受け付ける
             if (!_isAiming)
             {
                 if (_playerInputInterpreter.AttackPressedThisFrame && HasDefinition(AimActionType.Attack))
@@ -135,6 +130,7 @@ namespace Uraty.Feature.Player
                 }
             }
 
+            // ボタンを押している間は照準更新と予測表示
             if (_isAiming && IsCurrentAimButtonPressed())
             {
                 if (TryUpdateAim())
@@ -147,6 +143,7 @@ namespace Uraty.Feature.Player
                 }
             }
 
+            // ボタンを離した瞬間に攻撃要求を確定する
             if (_isAiming && WasCurrentAimButtonReleased())
             {
                 if (_hasValidAimPoint && HasDefinition(_currentAimActionType))
@@ -348,29 +345,20 @@ namespace Uraty.Feature.Player
         }
 
         /// <summary>
-        /// Mouse / Gamepad 共通で、
-        /// interpreter の CurrentAimScreenPosition から照準点を作る。
+        /// interpreter 側が作った AimPointWorld をそのまま使う。
+        /// これでカメラ角度や画面端に依存しない。
         /// </summary>
         private bool TryUpdateAim()
         {
-            if (_playerInputInterpreter == null)
+            if (_playerInputInterpreter == null || !_playerInputInterpreter.HasValidAimPointWorld)
             {
                 _hasValidAimPoint = false;
                 return false;
             }
 
             Vector3 flatOrigin = GetFlatOrigin();
-
-            Ray ray = _camera.ScreenPointToRay(_playerInputInterpreter.CurrentAimScreenPosition);
-            Plane plane = new Plane(Vector3.up, new Vector3(0f, flatOrigin.y, 0f));
-
-            if (!plane.Raycast(ray, out float distance))
-            {
-                _hasValidAimPoint = false;
-                return false;
-            }
-
-            _aimPoint = ray.GetPoint(distance);
+            _aimPoint = _playerInputInterpreter.AimPointWorld;
+            _aimPoint.y = flatOrigin.y;
 
             Vector3 direction = _aimPoint - flatOrigin;
             direction.y = 0f;
