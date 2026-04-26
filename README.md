@@ -17,6 +17,8 @@
 - Visual Studio 2022
 
 ### Libraries
+- NuGetForUnity
+- Tri Inspector
 - R3
 - UniTask
 
