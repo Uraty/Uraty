@@ -27,63 +27,59 @@ MonoBehaviour:
     _type: 2
     _line:
       _canPierce: 0
-      _range: 1
-      _effectiveRange: 1
       _speedPerSecond: 1
-      _aimWidth: 1
+      _aimLineCount: 1
+      _aimLines:
+      - _offsetAngleFromAimLine: 0
+        _offsetDistanceFromAimLine: 0
+        _range: 1
+        _effectiveRange: 1
+        _width: 1
       _bulletCount: 1
-      _singleBullet:
-        _bulletWidth: 1
-        _bulletHeight: 1
-      _multiBullets:
-      - _spawnDelaySeconds: 0
-        _offsetFromAimLine: 0
-        _bulletWidth: 1
-        _bulletHeight: 1
-      - _spawnDelaySeconds: 0
+      _bullets:
+      - _bulletPrefab: {fileID: 0}
+        _spawnDelaySeconds: 0
         _offsetFromAimLine: 0
         _bulletWidth: 1
         _bulletHeight: 1
     _fan:
       _canMultiHit: 0
       _canPierce: 0
-      _range: 1
-      _effectiveRange: 1
       _speedPerSecond: 1
-      _aimAngle: 60
+      _aimLineCount: 1
+      _aimLines:
+      - _offsetAngleFromAimLine: 0
+        _range: 1
+        _effectiveRange: 1
+        _angle: 10
       _bulletCount: 1
-      _singleBullet:
-        _height: 1
-        _angle: 10
-      _multiBullets:
-      - _spawnDelaySeconds: 0
-        _offsetAngleFromAimLine: 0
-        _height: 1
-        _angle: 10
-      - _spawnDelaySeconds: 0
+      _bullets:
+      - _bulletPrefab: {fileID: 0}
+        _spawnDelaySeconds: 0
         _offsetAngleFromAimLine: 0
         _height: 1
         _angle: 10
     _throw:
-      _isVariableRange: 0
-      _range: 1
-      _effectiveRange: 1
-      _maxRange: 1
-      _maxEffectiveRange: 1
+      _isVariableRange: 1
       _isVariableLandingTime: 0
       _fixedLandingTimeSeconds: 1
       _maxLandingTimeSeconds: 1
       _minLandingTimeSeconds: 0.2
-      _aimRadius: 1
-      _bulletCount: 1
-      _singleBullet:
-        _radius: 1
-      _multiBullets:
-      - _spawnDelaySeconds: 0
-        _radius: 1
+      _aimLineCount: 1
+      _aimLines:
+      - _offsetAngleFromAimLine: 0
         _offsetDistanceFromAimLine: 0
-        _offsetAngleFromAimLine: 0
-      - _spawnDelaySeconds: 0
+        _range: 180.9
+        _effectiveRange: 83.66
+        _circleRadius: 1
+        _parabolaWidth: 1
+        _fixedParabolaHeight: 1
+        _maxParabolaHeight: 1
+        _minParabolaHeight: 0.5
+      _bulletCount: 1
+      _bullets:
+      - _bulletPrefab: {fileID: 0}
+        _spawnDelaySeconds: 0
         _radius: 1
         _offsetDistanceFromAimLine: 0
         _offsetAngleFromAimLine: 0
@@ -96,63 +92,59 @@ MonoBehaviour:
     _type: 0
     _line:
       _canPierce: 0
-      _range: 1
-      _effectiveRange: 1
       _speedPerSecond: 1
-      _aimWidth: 1
+      _aimLineCount: 1
+      _aimLines:
+      - _offsetAngleFromAimLine: 0
+        _offsetDistanceFromAimLine: 0
+        _range: 1
+        _effectiveRange: 1
+        _width: 1
       _bulletCount: 1
-      _singleBullet:
-        _bulletWidth: 1
-        _bulletHeight: 1
-      _multiBullets:
-      - _spawnDelaySeconds: 0
-        _offsetFromAimLine: 0
-        _bulletWidth: 1
-        _bulletHeight: 1
-      - _spawnDelaySeconds: 0
+      _bullets:
+      - _bulletPrefab: {fileID: 0}
+        _spawnDelaySeconds: 0
         _offsetFromAimLine: 0
         _bulletWidth: 1
         _bulletHeight: 1
     _fan:
       _canMultiHit: 0
       _canPierce: 0
-      _range: 1
-      _effectiveRange: 1
       _speedPerSecond: 1
-      _aimAngle: 60
+      _aimLineCount: 1
+      _aimLines:
+      - _offsetAngleFromAimLine: 0
+        _range: 1
+        _effectiveRange: 1
+        _angle: 10
       _bulletCount: 1
-      _singleBullet:
-        _height: 1
-        _angle: 10
-      _multiBullets:
-      - _spawnDelaySeconds: 0
-        _offsetAngleFromAimLine: 0
-        _height: 1
-        _angle: 10
-      - _spawnDelaySeconds: 0
+      _bullets:
+      - _bulletPrefab: {fileID: 0}
+        _spawnDelaySeconds: 0
         _offsetAngleFromAimLine: 0
         _height: 1
         _angle: 10
     _throw:
       _isVariableRange: 0
-      _range: 1
-      _effectiveRange: 1
-      _maxRange: 1
-      _maxEffectiveRange: 1
       _isVariableLandingTime: 0
       _fixedLandingTimeSeconds: 1
       _maxLandingTimeSeconds: 1
       _minLandingTimeSeconds: 0.2
-      _aimRadius: 1
-      _bulletCount: 1
-      _singleBullet:
-        _radius: 1
-      _multiBullets:
-      - _spawnDelaySeconds: 0
-        _radius: 1
+      _aimLineCount: 1
+      _aimLines:
+      - _offsetAngleFromAimLine: 0
         _offsetDistanceFromAimLine: 0
-        _offsetAngleFromAimLine: 0
-      - _spawnDelaySeconds: 0
+        _range: 1
+        _effectiveRange: 1
+        _circleRadius: 1
+        _parabolaWidth: 1
+        _fixedParabolaHeight: 1
+        _maxParabolaHeight: 1
+        _minParabolaHeight: 0.5
+      _bulletCount: 1
+      _bullets:
+      - _bulletPrefab: {fileID: 0}
+        _spawnDelaySeconds: 0
         _radius: 1
         _offsetDistanceFromAimLine: 0
         _offsetAngleFromAimLine: 0
