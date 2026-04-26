@@ -2,11 +2,24 @@
 
 COMMIT_MSG_FILE=$1
 
+if [ -z "$COMMIT_MSG_FILE" ] || [ ! -f "$COMMIT_MSG_FILE" ]; then
+  echo "Error: commit message file が見つかりません。" >&2
+  exit 1
+fi
+
 # テンプレのコメント行（先頭が # の行）をコミット前に削除する
 TMP=$(mktemp 2>/dev/null || echo "$COMMIT_MSG_FILE.tmp.$$")
-grep -Ev '^[[:space:]]*#' "$COMMIT_MSG_FILE" > "$TMP" && mv "$TMP" "$COMMIT_MSG_FILE"
 
-SUBJECT=$(head -n 1 "$COMMIT_MSG_FILE")
+sed '/^[[:space:]]*#/d' "$COMMIT_MSG_FILE" > "$TMP"
+if [ $? -ne 0 ]; then
+  echo "Error: コメント行の削除に失敗しました。" >&2
+  rm -f "$TMP"
+  exit 1
+fi
+
+mv "$TMP" "$COMMIT_MSG_FILE"
+
+SUBJECT=$(sed -n '1{s/\r$//;p;q;}' "$COMMIT_MSG_FILE")
 
 # 件名が空
 if [ -z "$SUBJECT" ]; then
@@ -19,6 +32,7 @@ echo "$SUBJECT" | grep -Eq '^(feature|fix|refactor|chore|docs|test|ci)(\([a-z0-9
 if [ $? -ne 0 ]; then
   echo "Error: 形式が不正です。" >&2
   echo "Use: <type>(scope): summary" >&2
+  echo "例: feature(player): ジャンプ処理を追加" >&2
   exit 1
 fi
 
@@ -29,34 +43,148 @@ if [ "$LENGTH" -gt 50 ]; then
   exit 1
 fi
 
-# Reason 空チェック（同一行運用）
-# 例: "Reason:" だけはNG / "Reason: xxx" はOK
-if grep -Eq '^[[:space:]]*Reason:[[:space:]]*$' "$COMMIT_MSG_FILE"; then
-  echo "Error: Reason が空です。理由を書くか、Reason 行を削除してください。" >&2
+# Issue / Reason / Notes の複数行セクション検査
+awk '
+function trim(s) {
+  sub(/^[[:space:]]+/, "", s)
+  sub(/[[:space:]]+$/, "", s)
+  return s
+}
+
+function header_name(line, t) {
+  t = trim(line)
+
+  if (t == "Issue:") {
+    return "Issue"
+  }
+
+  if (t == "Reason:") {
+    return "Reason"
+  }
+
+  if (t == "Notes:") {
+    return "Notes"
+  }
+
+  return ""
+}
+
+function is_empty_common(line, t) {
+  t = trim(line)
+
+  return t == "" || t == "-"
+}
+
+function is_empty_issue(line, t, lower) {
+  t = trim(line)
+  lower = tolower(t)
+
+  return \
+    t == "" || \
+    t == "-" || \
+    lower == "refs #" || \
+    lower == "- refs #" || \
+    lower == "closes #" || \
+    lower == "- closes #" || \
+    lower == "fixes #" || \
+    lower == "- fixes #" || \
+    lower == "resolves #" || \
+    lower == "- resolves #"
+}
+
+function is_valid_issue(line, t, lower) {
+  t = trim(line)
+
+  # 箇条書きの "- " は許可
+  sub(/^-+[[:space:]]*/, "", t)
+
+  lower = tolower(t)
+
+  return lower ~ /^(refs|closes|fixes|resolves)[[:space:]]+#[0-9]+$/
+}
+
+{
+  sub(/\r$/, "", $0)
+
+  h = header_name($0)
+
+  if (h != "") {
+    section = h
+    found[section] = 1
+    next
+  }
+
+  if (section == "Issue") {
+    if (is_empty_issue($0)) {
+      next
+    }
+
+    if (is_valid_issue($0)) {
+      content["Issue"] = 1
+      next
+    }
+
+    print "Error: Issue の形式が不正です。" > "/dev/stderr"
+    print "Use: - Refs #123 / - Closes #123 / - Fixes #123 / - Resolves #123" > "/dev/stderr"
+    print "Bad: " $0 > "/dev/stderr"
+    bad = 1
+    next
+  }
+
+  if (section == "Reason") {
+    if (!is_empty_common($0)) {
+      content["Reason"] = 1
+    }
+    next
+  }
+
+  if (section == "Notes") {
+    if (!is_empty_common($0)) {
+      content["Notes"] = 1
+    }
+    next
+  }
+}
+
+END {
+  if (found["Issue"] && !content["Issue"]) {
+    print "Error: Issue が空、または未入力です。" > "/dev/stderr"
+    print "Issue を書く場合は Refs #123 / Closes #123 / Fixes #123 / Resolves #123 の形式にしてください。" > "/dev/stderr"
+    print "Issue が不要なら Issue セクションごと削除してください。" > "/dev/stderr"
+    bad = 1
+  }
+
+  if (found["Reason"] && !content["Reason"]) {
+    print "Error: Reason が空です。" > "/dev/stderr"
+    print "理由を書くか、Reason セクションごと削除してください。" > "/dev/stderr"
+    bad = 1
+  }
+
+  if (found["Notes"] && !content["Notes"]) {
+    print "Error: Notes が空です。" > "/dev/stderr"
+    print "内容を書くか、Notes セクションごと削除してください。" > "/dev/stderr"
+    bad = 1
+  }
+
+  exit bad
+}
+' "$COMMIT_MSG_FILE"
+
+if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# Notes 空チェック（同一行運用）
-# 例: "Notes:" だけはNG / "Notes: xxx" はOK
-if grep -Eq '^[[:space:]]*Notes:[[:space:]]*$' "$COMMIT_MSG_FILE"; then
-  echo "Error: Notes が空です。内容を書くか、Notes 行を削除してください。" >&2
-  exit 1
-fi
-
-# Issue 空チェック（Issue: 行があるなら、番号を書くか行を削除）
-if grep -Eq '^[[:space:]]*Issue:[[:space:]]*$' "$COMMIT_MSG_FILE"; then
-  echo "Error: Issue が空です。Issue に番号を入力するか、Issue 行を削除してください。" >&2
-  exit 1
-fi
-
-# Issue 警告のみ（feature / fix / refactor で Issue 参照が無いと警告）
+# Issue 警告のみ
+# feature / fix / refactor で有効な Issue 参照が無い場合は警告
 HAS_ISSUE=0
-grep -Eiq 'Issue:?[[:space:]]*#?[0-9]+|Closes[[:space:]]+#?[0-9]+|Refs[[:space:]]+#?[0-9]+|#[0-9]+' "$COMMIT_MSG_FILE" \
+
+grep -Eiq '(^|[^[:alnum:]_])(Refs|Closes|Fixes|Resolves)[[:space:]]+#[0-9]+' "$COMMIT_MSG_FILE" \
   && HAS_ISSUE=1
 
 printf "%s" "$SUBJECT" | grep -Eq '^(feature|fix|refactor)'
 if [ $? -eq 0 ] && [ "$HAS_ISSUE" -ne 1 ]; then
-  echo "Warning: feature / fix / refactor では Issue 参照を推奨します（Issue: 123 など）。" >&2
+  echo "Warning: feature / fix / refactor では Issue 参照を推奨します。" >&2
+  echo "Use: Refs #123 / Closes #123 / Fixes #123 / Resolves #123" >&2
 fi
 
 exit 0

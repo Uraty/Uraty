@@ -1,10 +1,13 @@
 
 
 Issue:
+- 
 
 Reason:
+- 
 
 Notes:
+- 
 
 # コミットメッセージ規約
 #
@@ -17,24 +20,52 @@ Notes:
 # - 件名は 50 文字以内
 # - 日本語OK
 #
-# 推奨: feature / fix / refactor は Issue 参照を入れる（無い場合は警告）
-#   Issue: 123
-#   Closes #123
-#   Refs #123
+# Issue: は feature / fix / refactor では推奨
+# - Issue を参照する場合は、以下のいずれかの形式を使う
+#   - Refs #123
+#   - Closes #123
+#   - Fixes #123
+#   - Resolves #123
+#
+# - Refs #123:
+#   関連する Issue を示す。Issue は自動で閉じない。
+#
+# - Closes #123 / Fixes #123 / Resolves #123:
+#   この変更で Issue が完了することを示す。
+#   PR がデフォルトブランチにマージされると、Issue が自動で閉じるため注意する。
+#
+# - まだ作業が残る Issue に対して Closes / Fixes / Resolves は使わない。
+# - Issue 番号だけの記述は禁止。
+#   悪い例:
+#     - 123
+#     - #123
+#   良い例:
+#     - Refs #123
+#     - Closes #123
+#     - Fixes #123
+#     - Resolves #123
 #
 # Reason: は任意
-# - 書かないなら行ごと削除
-# - 残すなら空は禁止（commit-msg がエラーにする）
+# - 書かないなら Reason: セクションごと削除
+# - 残すなら本文必須
+# - 複数行OK
+# - 箇条書き推奨
 #
 # Notes: は任意
-# - 書かないなら行ごと削除
-# - 残すなら空は禁止（commit-msg がエラーにする）
+# - 書かないなら Notes: セクションごと削除
+# - 残すなら本文必須
+# - 複数行OK
+# - 箇条書き推奨
 #
 # 例:
-#   feature(player): ジャンプを追加
+#   feature(player): 弾の生成処理を追加
 #
-#   Issue: 123
+#   Issue:
+#   - Refs #123
 #
-#   Reason: プレイヤー操作の基本機能が必要なため
+#   Reason:
+#   - 攻撃処理と弾生成処理の責務を分離するため
 #
-#   Notes: 
+#   Notes:
+#   - Bullet Feature は Player から直接参照しない
+#   - aim 表示との接続は別PRで対応する
