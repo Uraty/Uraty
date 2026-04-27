@@ -9,6 +9,10 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2725221029298168859}
+  - component: {fileID: 6345252357785505017}
+  - component: {fileID: 1877476183996767426}
+  - component: {fileID: 3627735041091510813}
+  - component: {fileID: 6198805236432089140}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -33,6 +37,87 @@ Transform:
   - {fileID: 4753736444490541773}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6345252357785505017
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1378683223974161302}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ebcc0fa41874e64d83e7abd56984b9c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Feature.Player::Uraty.Feature.Player.PlayerAim
+  _playerStatus: {fileID: 1877476183996767426}
+  _inputInterpreter: {fileID: 3627735041091510813}
+  _attackPredictionMaterial: {fileID: 0}
+  _superPredictionMaterial: {fileID: 0}
+  _groundOffset: 0.02
+  _previewObjectName: AimPreview
+  _throwSampleCount: 16
+  _consumeAttackOnce: 1
+  _consumeSuperOnce: 1
+--- !u!114 &1877476183996767426
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1378683223974161302}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a46a7c823be54f4490de432ac2bf174, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Feature.Player::Uraty.Feature.Player.PlayerStatus
+  _roleDefinition: {fileID: 0}
+  _hpRegenStartDelaySeconds: 5
+  _hpRegenIntervalSeconds: 1
+  _hpRegenPercentPerInterval: 2
+  _respawnTimeSeconds: 5
+  _currentScore: 0
+  _teamId: 0
+--- !u!114 &3627735041091510813
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1378683223974161302}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d87666c9ce560794d921bd63f44fd8a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Feature.Player::Uraty.Feature.Player.PlayerInputInterpreter
+  _moveActionReference: {fileID: 8426578241399766401, guid: 0bf1b86489f9fc34aaa77cac93ad435f, type: 3}
+  _aimActionReference: {fileID: 4260153292514963435, guid: 0bf1b86489f9fc34aaa77cac93ad435f, type: 3}
+  _attackActionReference: {fileID: -1825579536880320670, guid: 0bf1b86489f9fc34aaa77cac93ad435f, type: 3}
+  _superActionReference: {fileID: -1382934852485115932, guid: 0bf1b86489f9fc34aaa77cac93ad435f, type: 3}
+  _targetCamera: {fileID: 0}
+  _mouseAimSensitivity: 0.02
+  _mouseAimDeltaDeadZonePixels: 0.5
+  _gamepadAimMoveSpeedUnitsPerSecond: 10
+  _gamepadAimMoveDeadZone: 0.2
+  _gamepadAutoAimDeadZone: 0.25
+  _maxAimOffsetDistance: 15
+  _sameAimOffsetDistanceThreshold: 0.05
+  _enableDebugLog: 0
+--- !u!114 &6198805236432089140
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1378683223974161302}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b45f78aa9dcff64fbee2d8e861b2b01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Feature.Player::Uraty.Feature.Player.PlayerCombat
+  _playerStatus: {fileID: 1877476183996767426}
+  _playerAim: {fileID: 6345252357785505017}
+  _spawnHeightOffset: 0.5
+  _bulletSpawnerBehaviour: {fileID: 0}
 --- !u!1 &6491064317818629588
 GameObject:
   m_ObjectHideFlags: 0
@@ -46,11 +131,6 @@ GameObject:
   - component: {fileID: 666035457929744659}
   - component: {fileID: 2018250828172020006}
   - component: {fileID: 1787891116651182204}
-  - component: {fileID: 8628591278481051685}
-  - component: {fileID: 6280154519963912131}
-  - component: {fileID: 2444662314651416524}
-  - component: {fileID: 6332873146703846130}
-  - component: {fileID: 2610502619886253969}
   m_Layer: 0
   m_Name: PlayerBody
   m_TagString: Player
@@ -180,93 +260,6 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &8628591278481051685
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6491064317818629588}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5ebcc0fa41874e64d83e7abd56984b9c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Uraty.Feature.Player.PlayerAim
-  _playerStatus: {fileID: 2444662314651416524}
-  _camera: {fileID: 0}
-  _attackPredictionMaterial: {fileID: 0}
-  _specialPredictionMaterial: {fileID: 0}
-  _groundOffset: 0.02
-  _previewObjectName: AimPreview
-  _throwSampleCount: 16
-  _consumeAttackOnce: 1
-  _consumeSpecialOnce: 1
---- !u!114 &6280154519963912131
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6491064317818629588}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3b45f78aa9dcff64fbee2d8e861b2b01, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Uraty.Feature.Player.PlayerCombat
-  _playerStatus: {fileID: 2444662314651416524}
-  _playerAim: {fileID: 8628591278481051685}
-  _shotOrigin: {fileID: 4017511193234810618}
-  _spawnHeightOffset: 0
-  _bulletSpawnerBehaviour: {fileID: 3864795518613159197}
---- !u!114 &2444662314651416524
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6491064317818629588}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0a46a7c823be54f4490de432ac2bf174, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Uraty.Feature.Player.PlayerStatus
-  _roleDefinition: {fileID: 11400000, guid: b121786204c59f74ba485fa65e8b59c4, type: 2}
-  _hpRegenStartDelaySeconds: 5
-  _hpRegenIntervalSeconds: 1
-  _hpRegenPercentPerInterval: 2
-  _respawnTimeSeconds: 5
-  _currentScore: 0
-  _teamId: 1
---- !u!114 &6332873146703846130
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6491064317818629588}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 37b693890a1570b48af5669ffb4ffe7c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Uraty.Feature.Player::Uraty.Feature.Player.PlayerMove
-  _roleDefinition: {fileID: 11400000, guid: b121786204c59f74ba485fa65e8b59c4, type: 2}
-  _terrainMoveResolver: {fileID: 2610502619886253969}
---- !u!114 &2610502619886253969
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6491064317818629588}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f3a1610e9ba2a3b449e892f06c808c1f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Uraty.Feature.Player::Uraty.Feature.Player.PlayerTerrainMoveResolver
-  _collisionRadiusMeters: 0.35
-  _terrainLayerMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
 --- !u!1 &9204641307447153295
 GameObject:
   m_ObjectHideFlags: 0

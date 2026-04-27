@@ -76,7 +76,6 @@ namespace Uraty.Feature.Player
 
         [Header("References")]
         [SerializeField] private Camera _targetCamera;
-        [SerializeField] private Transform _playerCenter;
 
         [Header("Mouse Aim")]
         [Tooltip("Mouse Delta に掛ける感度。単位は『地面上距離 / 1px』")]
@@ -241,11 +240,6 @@ namespace Uraty.Feature.Player
             if (_targetCamera == null)
             {
                 _targetCamera = Camera.main;
-            }
-
-            if (_playerCenter == null)
-            {
-                _playerCenter = transform;
             }
 
             _aimOffsetWorldFromPlayer = Vector3.zero;
@@ -494,14 +488,7 @@ namespace Uraty.Feature.Player
             {
                 _hasValidAimPointWorld = false;
 
-                if (_playerCenter != null)
-                {
-                    _aimPointWorld = _playerCenter.position;
-                }
-                else
-                {
-                    _aimPointWorld = Vector3.zero;
-                }
+                _aimPointWorld = transform.position;
 
                 _aimDirectionWorld = Vector3.zero;
             }
@@ -516,11 +503,6 @@ namespace Uraty.Feature.Player
             aimPointWorld = Vector3.zero;
             aimDirectionWorld = Vector3.zero;
 
-            if (_playerCenter == null)
-            {
-                return false;
-            }
-
             Vector3 offset = _aimOffsetWorldFromPlayer;
             offset.y = 0f;
 
@@ -529,8 +511,8 @@ namespace Uraty.Feature.Player
                 return false;
             }
 
-            aimPointWorld = _playerCenter.position + offset;
-            aimPointWorld.y = _playerCenter.position.y;
+            aimPointWorld = transform.position + offset;
+            aimPointWorld.y = transform.position.y;
 
             aimDirectionWorld = offset.normalized;
             return true;
@@ -640,9 +622,7 @@ namespace Uraty.Feature.Player
                 return new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
             }
 
-            Vector3 world = _hasValidAimPointWorld && _playerCenter != null
-                ? _aimPointWorld
-                : (_playerCenter != null ? _playerCenter.position : Vector3.zero);
+            Vector3 world = _hasValidAimPointWorld ? _aimPointWorld : transform.position;
 
             Vector3 screen = _targetCamera.WorldToScreenPoint(world);
             return new Vector2(screen.x, screen.y);
