@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 
 using UnityEngine;
-using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 
 namespace Uraty.Feature.Player
 {
@@ -11,7 +11,7 @@ namespace Uraty.Feature.Player
         {
             None,
             Attack,
-            Special,
+            Super,
         }
 
         private const float MinDirectionSqrMagnitude = 0.0001f;
@@ -20,12 +20,15 @@ namespace Uraty.Feature.Player
 
         [SerializeField] private PlayerStatus _playerStatus;
 
-        [Header("Aim")]
-        [SerializeField] private Camera _camera;
+        [Header("Input")]
+        [SerializeField] private PlayerInputInterpreter _inputInterpreter;
 
         [Header("Prediction Mesh")]
         [SerializeField] private Material _attackPredictionMaterial;
-        [SerializeField] private Material _specialPredictionMaterial;
+
+        [FormerlySerializedAs("_specialPredictionMaterial")]
+        [SerializeField] private Material _superPredictionMaterial;
+
         [SerializeField] private float _groundOffset = 0.02f;
         [SerializeField] private string _previewObjectName = "AimPreview";
 
@@ -34,13 +37,16 @@ namespace Uraty.Feature.Player
 
         [Header("Request")]
         [SerializeField] private bool _consumeAttackOnce = true;
-        [SerializeField] private bool _consumeSpecialOnce = true;
+
+        [FormerlySerializedAs("_consumeSpecialOnce")]
+        [SerializeField] private bool _consumeSuperOnce = true;
 
         private Vector3 _aimPoint;
         private Vector3 _targetDirection = Vector3.forward;
 
         private Vector3 _releasedAimPoint;
         private Vector3 _releasedTargetDirection = Vector3.forward;
+        private bool _releasedCanAutoAim;
 
         private bool _isAiming;
         private bool _hasValidAimPoint;
@@ -60,6 +66,11 @@ namespace Uraty.Feature.Player
 
         private void Awake()
         {
+            if (_inputInterpreter == null)
+            {
+                _inputInterpreter = GetComponent<PlayerInputInterpreter>();
+            }
+
             EnsurePreviewObject();
 
             _predictionMesh = new Mesh
@@ -72,7 +83,8 @@ namespace Uraty.Feature.Player
 
             Material defaultMaterial = _attackPredictionMaterial != null
                 ? _attackPredictionMaterial
-                : _specialPredictionMaterial;
+                : _superPredictionMaterial;
+
             if (defaultMaterial != null)
             {
                 _previewMeshRenderer.sharedMaterial = defaultMaterial;
@@ -92,8 +104,7 @@ namespace Uraty.Feature.Player
 
         private void Update()
         {
-            Mouse mouse = Mouse.current;
-            if (mouse == null || _camera == null || !HasAnyDefinition())
+            if (_inputInterpreter == null || !HasAnyDefinition())
             {
                 if (_isAiming)
                 {
@@ -107,17 +118,17 @@ namespace Uraty.Feature.Player
 
             if (!_isAiming)
             {
-                if (mouse.leftButton.wasPressedThisFrame && HasDefinition(AimActionType.Attack))
+                if (_inputInterpreter.AttackPressedThisFrame && HasDefinition(AimActionType.Attack))
                 {
                     BeginAim(AimActionType.Attack);
                 }
-                else if (mouse.rightButton.wasPressedThisFrame && HasDefinition(AimActionType.Special))
+                else if (_inputInterpreter.SuperPressedThisFrame && HasDefinition(AimActionType.Super))
                 {
-                    BeginAim(AimActionType.Special);
+                    BeginAim(AimActionType.Super);
                 }
             }
 
-            if (_isAiming && IsCurrentAimButtonPressed(mouse))
+            if (_isAiming && IsCurrentAimButtonPressed())
             {
                 if (TryUpdateAim())
                 {
@@ -129,19 +140,14 @@ namespace Uraty.Feature.Player
                 }
             }
 
-            if (_isAiming && WasCurrentAimButtonReleased(mouse))
+            if (_isAiming && WasCurrentAimButtonReleased())
             {
-                if (_hasValidAimPoint && HasDefinition(_currentAimActionType))
+                if (_inputInterpreter.HasValidAimPointWorld)
                 {
-                    _releasedAimPoint = _aimPoint;
-                    _releasedTargetDirection = _targetDirection;
-                    _releasedAimActionType = _currentAimActionType;
-                    _hasActionRequest = true;
+                    TryUpdateAim();
                 }
-                else
-                {
-                    ClearReleasedRequest();
-                }
+
+                CompleteAimRelease();
 
                 _isAiming = false;
                 _currentAimActionType = AimActionType.None;
@@ -157,34 +163,130 @@ namespace Uraty.Feature.Player
             ApplyPreviewMaterial(actionType);
         }
 
-        private bool IsCurrentAimButtonPressed(Mouse mouse)
+        private bool IsCurrentAimButtonPressed()
         {
+            if (_inputInterpreter == null)
+            {
+                return false;
+            }
+
             switch (_currentAimActionType)
             {
                 case AimActionType.Attack:
-                    return mouse.leftButton.isPressed;
+                    return _inputInterpreter.AttackIsPressed;
 
-                case AimActionType.Special:
-                    return mouse.rightButton.isPressed;
+                case AimActionType.Super:
+                    return _inputInterpreter.SuperIsPressed;
 
                 default:
                     return false;
             }
         }
 
-        private bool WasCurrentAimButtonReleased(Mouse mouse)
+        private bool WasCurrentAimButtonReleased()
         {
+            if (_inputInterpreter == null)
+            {
+                return false;
+            }
+
             switch (_currentAimActionType)
             {
                 case AimActionType.Attack:
-                    return mouse.leftButton.wasReleasedThisFrame;
+                    return _inputInterpreter.AttackReleasedThisFrame;
 
-                case AimActionType.Special:
-                    return mouse.rightButton.wasReleasedThisFrame;
+                case AimActionType.Super:
+                    return _inputInterpreter.SuperReleasedThisFrame;
 
                 default:
                     return false;
             }
+        }
+
+        private void CompleteAimRelease()
+        {
+            if (!HasDefinition(_currentAimActionType))
+            {
+                ClearReleasedRequest();
+                return;
+            }
+
+            if (!TryConsumeCurrentReleaseInfo(out PlayerInputInterpreter.ReleaseInfo releaseInfo))
+            {
+                ClearReleasedRequest();
+                return;
+            }
+
+            if (_hasValidAimPoint)
+            {
+                _releasedAimPoint = _aimPoint;
+                _releasedTargetDirection = _targetDirection;
+            }
+            else
+            {
+                if (!TryResolveReleaseDirection(releaseInfo, out Vector3 resolvedDirection))
+                {
+                    ClearReleasedRequest();
+                    return;
+                }
+
+                _releasedTargetDirection = resolvedDirection;
+                _releasedAimPoint = GetFlatOrigin() + (resolvedDirection * GetAttackRange());
+            }
+
+            _releasedCanAutoAim = releaseInfo.CanAutoAim;
+            _releasedAimActionType = _currentAimActionType;
+            _hasActionRequest = true;
+        }
+
+        private bool TryConsumeCurrentReleaseInfo(out PlayerInputInterpreter.ReleaseInfo releaseInfo)
+        {
+            releaseInfo = default;
+
+            if (_inputInterpreter == null)
+            {
+                return false;
+            }
+
+            switch (_currentAimActionType)
+            {
+                case AimActionType.Attack:
+                    return _inputInterpreter.TryConsumeAttackRelease(out releaseInfo);
+
+                case AimActionType.Super:
+                    return _inputInterpreter.TryConsumeSuperRelease(out releaseInfo);
+
+                default:
+                    return false;
+            }
+        }
+
+        private bool TryResolveReleaseDirection(
+            PlayerInputInterpreter.ReleaseInfo releaseInfo,
+            out Vector3 direction)
+        {
+            direction = releaseInfo.AimDirection;
+            direction.y = 0f;
+
+            if (direction.sqrMagnitude <= MinDirectionSqrMagnitude)
+            {
+                direction = _targetDirection;
+                direction.y = 0f;
+            }
+
+            if (direction.sqrMagnitude <= MinDirectionSqrMagnitude)
+            {
+                direction = transform.forward;
+                direction.y = 0f;
+            }
+
+            if (direction.sqrMagnitude <= MinDirectionSqrMagnitude)
+            {
+                direction = Vector3.forward;
+            }
+
+            direction.Normalize();
+            return true;
         }
 
         private void ApplyPreviewMaterial(AimActionType actionType)
@@ -194,15 +296,15 @@ namespace Uraty.Feature.Player
                 return;
             }
 
-            Material material = actionType == AimActionType.Special
-                ? _specialPredictionMaterial
+            Material material = actionType == AimActionType.Super
+                ? _superPredictionMaterial
                 : _attackPredictionMaterial;
 
             if (material == null)
             {
                 material = _attackPredictionMaterial != null
                     ? _attackPredictionMaterial
-                    : _specialPredictionMaterial;
+                    : _superPredictionMaterial;
             }
 
             if (material != null)
@@ -251,7 +353,7 @@ namespace Uraty.Feature.Player
 
         private bool HasAnyDefinition()
         {
-            return GetDefinition(AimActionType.Attack) != null || GetDefinition(AimActionType.Special) != null;
+            return GetDefinition(AimActionType.Attack) != null || GetDefinition(AimActionType.Super) != null;
         }
 
         private bool HasDefinition(AimActionType actionType)
@@ -271,8 +373,8 @@ namespace Uraty.Feature.Player
                 case AimActionType.Attack:
                     return _playerStatus.RoleDefinition.Attack;
 
-                case AimActionType.Special:
-                    return _playerStatus.RoleDefinition.Special;
+                case AimActionType.Super:
+                    return _playerStatus.RoleDefinition.Super;
 
                 default:
                     return null;
@@ -305,7 +407,7 @@ namespace Uraty.Feature.Player
                 return attackDefinition;
             }
 
-            return GetDefinition(AimActionType.Special);
+            return GetDefinition(AimActionType.Super);
         }
 
         private void InitializePredictionMesh()
@@ -321,28 +423,15 @@ namespace Uraty.Feature.Player
 
         private bool TryUpdateAim()
         {
-            Mouse mouse = Mouse.current;
-            if (mouse == null)
+            if (_inputInterpreter == null || !_inputInterpreter.HasValidAimPointWorld)
             {
                 _hasValidAimPoint = false;
                 return false;
             }
 
-            Vector2 mouseScreenPosition = mouse.position.ReadValue();
-            Ray ray = _camera.ScreenPointToRay(mouseScreenPosition);
+            _aimPoint = _inputInterpreter.AimPointWorld;
 
-            Vector3 flatOrigin = GetFlatOrigin();
-            Plane plane = new Plane(Vector3.up, new Vector3(0f, flatOrigin.y, 0f));
-
-            if (!plane.Raycast(ray, out float distance))
-            {
-                _hasValidAimPoint = false;
-                return false;
-            }
-
-            _aimPoint = ray.GetPoint(distance);
-
-            Vector3 direction = _aimPoint - flatOrigin;
+            Vector3 direction = _inputInterpreter.AimDirectionWorld;
             direction.y = 0f;
 
             if (direction.sqrMagnitude <= MinDirectionSqrMagnitude)
@@ -951,6 +1040,7 @@ namespace Uraty.Feature.Player
         private void ClearReleasedRequest()
         {
             _hasActionRequest = false;
+            _releasedCanAutoAim = false;
             _releasedAimActionType = AimActionType.None;
         }
 
@@ -966,22 +1056,60 @@ namespace Uraty.Feature.Player
 
         public bool TryConsumeAttack(out Vector3 aimPoint, out Vector3 targetDirection)
         {
-            return TryConsumeRequest(AimActionType.Attack, _consumeAttackOnce, out aimPoint, out targetDirection);
+            return TryConsumeRequest(
+                AimActionType.Attack,
+                _consumeAttackOnce,
+                out aimPoint,
+                out targetDirection,
+                out _);
         }
 
-        public bool TryConsumeSpecial(out Vector3 aimPoint, out Vector3 targetDirection)
+        public bool TryConsumeAttack(
+            out Vector3 aimPoint,
+            out Vector3 targetDirection,
+            out bool canAutoAim)
         {
-            return TryConsumeRequest(AimActionType.Special, _consumeSpecialOnce, out aimPoint, out targetDirection);
+            return TryConsumeRequest(
+                AimActionType.Attack,
+                _consumeAttackOnce,
+                out aimPoint,
+                out targetDirection,
+                out canAutoAim);
+        }
+
+        public bool TryConsumeSuper(out Vector3 aimPoint, out Vector3 targetDirection)
+        {
+            return TryConsumeRequest(
+                AimActionType.Super,
+                _consumeSuperOnce,
+                out aimPoint,
+                out targetDirection,
+                out _);
+        }
+
+        public bool TryConsumeSuper(
+            out Vector3 aimPoint,
+            out Vector3 targetDirection,
+            out bool canAutoAim)
+        {
+            return TryConsumeRequest(
+                AimActionType.Super,
+                _consumeSuperOnce,
+                out aimPoint,
+                out targetDirection,
+                out canAutoAim);
         }
 
         private bool TryConsumeRequest(
             AimActionType actionType,
             bool consumeOnce,
             out Vector3 aimPoint,
-            out Vector3 targetDirection)
+            out Vector3 targetDirection,
+            out bool canAutoAim)
         {
             aimPoint = _releasedAimPoint;
             targetDirection = _releasedTargetDirection;
+            canAutoAim = _releasedCanAutoAim;
 
             if (!_hasActionRequest || _releasedAimActionType != actionType)
             {
@@ -1008,11 +1136,16 @@ namespace Uraty.Feature.Player
                 : _hasActionRequest && _releasedAimActionType == AimActionType.Attack;
         }
 
-        public bool IsSpecial()
+        public bool IsSuper()
         {
             return _isAiming
-                ? _currentAimActionType == AimActionType.Special
-                : _hasActionRequest && _releasedAimActionType == AimActionType.Special;
+                ? _currentAimActionType == AimActionType.Super
+                : _hasActionRequest && _releasedAimActionType == AimActionType.Super;
+        }
+
+        public bool CanAutoAim()
+        {
+            return _hasActionRequest && _releasedCanAutoAim;
         }
 
         public Vector3 GetTargetDirection()

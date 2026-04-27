@@ -1,58 +1,45 @@
 using System.Collections;
+
 using UnityEngine;
+
 using Uraty.Shared.Battle;
 
 namespace Uraty.Feature.Player
 {
     /// <summary>
-    /// プレイヤーの攻撃入力を受け取り、
+    /// プレイヤーの攻撃要求を処理し、
     /// RoleDefinition を参照して弾生成要求を送るクラス。
     ///
-    /// このクラスは「撃つ判断」と「発射パラメータの組み立て」までを担当する。
+    /// このクラスは入力を直接読まない。
+    /// 入力解釈は PlayerInputInterpreter、
+    /// Aim 状態・プレビュー・発射要求の管理は PlayerAim、
+    /// 実際の攻撃実行は PlayerCombat が担当する。
+    ///
     /// 実際の弾生成や移動は IBulletSpawner 実装側に委譲する。
     /// </summary>
     public sealed class PlayerCombat : MonoBehaviour
     {
+        private const float MinDirectionSqrMagnitude = 0.0001f;
+
+        [Header("References")]
         [SerializeField] private PlayerStatus _playerStatus;
         [SerializeField] private PlayerAim _playerAim;
-        [SerializeField] private Transform _shotOrigin;
 
         [Header("Spawn")]
-        // 弾の生成位置を少し上げたい場合の高さオフセット。
         [SerializeField] private float _spawnHeightOffset = 0.5f;
 
         [Header("Dependencies")]
-        // Inspector から IBulletSpawner 実装を差し込むための参照。
         [SerializeField] private MonoBehaviour _bulletSpawnerBehaviour;
 
         private IBulletSpawner _bulletSpawner;
 
-        // 通常攻撃の次回発射可能時刻。
         private float _nextAttackTime;
-
-        // 必殺技の次回発射可能時刻。
-        private float _nextSpecialTime;
+        private float _nextSuperTime;
 
         private void Awake()
         {
-            // まずは Inspector 指定を優先して解決する。
-            _bulletSpawner = ResolveBulletSpawnerFromBehaviour(_bulletSpawnerBehaviour);
-
-            if (_bulletSpawner != null)
-            {
-                return;
-            }
-
-            // 同一オブジェクトから取得を試みる。
-            _bulletSpawner = ResolveBulletSpawnerFromComponents(gameObject);
-
-            if (_bulletSpawner != null)
-            {
-                return;
-            }
-
-            // 親方向も探索して補完する。
-            _bulletSpawner = ResolveBulletSpawnerFromComponentsInParent();
+            ResolveReferences();
+            ResolveBulletSpawner();
         }
 
         private void Start()
@@ -62,55 +49,84 @@ namespace Uraty.Feature.Player
                 return;
             }
 
-            // 最後の補完として子階層も探索する。
             _bulletSpawner = ResolveBulletSpawnerFromComponentsInChildren();
         }
 
-        /// <summary>
-        /// コンポーネント追加時の初期参照補完。
-        /// </summary>
         private void Reset()
         {
             _playerStatus = GetComponent<PlayerStatus>();
             _playerAim = GetComponent<PlayerAim>();
-            _shotOrigin = transform;
         }
 
-        /// <summary>
-        /// Aim 側で更新された攻撃要求を回収する。
-        /// </summary>
         private void LateUpdate()
         {
-            if (_bulletSpawner == null)
-            {
-                return;
-            }
-
-            if (_playerAim == null)
-            {
-                return;
-            }
-
-            if (_playerStatus == null)
-            {
-                return;
-            }
-
-            if (_playerStatus.RoleDefinition == null)
+            if (!CanProcessCombat())
             {
                 return;
             }
 
             TryHandleAttack();
-            TryHandleSpecial();
+            TryHandleSuper();
         }
 
-        /// <summary>
-        /// 通常攻撃要求を処理する。
-        /// </summary>
+        private void ResolveReferences()
+        {
+            if (_playerStatus == null)
+            {
+                _playerStatus = GetComponent<PlayerStatus>();
+            }
+
+            if (_playerAim == null)
+            {
+                _playerAim = GetComponent<PlayerAim>();
+            }
+        }
+
+        private void ResolveBulletSpawner()
+        {
+            _bulletSpawner = ResolveBulletSpawnerFromBehaviour(_bulletSpawnerBehaviour);
+
+            if (_bulletSpawner != null)
+            {
+                return;
+            }
+
+            _bulletSpawner = ResolveBulletSpawnerFromComponents(gameObject);
+
+            if (_bulletSpawner != null)
+            {
+                return;
+            }
+
+            _bulletSpawner = ResolveBulletSpawnerFromComponentsInParent();
+        }
+
+        private bool CanProcessCombat()
+        {
+            if (_bulletSpawner == null)
+            {
+                return false;
+            }
+
+            if (_playerAim == null)
+            {
+                return false;
+            }
+
+            if (_playerStatus == null)
+            {
+                return false;
+            }
+
+            return _playerStatus.RoleDefinition != null;
+        }
+
         private void TryHandleAttack()
         {
-            if (!_playerAim.TryConsumeAttack(out Vector3 aimPoint, out Vector3 aimDirection))
+            if (!_playerAim.TryConsumeAttack(
+                    out Vector3 aimPoint,
+                    out Vector3 aimDirection,
+                    out bool canAutoAim))
             {
                 return;
             }
@@ -121,75 +137,92 @@ namespace Uraty.Feature.Player
                 return;
             }
 
-            // 攻撃間隔内なら発射しない。
             if (Time.time < _nextAttackTime)
             {
                 return;
             }
 
-            _nextAttackTime = Time.time + Mathf.Max(
-                attackDefinition.MinAttackIntervalSeconds,
-                attackDefinition.MaxAttackIntervalSeconds);
+            _nextAttackTime = Time.time + GetAttackIntervalSeconds(attackDefinition);
 
-            ExecuteDefinition(attackDefinition, aimPoint, aimDirection);
+            ExecuteDefinition(
+                attackDefinition,
+                aimPoint,
+                aimDirection,
+                canAutoAim);
         }
 
-        /// <summary>
-        /// 必殺技要求を処理する。
-        /// </summary>
-        private void TryHandleSpecial()
+        private void TryHandleSuper()
         {
-            if (!_playerAim.TryConsumeSpecial(out Vector3 aimPoint, out Vector3 aimDirection))
+            if (!_playerAim.TryConsumeSuper(
+                    out Vector3 aimPoint,
+                    out Vector3 aimDirection,
+                    out bool canAutoAim))
             {
                 return;
             }
 
-            AttackDefinition specialDefinition = _playerStatus.RoleDefinition.Special;
-            if (specialDefinition == null)
+            AttackDefinition superDefinition = _playerStatus.RoleDefinition.Super;
+            if (superDefinition == null)
             {
                 return;
             }
 
-            // 必殺技の発動間隔内なら発射しない。
-            if (Time.time < _nextSpecialTime)
+            if (Time.time < _nextSuperTime)
             {
                 return;
             }
 
-            _nextSpecialTime = Time.time + Mathf.Max(
-                specialDefinition.MinAttackIntervalSeconds,
-                specialDefinition.MaxAttackIntervalSeconds);
+            _nextSuperTime = Time.time + GetAttackIntervalSeconds(superDefinition);
 
-            ExecuteDefinition(specialDefinition, aimPoint, aimDirection);
+            ExecuteDefinition(
+                superDefinition,
+                aimPoint,
+                aimDirection,
+                canAutoAim);
         }
 
-        /// <summary>
-        /// 攻撃定義の AimType に応じて発射方法を振り分ける。
-        /// </summary>
+        private float GetAttackIntervalSeconds(AttackDefinition definition)
+        {
+            if (definition == null)
+            {
+                return 0f;
+            }
+
+            return Mathf.Max(
+                definition.MinAttackIntervalSeconds,
+                definition.MaxAttackIntervalSeconds);
+        }
+
         private void ExecuteDefinition(
             AttackDefinition definition,
             Vector3 aimPoint,
-            Vector3 aimDirection)
+            Vector3 aimDirection,
+            bool canAutoAim)
         {
+            Vector3 resolvedAimDirection = ResolveAimDirection(aimDirection);
+
+            // 現時点では AutoAim の対象探索は未実装。
+            // canAutoAim は PlayerInputInterpreter / PlayerAim から正しく届いているが、
+            // ここで最近傍敵などを探すシステムが無いので、今は方向補正には使わない。
+            // 後で TargetResolver / EnemySearchSystem を追加したらここで差し替える。
+            _ = canAutoAim;
+
             switch (definition.Type)
             {
                 case AimType.Line:
-                    FireLine(definition, aimDirection);
+                    FireLine(definition, resolvedAimDirection);
                     break;
 
                 case AimType.Fan:
-                    FireFan(definition, aimDirection);
+                    FireFan(definition, resolvedAimDirection);
                     break;
 
                 case AimType.Throw:
-                    FireThrow(definition, aimPoint, aimDirection);
+                    FireThrow(definition, aimPoint, resolvedAimDirection);
                     break;
             }
         }
 
-        /// <summary>
-        /// 直線弾を発射する。
-        /// </summary>
         private void FireLine(AttackDefinition attackDefinition, Vector3 aimDirection)
         {
             LineAttackDefinition lineDefinition = attackDefinition.Line;
@@ -214,6 +247,7 @@ namespace Uraty.Feature.Player
 
                 LineAimLineDefinition aimLineDefinition =
                     GetAssignedAimLine(lineDefinition.AimLines, bulletIndex);
+
                 if (aimLineDefinition == null)
                 {
                     continue;
@@ -228,9 +262,6 @@ namespace Uraty.Feature.Player
             }
         }
 
-        /// <summary>
-        /// 直線弾の遅延生成処理。
-        /// </summary>
         private IEnumerator SpawnLineBulletDelayed(
             AttackDefinition attackDefinition,
             LineAttackDefinition lineDefinition,
@@ -252,9 +283,6 @@ namespace Uraty.Feature.Player
                 aimDirection);
         }
 
-        /// <summary>
-        /// 直線弾を1発生成する。
-        /// </summary>
         private void SpawnLineBullet(
             AttackDefinition attackDefinition,
             LineAttackDefinition lineDefinition,
@@ -262,29 +290,19 @@ namespace Uraty.Feature.Player
             LineBulletDefinition bulletDefinition,
             Vector3 aimDirection)
         {
-            Vector3 baseDirection = GetAimDirection(aimDirection);
+            Vector3 baseDirection = ResolveAimDirection(aimDirection);
 
-            // AimLine 側の角度補正を加えた発射方向。
             Vector3 lineDirection =
                 Quaternion.Euler(0f, aimLineDefinition.OffsetAngleFromAimLine, 0f) * baseDirection;
 
-            lineDirection.y = 0f;
-            if (lineDirection.sqrMagnitude <= 0.0001f)
-            {
-                lineDirection = baseDirection;
-            }
+            lineDirection = ResolveAimDirection(lineDirection);
 
-            lineDirection.Normalize();
-
-            // 発射位置の横ずらし。
             Vector3 rightDirection = GetRight(lineDirection);
             float lateralOffsetMeters =
                 aimLineDefinition.OffsetDistanceFromAimLine + bulletDefinition.OffsetFromAimLine;
 
-            // 銃口基準の生成原点を使用する。
             Vector3 spawnOrigin = GetSpawnOrigin();
 
-            // 弾ごとのローカルオフセットを発射方向基準でワールド変換する。
             Vector3 bulletLocalOffset = TransformLocalSpawnOffset(
                 lineDirection,
                 bulletDefinition.SpawnOffsetFromPlayerCenter);
@@ -305,9 +323,6 @@ namespace Uraty.Feature.Player
                 attackDefinition: attackDefinition);
         }
 
-        /// <summary>
-        /// 扇状弾を発射する。
-        /// </summary>
         private void FireFan(AttackDefinition attackDefinition, Vector3 aimDirection)
         {
             FanAttackDefinition fanDefinition = attackDefinition.Fan;
@@ -338,9 +353,6 @@ namespace Uraty.Feature.Player
             }
         }
 
-        /// <summary>
-        /// 扇状弾の遅延生成処理。
-        /// </summary>
         private IEnumerator SpawnFanBulletDelayed(
             AttackDefinition attackDefinition,
             FanAttackDefinition fanDefinition,
@@ -360,30 +372,19 @@ namespace Uraty.Feature.Player
                 aimDirection);
         }
 
-        /// <summary>
-        /// 扇状弾を1発生成する。
-        /// </summary>
         private void SpawnFanBullet(
             AttackDefinition attackDefinition,
             FanAttackDefinition fanDefinition,
             FanBulletDefinition bulletDefinition,
             Vector3 aimDirection)
         {
-            Vector3 baseDirection = GetAimDirection(aimDirection);
+            Vector3 baseDirection = ResolveAimDirection(aimDirection);
 
-            // 中心角からのオフセットを加えた発射方向。
             Vector3 bulletDirection =
                 Quaternion.Euler(0f, bulletDefinition.OffsetAngleFromCenter, 0f) * baseDirection;
 
-            bulletDirection.y = 0f;
-            if (bulletDirection.sqrMagnitude <= 0.0001f)
-            {
-                bulletDirection = baseDirection;
-            }
+            bulletDirection = ResolveAimDirection(bulletDirection);
 
-            bulletDirection.Normalize();
-
-            // 扇状弾も銃口基準の生成原点を使う。
             Vector3 spawnOrigin = GetSpawnOrigin();
             Vector3 bulletLocalOffset = TransformLocalSpawnOffset(
                 bulletDirection,
@@ -402,31 +403,20 @@ namespace Uraty.Feature.Player
                 attackDefinition: attackDefinition);
         }
 
-        /// <summary>
-        /// 投擲弾の処理。
-        /// 現段階では未対応。
-        /// </summary>
         private void FireThrow(
             AttackDefinition attackDefinition,
             Vector3 aimPoint,
             Vector3 aimDirection)
         {
             // Throw は別段階で対応。
+            _ = attackDefinition;
+            _ = aimPoint;
+            _ = aimDirection;
         }
 
-        /// <summary>
-        /// 弾の生成基準位置を返す。
-        /// _shotOrigin が設定されていればそれを優先し、
-        /// 未設定時は自身の位置を基準にする。
-        /// </summary>
         private Vector3 GetSpawnOrigin()
         {
-            if (_shotOrigin != null)
-            {
-                return _shotOrigin.position + Vector3.up * _spawnHeightOffset;
-            }
-
-            return transform.position + Vector3.up * _spawnHeightOffset;
+            return transform.position + (Vector3.up * _spawnHeightOffset);
         }
 
         private static IBulletSpawner ResolveBulletSpawnerFromBehaviour(MonoBehaviour behaviour)
@@ -436,6 +426,11 @@ namespace Uraty.Feature.Player
 
         private static IBulletSpawner ResolveBulletSpawnerFromComponents(GameObject targetObject)
         {
+            if (targetObject == null)
+            {
+                return null;
+            }
+
             MonoBehaviour[] behaviours = targetObject.GetComponents<MonoBehaviour>();
             foreach (MonoBehaviour behaviour in behaviours)
             {
@@ -479,36 +474,31 @@ namespace Uraty.Feature.Player
             return null;
         }
 
-        /// <summary>
-        /// エイム方向を XZ 平面上の正規化ベクトルとして返す。
-        /// 方向がほぼゼロなら自身の forward を使う。
-        /// </summary>
-        private Vector3 GetAimDirection(Vector3 aimDirection)
+        private Vector3 ResolveAimDirection(Vector3 aimDirection)
         {
             Vector3 direction = aimDirection;
             direction.y = 0f;
 
-            if (direction.sqrMagnitude <= 0.0001f)
+            if (direction.sqrMagnitude <= MinDirectionSqrMagnitude)
             {
                 direction = transform.forward;
                 direction.y = 0f;
             }
 
+            if (direction.sqrMagnitude <= MinDirectionSqrMagnitude)
+            {
+                direction = Vector3.forward;
+            }
+
             return direction.normalized;
         }
 
-        /// <summary>
-        /// forward 方向から右方向ベクトルを返す。
-        /// </summary>
         private Vector3 GetRight(Vector3 forwardDirection)
         {
-            return Quaternion.Euler(0f, 90f, 0f) * forwardDirection.normalized;
+            Vector3 forward = ResolveAimDirection(forwardDirection);
+            return Quaternion.Euler(0f, 90f, 0f) * forward;
         }
 
-        /// <summary>
-        /// index に対応する AimLine を返す。
-        /// index が範囲外の場合は最後の定義を使う。
-        /// </summary>
         private static T GetAssignedAimLine<T>(T[] definitions, int index) where T : class
         {
             if (definitions == null || definitions.Length == 0)
@@ -521,16 +511,25 @@ namespace Uraty.Feature.Player
                 return definitions[definitions.Length - 1];
             }
 
-            return definitions[index];
+            if (definitions[index] != null)
+            {
+                return definitions[index];
+            }
+
+            for (int i = 0; i < definitions.Length; i++)
+            {
+                if (definitions[i] != null)
+                {
+                    return definitions[i];
+                }
+            }
+
+            return null;
         }
 
-        /// <summary>
-        /// 発射方向基準のローカルオフセットをワールド座標へ変換する。
-        /// x は右方向、y は上方向、z は前方向として扱う。
-        /// </summary>
         private Vector3 TransformLocalSpawnOffset(Vector3 forwardDirection, Vector3 localOffset)
         {
-            Vector3 normalizedForward = forwardDirection.normalized;
+            Vector3 normalizedForward = ResolveAimDirection(forwardDirection);
             Vector3 rightDirection = GetRight(normalizedForward);
 
             return (rightDirection * localOffset.x)
