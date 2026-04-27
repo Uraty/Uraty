@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 using TriInspector;
 using Uraty.Shared.Battle;
 
@@ -34,9 +35,10 @@ namespace Uraty.Feature.Player
         [InlineProperty, HideLabel]
         [SerializeField] private AttackDefinition _attack = new AttackDefinition();
 
-        [Title("Special")]
+        [Title("Super")]
         [InlineProperty, HideLabel]
-        [SerializeField] private AttackDefinition _special = new AttackDefinition();
+        [FormerlySerializedAs("_special")]
+        [SerializeField] private AttackDefinition _super = new AttackDefinition();
 
         [Header("新フィールド")]
         [SerializeField] private bool _canPenetrate;
@@ -54,7 +56,7 @@ namespace Uraty.Feature.Player
         public float MaxAmmo => _maxAmmo;
         public float NonReloadSecondsAfterAttack => _nonReloadSecondsAfterAttack;
         public AttackDefinition Attack => _attack;
-        public AttackDefinition Special => _special;
+        public AttackDefinition Super => _super;
 
         private void OnValidate()
         {
@@ -65,10 +67,10 @@ namespace Uraty.Feature.Player
             _nonReloadSecondsAfterAttack = Mathf.Max(0f, _nonReloadSecondsAfterAttack);
 
             _attack ??= new AttackDefinition();
-            _special ??= new AttackDefinition();
+            _super ??= new AttackDefinition();
 
             _attack.Validate();
-            _special.Validate();
+            _super.Validate();
         }
 
         /// <summary>
@@ -78,7 +80,7 @@ namespace Uraty.Feature.Player
         {
             return attackKind == PlayerBulletAttackKind.Attack
                 ? _attack.IsRecovery
-                : _special.IsRecovery;
+                : _super.IsRecovery;
         }
 
         /// <summary>
@@ -88,7 +90,7 @@ namespace Uraty.Feature.Player
         {
             return attackKind == PlayerBulletAttackKind.Attack
                 ? _attack.CanBreakBush
-                : _special.CanBreakBush;
+                : _super.CanBreakBush;
         }
 
         /// <summary>
@@ -98,8 +100,9 @@ namespace Uraty.Feature.Player
         {
             return attackKind == PlayerBulletAttackKind.Attack
                 ? _attack.CanBreakWalls
-                : _special.CanBreakWalls;
+                : _super.CanBreakWalls;
         }
+
         public bool CanMultiHit(PlayerBulletAttackKind attackKind)
         {
             return GetAttackDefinition(attackKind).CanMultiHit;
@@ -114,7 +117,7 @@ namespace Uraty.Feature.Player
         {
             return attackKind == PlayerBulletAttackKind.Attack
                 ? _attack
-                : _special;
+                : _super;
         }
 
         public void OnBeforeSerialize()
@@ -159,7 +162,11 @@ namespace Uraty.Feature.Player
         [SerializeField, LabelText("貫通")] private BulletPenetrationSettings _penetrationSettings = new BulletPenetrationSettings();
         [SerializeField, LabelText("攻撃インターバル最長"), Unit("ｓ")] private float _maxAttackIntervalSeconds = 1.0f;
         [SerializeField, LabelText("攻撃インターバル最短"), Unit("ｓ")] private float _minAttackIntervalSeconds = 0.5f;
-        [SerializeField, Range(0f, 100f), LabelText("必殺チャージ率"), Unit("％")] private float _specialChargePercent = 0f;
+
+        [FormerlySerializedAs("_specialChargePercent")]
+        [SerializeField, Range(0f, 100f), LabelText("スーパー チャージ率"), Unit("％")]
+        private float _superChargePercent = 0f;
+
         [SerializeField, EnumToggleButtons, LabelText("攻撃タイプ")] private AimType _type = AimType.Line;
 
         [ShowIf(nameof(IsLine))]
@@ -185,7 +192,7 @@ namespace Uraty.Feature.Player
         public BulletPenetrationSettings PenetrationSettings => _penetrationSettings;
         public float MaxAttackIntervalSeconds => _maxAttackIntervalSeconds;
         public float MinAttackIntervalSeconds => _minAttackIntervalSeconds;
-        public float SpecialChargePercent => _specialChargePercent;
+        public float SuperChargePercent => _superChargePercent;
         public LineAttackDefinition Line => _line;
         public FanAttackDefinition Fan => _fan;
         public ThrowAttackDefinition Throw => _throw;
@@ -198,7 +205,7 @@ namespace Uraty.Feature.Player
         {
             _maxAttackIntervalSeconds = Mathf.Max(0f, _maxAttackIntervalSeconds);
             _minAttackIntervalSeconds = Mathf.Max(0f, _minAttackIntervalSeconds);
-            _specialChargePercent = Mathf.Clamp(_specialChargePercent, 0f, 100f);
+            _superChargePercent = Mathf.Clamp(_superChargePercent, 0f, 100f);
 
             _penetrationSettings ??= new BulletPenetrationSettings();
             _line ??= new LineAttackDefinition();
@@ -223,16 +230,16 @@ namespace Uraty.Feature.Player
         [SerializeField, LabelText("エイム線設定")]
         private LineAimLineDefinition[] _aimLines =
         {
-        new LineAimLineDefinition()
-    };
+            new LineAimLineDefinition()
+        };
 
         [Header("Bullet")]
         [SerializeField, LabelText("出現する弾の合計数")] private int _bulletCount = 1;
         [SerializeField, LabelText("弾設定")]
         private LineBulletDefinition[] _bullets =
         {
-        new LineBulletDefinition()
-    };
+            new LineBulletDefinition()
+        };
 
         public float SpeedPerSecond => _speedPerSecond;
         public int AimLineCount => _aimLineCount;
@@ -271,16 +278,16 @@ namespace Uraty.Feature.Player
         [SerializeField, LabelText("エイム線設定")]
         private FanAimLineDefinition[] _aimLines =
         {
-        new FanAimLineDefinition()
-    };
+            new FanAimLineDefinition()
+        };
 
         [Header("Bullet")]
         [SerializeField, LabelText("出現する弾の合計数")] private int _bulletCount = 1;
         [SerializeField, LabelText("弾設定")]
         private FanBulletDefinition[] _bullets =
         {
-        new FanBulletDefinition()
-    };
+            new FanBulletDefinition()
+        };
 
         public float SpeedPerSecond => _speedPerSecond;
         public int AimLineCount => _aimLineCount;
@@ -355,22 +362,21 @@ namespace Uraty.Feature.Player
         [ShowIf(nameof(IsVariableLandingTime))]
         [SerializeField, LabelText("最短着弾時間"), Unit("ｓ")] private float _minLandingTimeSeconds = 0.2f;
 
-
         [Header("Aim")]
         [SerializeField, LabelText("エイム線の合計数")] private int _aimLineCount = 1;
         [SerializeField, LabelText("エイム線設定")]
         private ThrowAimLineDefinition[] _aimLines =
         {
-        new ThrowAimLineDefinition()
-    };
+            new ThrowAimLineDefinition()
+        };
 
         [Header("Bullet")]
         [SerializeField, LabelText("出現する弾の合計数")] private int _bulletCount = 1;
         [SerializeField, LabelText("弾設定")]
         private ThrowBulletDefinition[] _bullets =
         {
-        new ThrowBulletDefinition()
-    };
+            new ThrowBulletDefinition()
+        };
 
         public BulletPenetrationSettings PenetrationSettings => _bulletPenetrationSettings;
         public bool IsVariableRange => _isVariableRange;
