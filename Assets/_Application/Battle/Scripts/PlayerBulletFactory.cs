@@ -1,6 +1,6 @@
 using UnityEngine;
 
-using Uraty.Feature.Player;
+using Uraty.Features.Player;
 using Uraty.Shared.Battle;
 
 namespace Uraty.Application.Battle

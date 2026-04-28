@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Uraty.Feature.Camera
+namespace Uraty.Features.Camera
 {
     public class CameraMove : MonoBehaviour
     {

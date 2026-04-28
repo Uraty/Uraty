@@ -1,4 +1,4 @@
-namespace Uraty.Feature.Player
+namespace Uraty.Features.Player
 {
     public enum RoleType
     {

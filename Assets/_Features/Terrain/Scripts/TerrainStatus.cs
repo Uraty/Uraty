@@ -3,7 +3,7 @@ using TriInspector;
 using Uraty.Shared.Battle;
 using Uraty.Shared.Terrain;
 
-namespace Uraty.Feature.Terrain
+namespace Uraty.Features.Terrain
 {
     /// <summary>
     /// 地形の弾ヒット反応と Player 通行可否を管理する。

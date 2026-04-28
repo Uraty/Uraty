@@ -1,4 +1,4 @@
-namespace Uraty.Feature.Terrain
+namespace Uraty.Features.Terrain
 {
     /// <summary>
     /// Terrain の種類。

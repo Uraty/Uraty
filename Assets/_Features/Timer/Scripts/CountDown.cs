@@ -2,7 +2,7 @@ using TMPro;
 
 using UnityEngine;
 
-namespace Uraty.Feature.Timer
+namespace Uraty.Features.Timer
 {
     public class CountDown : MonoBehaviour
     {

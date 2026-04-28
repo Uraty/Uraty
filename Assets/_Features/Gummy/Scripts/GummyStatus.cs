@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 using UnityEngine;
 
-namespace Uraty.Feature.Gummy
+namespace Uraty.Features.Gummy
 {
     [RequireComponent(typeof(Collider))]
     public sealed class GummyStatus : MonoBehaviour

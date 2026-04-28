@@ -4,7 +4,7 @@ using UnityEngine.Serialization;
 using TriInspector;
 using Uraty.Shared.Battle;
 
-namespace Uraty.Feature.Player
+namespace Uraty.Features.Player
 {
     [System.Serializable]
     public struct LegacyPenetrationSettings

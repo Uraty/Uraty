@@ -1,7 +1,7 @@
 using UnityEngine;
 using Uraty.Shared.Battle;
 
-namespace Uraty.Feature.Player
+namespace Uraty.Features.Player
 {
     public sealed class PlayerSpawner : MonoBehaviour
     {

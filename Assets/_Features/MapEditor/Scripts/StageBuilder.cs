@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-namespace Uraty.Feature.MapEditor
+namespace Uraty.Features.MapEditor
 {
     [ExecuteAlways]
     public sealed class StageBuilder : MonoBehaviour

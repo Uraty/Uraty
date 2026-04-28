@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Uraty.Feature.Enemy
+namespace Uraty.Features.Enemy
 {
     /// <summary>
     /// Bot のターゲット更新と攻撃実行を制御するクラス。

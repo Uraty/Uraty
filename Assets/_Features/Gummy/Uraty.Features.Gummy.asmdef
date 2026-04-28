@@ -1,6 +1,6 @@
 {
-    "name": "Uraty.Feature.Camera",
-    "rootNamespace": "Uraty.Feature.Camera",
+    "name": "Uraty.Features.Gummy",
+    "rootNamespace": "Uraty.Features.Gummy",
     "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],

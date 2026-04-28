@@ -1,6 +1,6 @@
 {
-    "name": "Uraty.Feature.Sound",
-    "rootNamespace": "Uraty.Feature.Sound",
+    "name": "Uraty.Features.MapEditor",
+    "rootNamespace": "Uraty.Features.MapEditor",
     "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
