@@ -1,8 +1,8 @@
 using System;
 
 using UnityEngine;
-using Uraty.Feature.Gummy;
-using Uraty.Feature.Player;
+using Uraty.Features.Gummy;
+using Uraty.Features.Player;
 
 namespace Uraty.Application.GameMode
 {

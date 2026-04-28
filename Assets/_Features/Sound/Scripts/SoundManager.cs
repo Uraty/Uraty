@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Uraty.Feature.Sound
+namespace Uraty.Features.Sound
 {
     public class SoundManager : MonoBehaviour
     {

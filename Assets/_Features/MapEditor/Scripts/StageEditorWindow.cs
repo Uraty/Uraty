@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace Uraty.Feature.MapEditor
+namespace Uraty.Features.MapEditor
 {
     public sealed class StageEditorWindow : EditorWindow
     {

@@ -1,12 +1,10 @@
 {
-    "name": "Uraty.Feature.MapEditor.Editor",
-    "rootNamespace": "Uraty.Feature.MapEditor",
+    "name": "Uraty.Features.Timer",
+    "rootNamespace": "Uraty.Features.Timer",
     "references": [
-        "GUID:7705525533ee5df47994759c44d08933"
+        "GUID:6055be8ebefd69e48b49212b09b47b2f"
     ],
-    "includePlatforms": [
-        "Editor"
-    ],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

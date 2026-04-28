@@ -3,8 +3,8 @@ using UnityEngine.InputSystem;
 
 public class PlayerRespawnController : MonoBehaviour
 {
-    [SerializeField] private Uraty.Feature.Player.PlayerSpawner _playerSpawner;
-    [SerializeField] private Uraty.Feature.Timer.CountDown _respawnCountDown;
+    [SerializeField] private Uraty.Features.Player.PlayerSpawner _playerSpawner;
+    [SerializeField] private Uraty.Features.Timer.CountDown _respawnCountDown;
 
     private bool _isWaitingRespawn;     // リスポーン待ち状態かどうか
 

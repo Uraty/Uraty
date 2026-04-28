@@ -1,7 +1,7 @@
 using UnityEngine;
 using Uraty.Shared.Terrain;
 
-namespace Uraty.Feature.Player
+namespace Uraty.Features.Player
 {
     /// <summary>
     /// Player の移動先が通行可能かを判定し、最終的な移動量を解決する。

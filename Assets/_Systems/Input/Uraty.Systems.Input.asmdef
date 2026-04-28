@@ -1,6 +1,6 @@
 {
-    "name": "Uraty.System.Input",
-    "rootNamespace": "Uraty.System.Input",
+    "name": "Uraty.Systems.Input",
+    "rootNamespace": "Uraty.Systems.Input",
     "references": [
         "GUID:75469ad4d38634e559750d17036d5f7c"
     ],

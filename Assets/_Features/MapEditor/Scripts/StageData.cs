@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 using UnityEngine;
 
-namespace Uraty.Feature.MapEditor
+namespace Uraty.Features.MapEditor
 {
     [Serializable]
     public struct StageCellData
