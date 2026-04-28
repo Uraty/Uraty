@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Uraty.Feature.Player
+namespace Uraty.Features.Player
 {
     public sealed class PlayerMove : MonoBehaviour
     {

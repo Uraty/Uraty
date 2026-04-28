@@ -4,7 +4,7 @@ using UnityEngine;
 
 using Uraty.Shared.Battle;
 
-namespace Uraty.Feature.Player
+namespace Uraty.Features.Player
 {
     /// <summary>
     /// プレイヤーの攻撃要求を処理し、

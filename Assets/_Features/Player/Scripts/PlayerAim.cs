@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
 
-namespace Uraty.Feature.Player
+namespace Uraty.Features.Player
 {
     public class PlayerAim : MonoBehaviour
     {

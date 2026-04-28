@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Uraty.Feature.Player
+namespace Uraty.Features.Player
 {
     /// <summary>
     /// InputActions の生入力を、ゲーム側で使いやすい形に変換して保持するクラス。

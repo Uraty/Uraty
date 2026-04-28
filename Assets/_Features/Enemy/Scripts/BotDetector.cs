@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Uraty.Feature.Enemy
+namespace Uraty.Features.Enemy
 {
     public class BotDetector : MonoBehaviour
     {

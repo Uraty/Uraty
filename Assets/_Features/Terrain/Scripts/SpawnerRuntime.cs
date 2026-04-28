@@ -4,7 +4,7 @@ using UnityEngine;
 
 using Uraty.Shared.Battle;
 
-namespace Uraty.Feature.Terrain
+namespace Uraty.Features.Terrain
 {
     /// <summary>
     /// Spawner 地形の生成処理を担当する。
