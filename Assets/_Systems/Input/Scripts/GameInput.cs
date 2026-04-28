@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Uraty.Systems.Input
+namespace Uraty.System.Input
 {
     [DefaultExecutionOrder(-200)]
     public sealed class GameInput : MonoBehaviour
