@@ -1,22 +1,26 @@
 # 規約
 
-- バージョン: v1.0.4
-- 最終更新日: 2026-03-19
+- バージョン: v1.0.5
+- 最終更新日: 2026-04-28
 - 文書オーナー: リードプログラマー
 
 ## 改訂履歴
+- v1.0.5 (2026-04-28)
+  - 名前空間名の規約を変更
+  - レイヤ分類の名前空間を `Uraty.Feature` / `Uraty.System` から `Uraty.Features` / `Uraty.Systems` に変更
+  - C# 標準名前空間との衝突を避けるため、`Uraty.System` の使用を禁止
 - v1.0.4 (2026-03-19)
   - `bool` の命名規則を削除
 - v1.0.3 (2026-03-07)
   - ディレクトリ名の規約を変更
   - `Assets` のトップレベルフォルダを変更
     - `_Platform` を削除
-    - `_Application`, `_Systems` を追加 
+    - `_Application`, `_Systems` を追加
 - v1.0.2 (2026-03-06)
   - `Feature` 内の標準フォルダ名を追加
-- v1.0.1 (2026-03-01): 
+- v1.0.1 (2026-03-01)
   - 目次機能の修正
-- v1.0.0 (2026-02-28): 
+- v1.0.0 (2026-02-28)
   - 初版作成
 
 ## 目次
@@ -310,17 +314,20 @@
 - ルール:
   - MUST:
     - `Uraty` をルート名前空間とし、その後ろに責務名または領域名を連結しなければならない
-    - 単数形を用いること
+    - 個別機能名・概念名は原則として単数形を用いなければならない
   - SHOULD:
     - 原則としてフォルダ構造と概ね一致させる
   - MUST NOT:
     - 新規に `Common` / `Utils` / `Helper` 命名の名前空間・クラスを追加してはならない
+    - C# 標準名前空間と衝突しやすい名前空間を追加してはならない
 - 例:
   - OK:
     - `Uraty.Application`
-    - `Uraty.Feature.Player`
-    - `Uraty.System.Audio`
+    - `Uraty.Shared`
+    - `Uraty.Features.Player`
+    - `Uraty.Systems.Input`
   - NG:
+    - `Uraty.System`
     - `game`
     - `MyNamespace`
     - `Common.Utils.Helpers`
