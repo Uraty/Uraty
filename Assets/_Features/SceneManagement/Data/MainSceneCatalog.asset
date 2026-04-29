@@ -13,15 +13,15 @@ MonoBehaviour:
   m_Name: MainSceneCatalog
   m_EditorClassIdentifier: Assembly-CSharp::SceneCatalog
   scenes:
-  - id: 0
-    scenePath: Assets/_Sandboxes/Akane/Scenes/Title.unity
-  - id: 1
-    scenePath: Assets/_Sandboxes/Akane/Scenes/Lobby.unity
-  - id: 2
-    scenePath: Assets/_Sandboxes/Akane/Scenes/CharacterMake.unity
-  - id: 3
-    scenePath: Assets/_Sandboxes/Akane/Scenes/RoleSelect.unity
-  - id: 4
-    scenePath: Assets/_Sandboxes/Akane/Scenes/Battle.unity
-  - id: 5
-    scenePath: Assets/_Sandboxes/Akane/Scenes/Result.unity
+  - _id: 0
+    _scenePath: Assets/_Application/Title/Scenes/titleScene.unity
+  - _id: 1
+    _scenePath: Assets/_Sandboxes/Akane/SceneManagement/Scenes/Lobby.unity
+  - _id: 2
+    _scenePath: Assets/_Sandboxes/Akane/SceneManagement/Scenes/CharacterMake.unity
+  - _id: 3
+    _scenePath: Assets/_Sandboxes/Akane/SceneManagement/Scenes/RoleSelect.unity
+  - _id: 4
+    _scenePath: Assets/_Sandboxes/Akane/SceneManagement/Scenes/Battle.unity
+  - _id: 5
+    _scenePath: Assets/_Sandboxes/Akane/SceneManagement/Scenes/Result.unity
