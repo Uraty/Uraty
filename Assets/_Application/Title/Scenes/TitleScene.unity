@@ -132,6 +132,7 @@ GameObject:
   - component: {fileID: 208518290}
   - component: {fileID: 208518289}
   - component: {fileID: 208518292}
+  - component: {fileID: 208518293}
   m_Layer: 5
   m_Name: MultiButton
   m_TagString: Untagged
@@ -254,6 +255,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Uraty.Feature.SceneManagement.SceneChangeButton
   _nextSceneId: 5
+--- !u!114 &208518293
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 208518287}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 665e42515a84f754eb5af4f54ed0a8c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Scenes::Uraty.Features.Scenes.SceneChangeButton
+  _nextSceneId: 2
 --- !u!1 &250183585
 GameObject:
   m_ObjectHideFlags: 0
@@ -267,6 +281,7 @@ GameObject:
   - component: {fileID: 250183588}
   - component: {fileID: 250183587}
   - component: {fileID: 250183590}
+  - component: {fileID: 250183591}
   m_Layer: 5
   m_Name: EndButton
   m_TagString: Untagged
@@ -338,7 +353,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 250183590}
+      - m_Target: {fileID: 250183591}
         m_TargetAssemblyTypeName: Uraty.Feature.SceneManagement.EndButton, Assembly-CSharp
         m_MethodName: Quit
         m_Mode: 1
@@ -400,6 +415,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bf45dbcd63109174098f4b97fc2ab894, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Uraty.Feature.SceneManagement.EndButton
+--- !u!114 &250183591
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 250183585}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff3656c1567c8cd4f8c5d85f8e9ea4b4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Uraty.Feature.SceneManagement.EndButton
 --- !u!1 &823230957
 GameObject:
   m_ObjectHideFlags: 0
@@ -413,8 +440,9 @@ GameObject:
   - component: {fileID: 823230960}
   - component: {fileID: 823230959}
   - component: {fileID: 823230962}
+  - component: {fileID: 823230963}
   m_Layer: 5
-  m_Name: soloButton
+  m_Name: SoloButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -535,6 +563,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Uraty.Feature.SceneManagement.SceneChangeButton
   _nextSceneId: 4
+--- !u!114 &823230963
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 823230957}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 665e42515a84f754eb5af4f54ed0a8c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Scenes::Uraty.Features.Scenes.SceneChangeButton
+  _nextSceneId: 2
 --- !u!1 &1072277974
 GameObject:
   m_ObjectHideFlags: 0

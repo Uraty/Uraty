@@ -1,16 +1,15 @@
-using System;
 using System.Collections;
-
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using R3;
 
-namespace Uraty.Feature.SceneManagement
+namespace Uraty.Features.Scenes
 {
     // シーンの切り替えを管理するクラス。シーンの読み込みとアンロードを行う。
     public sealed class SceneFlowManager : MonoBehaviour
     {
         [SerializeField] private SceneCatalog catalog;
-        [SerializeField] private SceneId firstScene = SceneId.Title;    // 最初に読み込むシーンID
+        [SerializeField] private SceneId firstScene = SceneId.Title;
 
         public SceneId CurrentSceneId
         {
@@ -21,9 +20,15 @@ namespace Uraty.Feature.SceneManagement
             get; private set;
         }
 
-        // シーンが切り替わったときに呼び出されるイベント
-        // 引数は切り替え後のシーンID
-        public event Action<SceneId> SceneChanged;
+        // =========================
+        // Stream
+        // =========================
+
+        private readonly Subject<SceneId> _sceneChangedSubject = new();
+
+        public Observable<SceneId> SceneChangedStream => _sceneChangedSubject;
+
+        // =========================
 
         private string currentScenePath;
 
@@ -45,7 +50,6 @@ namespace Uraty.Feature.SceneManagement
                 return;
             }
 
-            // すでに読み込まれているシーンと同じIDがリクエストされた場合は無視する
             StartCoroutine(ChangeSceneRoutine(nextId));
         }
 
@@ -55,24 +59,32 @@ namespace Uraty.Feature.SceneManagement
 
             string nextPath = catalog.GetPath(nextId);
 
-            // 先に次を読む
+            // =========================
+            // Load
+            // =========================
+
             AsyncOperation loadOp = SceneManager.LoadSceneAsync(nextPath, LoadSceneMode.Additive);
             while (!loadOp.isDone)
             {
                 yield return null;
             }
 
-            // 読み込んだシーンをアクティブにする
+            // =========================
+            // Set Active
+            // =========================
+
             Scene nextScene = SceneManager.GetSceneByPath(nextPath);
             if (nextScene.IsValid())
             {
                 SceneManager.SetActiveScene(nextScene);
             }
 
-            // 前のコンテンツシーンを外す
+            // =========================
+            // Unload previous
+            // =========================
+
             if (!string.IsNullOrEmpty(currentScenePath))
             {
-                // アンロードは非同期で行い、完了するまで待つ
                 AsyncOperation unloadOp = SceneManager.UnloadSceneAsync(currentScenePath);
                 if (unloadOp != null)
                 {
@@ -83,12 +95,29 @@ namespace Uraty.Feature.SceneManagement
                 }
             }
 
+            // =========================
+            // State update
+            // =========================
+
             currentScenePath = nextPath;
             CurrentSceneId = nextId;
             IsLoading = false;
 
-            // シーンの切り替えが完了したことを通知する
-            SceneChanged?.Invoke(nextId);
+            // =========================
+            // Notify
+            // =========================
+
+            PublishSceneChanged(nextId);
+        }
+
+        private void PublishSceneChanged(SceneId sceneId)
+        {
+            _sceneChangedSubject.OnNext(sceneId);
+        }
+
+        private void OnDestroy()
+        {
+            _sceneChangedSubject.Dispose();
         }
     }
 }

@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Uraty.Feature.SceneManagement
+namespace Uraty.Features.Scenes
 {
     /// <summary>
     /// UI Buttonからシーン切り替えを要求するためのコンポーネント。

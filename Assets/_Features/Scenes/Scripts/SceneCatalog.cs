@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Uraty.Feature.SceneManagement
+namespace Uraty.Features.Scenes
 {
 
     public enum SceneId
