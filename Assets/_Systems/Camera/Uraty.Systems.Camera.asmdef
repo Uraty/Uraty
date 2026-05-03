@@ -1,6 +1,6 @@
 {
-    "name": "Uraty.Application",
-    "rootNamespace": "Uraty.Application",
+    "name": "Uraty.Systems.Camera",
+    "rootNamespace": "Uraty.Systems.Camera",
     "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],

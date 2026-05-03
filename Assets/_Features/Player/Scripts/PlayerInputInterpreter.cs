@@ -1,47 +1,28 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+using Uraty.Systems.Input;
+
 namespace Uraty.Features.Player
 {
     /// <summary>
     /// InputActions の生入力を、ゲーム側で使いやすい形に変換して保持するクラス。
+    /// AutoAim かどうかは判断しない。
     /// </summary>
     [DefaultExecutionOrder(-100)]
     public sealed class PlayerInputInterpreter : MonoBehaviour
     {
-        public enum AimInputSource
+        private enum AimInputSource
         {
             None,
             Gamepad,
             Mouse,
-        }
-
-        public enum ActionInputSource
-        {
-            None,
-            Gamepad,
-            Mouse,
-        }
-
-        public struct ReleaseInfo
-        {
-            public bool CanAutoAim;
-            public Vector3 AimDirection;
-
-            public ReleaseInfo(bool canAutoAim, Vector3 aimDirection)
-            {
-                CanAutoAim = canAutoAim;
-                AimDirection = aimDirection;
-            }
         }
 
         private const float MinInputSqrMagnitude = 0.0001f;
 
         [Header("Input Actions")]
-        [SerializeField] private InputActionReference _moveActionReference;
-        [SerializeField] private InputActionReference _aimActionReference;
-        [SerializeField] private InputActionReference _attackActionReference;
-        [SerializeField] private InputActionReference _superActionReference;
+        [SerializeField] private GameInput _input;
 
         [Header("References")]
         [SerializeField] private Camera _targetCamera;
@@ -69,18 +50,10 @@ namespace Uraty.Features.Player
         [Min(0f)]
         [SerializeField] private float _maxAimOffsetDistance = 15f;
 
-        [Header("Auto Aim")]
-        [Tooltip("押した時と離した時のオフセット差がこの距離以内なら『動かしていない』とみなす")]
-        [Min(0f)]
-        [SerializeField] private float _sameAimOffsetDistanceThreshold = 0.05f;
-
-        [Header("Debug")]
-        [SerializeField] private bool _enableDebugLog = false;
-
-        private InputAction MoveAction => _moveActionReference != null ? _moveActionReference.action : null;
-        private InputAction AimAction => _aimActionReference != null ? _aimActionReference.action : null;
-        private InputAction AttackAction => _attackActionReference != null ? _attackActionReference.action : null;
-        private InputAction SuperAction => _superActionReference != null ? _superActionReference.action : null;
+        private InputAction MoveAction => _input?.Player.Move;
+        private InputAction AimAction => _input?.Player.Aim;
+        private InputAction AttackAction => _input?.Player.Attack;
+        private InputAction SuperAction => _input?.Player.Super;
 
         private Vector2 _rawMoveInput;
         private Vector2 _rawAimInput;
@@ -99,35 +72,30 @@ namespace Uraty.Features.Player
 
         private Vector3 _moveDirectionWorld;
         private Vector3 _aimDirectionWorld;
-        private Vector3 _lastNonZeroAimDirectionWorld = Vector3.forward;
-
-        private bool _hasValidAimPointWorld;
         private Vector3 _aimPointWorld;
 
         private AimInputSource _currentAimSource = AimInputSource.None;
 
-        private bool _hasPendingAttackRelease;
-        private bool _hasPendingSuperRelease;
+        private bool _attackPressedThisFrame;
+        private bool _attackIsPressed;
+        private bool _attackReleasedThisFrame;
 
-        private ReleaseInfo _pendingAttackRelease;
-        private ReleaseInfo _pendingSuperRelease;
-
-        private ActionInputSource _attackPressSource = ActionInputSource.None;
-        private ActionInputSource _superPressSource = ActionInputSource.None;
-
-        private Vector3 _attackPressAimOffsetWorldFromPlayer = Vector3.zero;
-        private Vector3 _superPressAimOffsetWorldFromPlayer = Vector3.zero;
+        private bool _superPressedThisFrame;
+        private bool _superIsPressed;
+        private bool _superReleasedThisFrame;
 
         public Vector3 MoveDirectionWorld => _moveDirectionWorld;
+
+        /// <summary>
+        /// 現在の Aim 方向。
+        /// Aim 入力がない場合は Vector3.zero。
+        /// </summary>
         public Vector3 AimDirectionWorld => _aimDirectionWorld;
-        public Vector3 LastNonZeroAimDirectionWorld => _lastNonZeroAimDirectionWorld;
 
-        public bool HasValidAimPointWorld => _hasValidAimPointWorld;
+        /// <summary>
+        /// AimDirectionWorld が Vector3.zero の場合、この値は transform.position と同じ扱い。
+        /// </summary>
         public Vector3 AimPointWorld => _aimPointWorld;
-
-        public AimInputSource CurrentAimSource => _currentAimSource;
-        public bool IsAimFromGamepad => _currentAimSource == AimInputSource.Gamepad;
-        public bool IsAimFromMouse => _currentAimSource == AimInputSource.Mouse;
 
         /// <summary>
         /// AimPointWorld を画面へ投影した座標。
@@ -135,16 +103,13 @@ namespace Uraty.Features.Player
         /// </summary>
         public Vector2 CurrentAimScreenPosition => GetCurrentAimScreenPosition();
 
-        public bool AttackPressedThisFrame => AttackAction != null && AttackAction.WasPressedThisFrame();
-        public bool AttackIsPressed => AttackAction != null && AttackAction.IsPressed();
-        public bool AttackReleasedThisFrame => AttackAction != null && AttackAction.WasReleasedThisFrame();
+        public bool AttackPressedThisFrame => _attackPressedThisFrame;
+        public bool AttackIsPressed => _attackIsPressed;
+        public bool AttackReleasedThisFrame => _attackReleasedThisFrame;
 
-        public bool SuperPressedThisFrame => SuperAction != null && SuperAction.WasPressedThisFrame();
-        public bool SuperIsPressed => SuperAction != null && SuperAction.IsPressed();
-        public bool SuperReleasedThisFrame => SuperAction != null && SuperAction.WasReleasedThisFrame();
-
-        public ActionInputSource AttackPressedSourceThisFrame => GetPressSourceThisFrame(AttackAction);
-        public ActionInputSource SuperPressedSourceThisFrame => GetPressSourceThisFrame(SuperAction);
+        public bool SuperPressedThisFrame => _superPressedThisFrame;
+        public bool SuperIsPressed => _superIsPressed;
+        public bool SuperReleasedThisFrame => _superReleasedThisFrame;
 
         private void OnValidate()
         {
@@ -157,10 +122,8 @@ namespace Uraty.Features.Player
             }
 
             _gamepadAimMoveDeadZone = Mathf.Clamp01(_gamepadAimMoveDeadZone);
-
             _gamepadAimMoveSpeedUnitsPerSecond = Mathf.Max(0f, _gamepadAimMoveSpeedUnitsPerSecond);
             _maxAimOffsetDistance = Mathf.Max(0f, _maxAimOffsetDistance);
-            _sameAimOffsetDistanceThreshold = Mathf.Max(0f, _sameAimOffsetDistanceThreshold);
         }
 
         private void Awake()
@@ -172,43 +135,28 @@ namespace Uraty.Features.Player
 
             _mouseVirtualStickOffsetPixels = Vector2.zero;
             _aimOffsetWorldFromPlayer = Vector3.zero;
-
-            Vector3 flatForward = transform.forward;
-            flatForward.y = 0f;
-
-            if (flatForward.sqrMagnitude > MinInputSqrMagnitude)
-            {
-                _lastNonZeroAimDirectionWorld = flatForward.normalized;
-            }
+            _aimPointWorld = transform.position;
+            _aimDirectionWorld = Vector3.zero;
         }
 
         private void OnEnable()
         {
             RefreshInputs();
+            RefreshButtonStates();
             RefreshAimSource();
-            CachePressContext();
+            ResetAimContextIfActionStarted();
             UpdateAimOffsetFromCurrentInput();
             RefreshConvertedValues();
         }
+
         private void Update()
         {
             RefreshInputs();
+            RefreshButtonStates();
             RefreshAimSource();
-            CachePressContext();
+            ResetAimContextIfActionStarted();
             UpdateAimOffsetFromCurrentInput();
             RefreshConvertedValues();
-            DetectReleaseTriggers();
-
-            if (_enableDebugLog && IsAnyAimButtonPressed())
-            {
-                Debug.Log(
-                    $"[PlayerInputInterpreter] source={_currentAimSource}, " +
-                    $"rawAim={_rawAimInput}, " +
-                    $"mouseVirtualStick={_mouseVirtualStickOffsetPixels}, " +
-                    $"offsetWorld={_aimOffsetWorldFromPlayer}, " +
-                    $"aimPointWorld={_aimPointWorld}, " +
-                    $"aimDir={_aimDirectionWorld}");
-            }
         }
 
         private void RefreshInputs()
@@ -220,6 +168,17 @@ namespace Uraty.Features.Player
             _rawAimInput = AimAction != null
                 ? AimAction.ReadValue<Vector2>()
                 : Vector2.zero;
+        }
+
+        private void RefreshButtonStates()
+        {
+            _attackPressedThisFrame = IsPressedThisFrame(AttackAction);
+            _attackIsPressed = IsPressed(AttackAction);
+            _attackReleasedThisFrame = IsReleasedThisFrame(AttackAction);
+
+            _superPressedThisFrame = IsPressedThisFrame(SuperAction);
+            _superIsPressed = IsPressed(SuperAction);
+            _superReleasedThisFrame = IsReleasedThisFrame(SuperAction);
         }
 
         private void RefreshAimSource()
@@ -239,40 +198,23 @@ namespace Uraty.Features.Player
                 }
             }
 
-            ActionInputSource attackPressSource = AttackPressedSourceThisFrame;
-            if (attackPressSource != ActionInputSource.None)
+            AimInputSource attackSource = GetActionSourceThisFrame(AttackAction);
+            if (attackSource != AimInputSource.None)
             {
-                _currentAimSource = ConvertToAimInputSource(attackPressSource);
+                _currentAimSource = attackSource;
                 return;
             }
 
-            ActionInputSource superPressSource = SuperPressedSourceThisFrame;
-            if (superPressSource != ActionInputSource.None)
+            AimInputSource superSource = GetActionSourceThisFrame(SuperAction);
+            if (superSource != AimInputSource.None)
             {
-                _currentAimSource = ConvertToAimInputSource(superPressSource);
+                _currentAimSource = superSource;
             }
         }
 
-        private void CachePressContext()
+        private void ResetAimContextIfActionStarted()
         {
-            if (AttackPressedThisFrame)
-            {
-                _attackPressSource = AttackPressedSourceThisFrame;
-                ResetAimStartContext(_attackPressSource);
-                _attackPressAimOffsetWorldFromPlayer = _aimOffsetWorldFromPlayer;
-            }
-
-            if (SuperPressedThisFrame)
-            {
-                _superPressSource = SuperPressedSourceThisFrame;
-                ResetAimStartContext(_superPressSource);
-                _superPressAimOffsetWorldFromPlayer = _aimOffsetWorldFromPlayer;
-            }
-        }
-
-        private void ResetAimStartContext(ActionInputSource pressSource)
-        {
-            if (pressSource is not (ActionInputSource.Mouse or ActionInputSource.Gamepad))
+            if (!_attackPressedThisFrame && !_superPressedThisFrame)
             {
                 return;
             }
@@ -283,6 +225,12 @@ namespace Uraty.Features.Player
 
         private void UpdateAimOffsetFromCurrentInput()
         {
+            if (!ShouldKeepAimThisFrame())
+            {
+                ClearAim();
+                return;
+            }
+
             if (!IsAnyAimButtonPressed())
             {
                 return;
@@ -290,6 +238,7 @@ namespace Uraty.Features.Player
 
             if (!TryGetFlatCameraBasis(out Vector3 flatRight, out Vector3 flatForward))
             {
+                ClearAim();
                 return;
             }
 
@@ -302,6 +251,10 @@ namespace Uraty.Features.Player
                 case AimInputSource.Gamepad:
                     UpdateGamepadAimOffset(flatRight, flatForward);
                     break;
+
+                default:
+                    ClearAim();
+                    break;
             }
 
             ClampAimOffset();
@@ -309,9 +262,6 @@ namespace Uraty.Features.Player
 
         /// <summary>
         /// Mouse Delta を仮想スティックとして扱い、Aim オフセットへ変換する。
-        ///
-        /// 仮想スティックの方向を Aim 方向にし、
-        /// 仮想スティックの中心からの距離を Aim 距離に変換する。
         /// </summary>
         private void UpdateMouseVirtualStickAimOffset(Vector3 flatRight, Vector3 flatForward)
         {
@@ -372,6 +322,7 @@ namespace Uraty.Features.Player
             float maxLength = Mathf.Max(0f, _maxAimOffsetDistance);
             if (maxLength <= 0f)
             {
+                _aimOffsetWorldFromPlayer = Vector3.zero;
                 return;
             }
 
@@ -390,14 +341,11 @@ namespace Uraty.Features.Player
 
             if (TryBuildAimPointAndDirection(out Vector3 aimPointWorld, out Vector3 aimDirectionWorld))
             {
-                _hasValidAimPointWorld = true;
                 _aimPointWorld = aimPointWorld;
                 _aimDirectionWorld = aimDirectionWorld;
-                _lastNonZeroAimDirectionWorld = _aimDirectionWorld;
             }
             else
             {
-                _hasValidAimPointWorld = false;
                 _aimPointWorld = transform.position;
                 _aimDirectionWorld = Vector3.zero;
             }
@@ -421,37 +369,6 @@ namespace Uraty.Features.Player
 
             aimDirectionWorld = offset.normalized;
             return true;
-        }
-
-        private void DetectReleaseTriggers()
-        {
-            if (AttackReleasedThisFrame)
-            {
-                bool canAutoAim = !IsManualAimSpecified(
-                    _attackPressSource,
-                    _attackPressAimOffsetWorldFromPlayer);
-
-                Vector3 aimDirection = GetResolvedAimDirection();
-
-                _pendingAttackRelease = new ReleaseInfo(canAutoAim, aimDirection);
-                _hasPendingAttackRelease = true;
-
-                _attackPressSource = ActionInputSource.None;
-            }
-
-            if (SuperReleasedThisFrame)
-            {
-                bool canAutoAim = !IsManualAimSpecified(
-                    _superPressSource,
-                    _superPressAimOffsetWorldFromPlayer);
-
-                Vector3 aimDirection = GetResolvedAimDirection();
-
-                _pendingSuperRelease = new ReleaseInfo(canAutoAim, aimDirection);
-                _hasPendingSuperRelease = true;
-
-                _superPressSource = ActionInputSource.None;
-            }
         }
 
         private Vector3 ConvertInputToCameraRelativeDirection(Vector2 input)
@@ -511,94 +428,71 @@ namespace Uraty.Features.Player
                 return new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
             }
 
-            Vector3 world = _hasValidAimPointWorld ? _aimPointWorld : transform.position;
+            Vector3 world = _aimDirectionWorld.sqrMagnitude > MinInputSqrMagnitude
+                ? _aimPointWorld
+                : transform.position;
+
             Vector3 screen = _targetCamera.WorldToScreenPoint(world);
 
             return new Vector2(screen.x, screen.y);
         }
 
+        private bool ShouldKeepAimThisFrame()
+        {
+            return IsAnyAimButtonPressed() ||
+                   _attackReleasedThisFrame ||
+                   _superReleasedThisFrame;
+        }
+
         private bool IsAnyAimButtonPressed()
         {
-            return AttackIsPressed || SuperIsPressed;
+            return _attackIsPressed || _superIsPressed;
         }
 
-        private Vector3 GetResolvedAimDirection()
+        private void ClearAim()
         {
-            if (_aimDirectionWorld.sqrMagnitude > MinInputSqrMagnitude)
-            {
-                return _aimDirectionWorld.normalized;
-            }
-
-            if (_lastNonZeroAimDirectionWorld.sqrMagnitude > MinInputSqrMagnitude)
-            {
-                return _lastNonZeroAimDirectionWorld.normalized;
-            }
-
-            return Vector3.forward;
+            _aimOffsetWorldFromPlayer = Vector3.zero;
+            _mouseVirtualStickOffsetPixels = Vector2.zero;
         }
 
-        private bool IsManualAimSpecified(
-            ActionInputSource pressSource,
-            Vector3 pressAimOffsetWorldFromPlayer)
+        private bool IsPressedThisFrame(InputAction action)
         {
-            switch (pressSource)
-            {
-                case ActionInputSource.Mouse:
-                case ActionInputSource.Gamepad:
-                    return !IsSameAimOffset(pressAimOffsetWorldFromPlayer, _aimOffsetWorldFromPlayer);
-
-                default:
-                    return false;
-            }
+            return action != null && action.WasPressedThisFrame();
         }
 
-        private bool IsSameAimOffset(Vector3 pressOffset, Vector3 releaseOffset)
+        private bool IsPressed(InputAction action)
         {
-            Vector3 delta = releaseOffset - pressOffset;
-            delta.y = 0f;
-
-            float threshold = Mathf.Max(0f, _sameAimOffsetDistanceThreshold);
-            return delta.sqrMagnitude <= threshold * threshold;
+            return action != null && action.IsPressed();
         }
 
-        private ActionInputSource GetPressSourceThisFrame(InputAction action)
+        private bool IsReleasedThisFrame(InputAction action)
+        {
+            return action != null && action.WasReleasedThisFrame();
+        }
+
+        private AimInputSource GetActionSourceThisFrame(InputAction action)
         {
             if (action == null || !action.WasPressedThisFrame())
             {
-                return ActionInputSource.None;
+                return AimInputSource.None;
             }
 
             if (action.activeControl == null || action.activeControl.device == null)
             {
-                return ActionInputSource.None;
+                return AimInputSource.None;
             }
 
             if (action.activeControl.device is Mouse)
             {
-                return ActionInputSource.Mouse;
+                return AimInputSource.Mouse;
             }
 
             if (action.activeControl.device is Gamepad)
             {
-                return ActionInputSource.Gamepad;
+                return AimInputSource.Gamepad;
             }
 
-            return ActionInputSource.None;
-        }
-
-        private AimInputSource ConvertToAimInputSource(ActionInputSource actionInputSource)
-        {
-            switch (actionInputSource)
-            {
-                case ActionInputSource.Mouse:
-                    return AimInputSource.Mouse;
-
-                case ActionInputSource.Gamepad:
-                    return AimInputSource.Gamepad;
-
-                default:
-                    return AimInputSource.None;
-            }
+            return AimInputSource.None;
         }
 
         private Vector2 ApplyRadialDeadZone(Vector2 input, float deadZone)
@@ -612,32 +506,6 @@ namespace Uraty.Features.Player
 
             float normalizedMagnitude = Mathf.InverseLerp(deadZone, 1f, Mathf.Clamp01(magnitude));
             return input.normalized * normalizedMagnitude;
-        }
-
-        public bool TryConsumeAttackRelease(out ReleaseInfo info)
-        {
-            if (_hasPendingAttackRelease)
-            {
-                info = _pendingAttackRelease;
-                _hasPendingAttackRelease = false;
-                return true;
-            }
-
-            info = default;
-            return false;
-        }
-
-        public bool TryConsumeSuperRelease(out ReleaseInfo info)
-        {
-            if (_hasPendingSuperRelease)
-            {
-                info = _pendingSuperRelease;
-                _hasPendingSuperRelease = false;
-                return true;
-            }
-
-            info = default;
-            return false;
         }
     }
 }
