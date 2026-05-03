@@ -121,6 +121,10 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: -5927706242983782489, guid: b3d17c455ad3528499ec304bd1f12d97, type: 3}
+      propertyPath: _isPiercing
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -5927706242983782489, guid: b3d17c455ad3528499ec304bd1f12d97, type: 3}
       propertyPath: _characterLayers.m_Bits
       value: 8
       objectReference: {fileID: 0}

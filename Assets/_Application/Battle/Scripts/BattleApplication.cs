@@ -48,6 +48,8 @@ namespace Uraty.Application.Battle
 
             SpawnEnemyTeam(roleTypes, selectedIndex);
 
+            ConfigureBushRevealSensors(TeamId.Primary);
+
             _cameraMove.SetTarget(playerObject);
 
             SubscribePlayerController(playerObject);
@@ -105,6 +107,28 @@ namespace Uraty.Application.Battle
             _characterObjects.Add(characterObject);
 
             return characterObject;
+        }
+
+        private void ConfigureBushRevealSensors(TeamId visibleTeamId)
+        {
+            for (int i = 0; i < _characterObjects.Count; i++)
+            {
+                GameObject characterObject = _characterObjects[i];
+                if (characterObject == null)
+                {
+                    continue;
+                }
+
+                CharacterStatus characterStatus =
+                    GetRequiredComponent<CharacterStatus>(characterObject);
+
+                CharacterReveal revealSensor =
+                    GetRequiredComponent<CharacterReveal>(characterObject);
+
+                bool shouldRevealBush = characterStatus.TeamId == visibleTeamId;
+
+                revealSensor.SetRevealEnabled(shouldRevealBush);
+            }
         }
 
         private void SubscribePlayerController(GameObject playerObject)
@@ -229,7 +253,7 @@ namespace Uraty.Application.Battle
                 }
 
                 CharacterStatus characterStatus = GetRequiredComponent<CharacterStatus>(characterObject);
-                if (characterStatus.IsSameTeam(sourceStatus.TeamId))
+                if (characterStatus.TeamId == sourceStatus.TeamId)
                 {
                     continue;
                 }

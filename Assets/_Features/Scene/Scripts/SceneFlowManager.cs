@@ -73,7 +73,7 @@ namespace Uraty.Features.Scene
             // Set Active
             // =========================
 
-            Scene nextScene = SceneManager.GetSceneByPath(nextPath);
+            UnityEngine.SceneManagement.Scene nextScene = SceneManager.GetSceneByPath(nextPath);
             if (nextScene.IsValid())
             {
                 SceneManager.SetActiveScene(nextScene);

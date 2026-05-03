@@ -12,6 +12,8 @@ namespace Uraty.Features.Character
         private const float MinDirectionSqrMagnitude = 0.0001f;
         private const float SpawnForwardOffset = 0.5f;
 
+        [SerializeField] private CharacterStatus _status;
+
         [Title("Super")]
         [SerializeField]
         private BulletSpawnSetting[] _superSettings = { new() };
@@ -91,6 +93,7 @@ namespace Uraty.Features.Character
                     setting.Damage,
                     setting.Range,
                     setting.Speed,
+                    _status.TeamId,
                     gameObject);
             }
         }

@@ -1,10 +1,11 @@
 using UnityEngine;
 
 using Uraty.Shared.Team;
+using Uraty.Shared.Hit;
 
 namespace Uraty.Features.Character
 {
-    public sealed class CharacterStatus : MonoBehaviour
+    public sealed class CharacterStatus : MonoBehaviour, IBulletHittable
     {
         [Header("Team")]
         [SerializeField] private TeamId _teamId = TeamId.None;
@@ -33,9 +34,20 @@ namespace Uraty.Features.Character
             ResetHealth();
         }
 
-        public bool IsSameTeam(TeamId teamId)
+        public bool ReceiveBulletHit(
+            GameObject owner,
+            TeamId teamId,
+            float damage,
+            bool isPiercing)
         {
-            return _teamId == teamId;
+            if (_teamId == teamId)
+            {
+                return false;
+            }
+
+            ApplyDamage(damage);
+
+            return !isPiercing;
         }
 
         public void ApplyDamage(float damage)

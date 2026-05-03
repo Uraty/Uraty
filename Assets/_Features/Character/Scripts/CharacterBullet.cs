@@ -2,15 +2,14 @@ using System.Collections.Generic;
 
 using UnityEngine;
 
+using Uraty.Shared.Hit;
+using Uraty.Shared.Team;
+
 namespace Uraty.Features.Character
 {
     public sealed class CharacterBullet : MonoBehaviour
     {
         private const float MinDirectionSqrMagnitude = 0.0001f;
-
-        [Header("Collision")]
-        [SerializeField] private LayerMask _characterLayers;
-        [SerializeField] private LayerMask _blockingLayers;
 
         [Header("Pierce")]
         [SerializeField] private bool _isPiercing;
@@ -23,7 +22,8 @@ namespace Uraty.Features.Character
         private float _speed;
 
         private Vector3 _startPosition;
-        private CharacterStatus _ownerStatus;
+        private GameObject _owner;
+        private TeamId _teamId;
         private bool _isInitialized;
 
         public float Damage => _damage;
@@ -33,7 +33,8 @@ namespace Uraty.Features.Character
             float damage,
             float range,
             float speed,
-            GameObject ownerObject)
+            TeamId teamId,
+            GameObject owner)
         {
             direction.y = 0f;
 
@@ -48,7 +49,8 @@ namespace Uraty.Features.Character
             _speed = Mathf.Max(0f, speed);
 
             _startPosition = transform.position;
-            _ownerStatus = ResolveOwnerStatus(ownerObject);
+            _owner = owner;
+            _teamId = teamId;
 
             _hitCharacterInstanceIds.Clear();
             _isInitialized = true;
@@ -76,88 +78,13 @@ namespace Uraty.Features.Character
                 return;
             }
 
-            int otherLayerMask = 1 << other.gameObject.layer;
-
-            if ((_blockingLayers.value & otherLayerMask) != 0)
+            if (other.TryGetComponent(out IBulletHittable hittable))
             {
-                Destroy(gameObject);
-                return;
+                if (hittable.ReceiveBulletHit(_owner, _teamId, _damage, _isPiercing))
+                {
+                    Destroy(gameObject);
+                }
             }
-
-            if ((_characterLayers.value & otherLayerMask) != 0)
-            {
-                HitCharacter(other);
-            }
-        }
-
-        private void HitCharacter(Collider other)
-        {
-            CharacterStatus targetStatus = other.GetComponentInParent<CharacterStatus>();
-            if (targetStatus == null)
-            {
-                return;
-            }
-
-            if (ShouldIgnoreTarget(targetStatus))
-            {
-                return;
-            }
-
-            int targetInstanceId = targetStatus.GetInstanceID();
-
-            if (_hitCharacterInstanceIds.Contains(targetInstanceId))
-            {
-                return;
-            }
-
-            _hitCharacterInstanceIds.Add(targetInstanceId);
-
-            targetStatus.ApplyDamage(_damage);
-
-            if (!_isPiercing)
-            {
-                Destroy(gameObject);
-            }
-        }
-
-        private bool ShouldIgnoreTarget(CharacterStatus targetStatus)
-        {
-            if (targetStatus.IsDead)
-            {
-                return true;
-            }
-
-            if (_ownerStatus == null)
-            {
-                return false;
-            }
-
-            if (targetStatus == _ownerStatus)
-            {
-                return true;
-            }
-
-            if (targetStatus.IsSameTeam(_ownerStatus.TeamId))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        private static CharacterStatus ResolveOwnerStatus(GameObject ownerObject)
-        {
-            if (ownerObject == null)
-            {
-                return null;
-            }
-
-            if (ownerObject.TryGetComponent(out CharacterStatus characterStatus))
-            {
-                return characterStatus;
-            }
-
-            return ownerObject.GetComponentInParent<CharacterStatus>();
         }
 
         private float GetMovedDistance()

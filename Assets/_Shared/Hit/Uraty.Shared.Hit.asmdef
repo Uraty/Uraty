@@ -1,11 +1,8 @@
 {
-    "name": "Uraty.Features.Character",
-    "rootNamespace": "Uraty.Features.Character",
+    "name": "Uraty.Shared.Hit",
+    "rootNamespace": "Uraty.Shared.Hit",
     "references": [
-        "GUID:324caed91501a9c47a04ebfd87b68794",
-        "GUID:b5c31c0c834ee7e4b980691b778889bf",
-        "GUID:4275faa13f70e6b4980fd0612cefd748",
-        "GUID:dced1715f3f70e64c894808803627c57"
+        "Uraty.Shared.Team"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

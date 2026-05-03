@@ -130,6 +130,7 @@ GameObject:
   - component: {fileID: 4360882408181520500}
   - component: {fileID: 1490220000781514627}
   - component: {fileID: -3534891964442206321}
+  - component: {fileID: 7197989968914488443}
   m_Layer: 3
   m_Name: CharacterModelBase
   m_TagString: Untagged
@@ -190,7 +191,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 041a31e505024564bb119f63e65c9968, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterStatus
-  _maxHp: 388.8
+  _teamId: 0
+  _maxHp: 100
 --- !u!114 &3961964901468283456
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -216,11 +218,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7e90245a7466d2b49ac2a0c93c6b64b3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterAttack
-  _attackSetting:
-    _bulletPrefab: {fileID: 2089380220273369421, guid: 46f3de5192c3eac4ca8a45a86e14c4ac, type: 3}
+  _status: {fileID: -6497995452392812755}
+  _attackSettings:
+  - _bulletPrefab: {fileID: 0}
     _damage: 10
     _range: 8
     _speed: 16
+    _angleOffsetDegrees: 0
+    _positionOffsetLocal: {x: 0, y: 0, z: 0}
+    _delaySeconds: 0
 --- !u!114 &4360882408181520500
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -233,11 +239,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf13a803f06749541bfe3acf1e04515d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterSuper
-  _superSetting:
-    _bulletPrefab: {fileID: 2089380220273369421, guid: 46f3de5192c3eac4ca8a45a86e14c4ac, type: 3}
+  _status: {fileID: -6497995452392812755}
+  _superSettings:
+  - _bulletPrefab: {fileID: 0}
     _damage: 30
     _range: 10
     _speed: 20
+    _angleOffsetDegrees: 0
+    _positionOffsetLocal: {x: 0, y: 0, z: 0}
+    _delaySeconds: 0
 --- !u!114 &1490220000781514627
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -328,3 +338,21 @@ MonoBehaviour:
   _groundOffset: 0.02
   _throwSampleCount: 16
   _consumeOnce: 1
+--- !u!114 &7197989968914488443
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8800056277905460767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 675ac1f606b532e4eac4795f111ff464, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterReveal
+  _revealRadius: 2
+  _bushLayerMask:
+    serializedVersion: 2
+    m_Bits: 256
+  _maxHitCount: 64
+  _isRevealEnabled: 1
