@@ -8,6 +8,8 @@ using UnityEngine;
 using Uraty.Features.Character;
 using Uraty.Features.Player;
 
+using Uraty.Shared.Team;
+
 using Uraty.Systems.Camera;
 using Uraty.Systems.Input;
 
@@ -60,10 +62,9 @@ namespace Uraty.Application.Battle
                 RoleType roleType =
                     roleTypes[(selectedIndex + i) % roleTypes.Length];
 
-                GameObject characterPrefab = FindCharacterPrefab(roleType);
-                GameObject characterObject = Instantiate(characterPrefab);
-
-                _characterObjects.Add(characterObject);
+                GameObject characterObject = SpawnCharacter(
+                    roleType,
+                    TeamId.Primary);
 
                 if (i == 0)
                 {
@@ -87,11 +88,23 @@ namespace Uraty.Application.Battle
                 RoleType roleType =
                     roleTypes[(selectedIndex + TeamMemberCount + i) % roleTypes.Length];
 
-                GameObject characterPrefab = FindCharacterPrefab(roleType);
-                GameObject characterObject = Instantiate(characterPrefab);
-
-                _characterObjects.Add(characterObject);
+                SpawnCharacter(
+                    roleType,
+                    TeamId.Secondary);
             }
+        }
+
+        private GameObject SpawnCharacter(RoleType roleType, TeamId teamId)
+        {
+            GameObject characterPrefab = FindCharacterPrefab(roleType);
+            GameObject characterObject = Instantiate(characterPrefab);
+
+            CharacterStatus characterStatus = GetRequiredComponent<CharacterStatus>(characterObject);
+            characterStatus.Initialize(teamId);
+
+            _characterObjects.Add(characterObject);
+
+            return characterObject;
         }
 
         private void SubscribePlayerController(GameObject playerObject)
@@ -202,6 +215,7 @@ namespace Uraty.Application.Battle
             Vector3 fallbackDirection)
         {
             Vector3 sourcePosition = sourceObject.transform.position;
+            CharacterStatus sourceStatus = GetRequiredComponent<CharacterStatus>(sourceObject);
 
             GameObject nearestObject = null;
             float nearestSqrDistance = float.MaxValue;
@@ -210,6 +224,12 @@ namespace Uraty.Application.Battle
             {
                 GameObject characterObject = _characterObjects[i];
                 if (characterObject == null || characterObject == sourceObject)
+                {
+                    continue;
+                }
+
+                CharacterStatus characterStatus = GetRequiredComponent<CharacterStatus>(characterObject);
+                if (characterStatus.IsSameTeam(sourceStatus.TeamId))
                 {
                     continue;
                 }

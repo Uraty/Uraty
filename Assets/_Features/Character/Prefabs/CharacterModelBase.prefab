@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 8747978727770030785}
   - component: {fileID: 2551798694848038042}
   - component: {fileID: 6457469966860481856}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Capsule
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -124,12 +124,13 @@ GameObject:
   m_Component:
   - component: {fileID: 7179965540641218944}
   - component: {fileID: -1381102960665348235}
+  - component: {fileID: -6497995452392812755}
   - component: {fileID: 3961964901468283456}
   - component: {fileID: -1257273843268544866}
   - component: {fileID: 4360882408181520500}
   - component: {fileID: 1490220000781514627}
   - component: {fileID: -3534891964442206321}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: CharacterModelBase
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -172,11 +173,24 @@ CharacterController:
   serializedVersion: 3
   m_Height: 2
   m_Radius: 0.5
-  m_SlopeLimit: 45
-  m_StepOffset: 0.3
-  m_SkinWidth: 0.08
-  m_MinMoveDistance: 0.001
+  m_SlopeLimit: 0
+  m_StepOffset: 0
+  m_SkinWidth: 0.05
+  m_MinMoveDistance: 0
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &-6497995452392812755
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8800056277905460767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 041a31e505024564bb119f63e65c9968, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterStatus
+  _maxHp: 388.8
 --- !u!114 &3961964901468283456
 MonoBehaviour:
   m_ObjectHideFlags: 0

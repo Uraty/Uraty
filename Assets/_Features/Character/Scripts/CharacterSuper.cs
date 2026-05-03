@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 
 using TriInspector;
 
@@ -9,29 +10,73 @@ namespace Uraty.Features.Character
     public sealed class CharacterSuper : MonoBehaviour
     {
         private const float MinDirectionSqrMagnitude = 0.0001f;
-
         private const float SpawnForwardOffset = 0.5f;
 
         [Title("Super")]
-        [SerializeField, InlineProperty, HideLabel]
-        private BulletSpawnSetting _superSetting = new();
+        [SerializeField]
+        private BulletSpawnSetting[] _superSettings = { new() };
 
         public void Super(Vector3 aimDirectionWorld)
         {
-            SpawnBullet(_superSetting, aimDirectionWorld);
+            SpawnBullets(_superSettings, aimDirectionWorld);
+        }
+
+        private void SpawnBullets(
+            BulletSpawnSetting[] settings,
+            Vector3 aimDirectionWorld)
+        {
+            if (settings == null || settings.Length == 0)
+            {
+                return;
+            }
+
+            Vector3 baseDirection = ResolveDirection(aimDirectionWorld);
+
+            for (int i = 0; i < settings.Length; i++)
+            {
+                BulletSpawnSetting setting = settings[i];
+
+                if (setting == null)
+                {
+                    continue;
+                }
+
+                if (setting.DelaySeconds <= 0f)
+                {
+                    SpawnBullet(setting, baseDirection);
+                    continue;
+                }
+
+                StartCoroutine(SpawnBulletAfterDelay(setting, baseDirection));
+            }
+        }
+
+        private IEnumerator SpawnBulletAfterDelay(
+            BulletSpawnSetting setting,
+            Vector3 baseDirection)
+        {
+            yield return new WaitForSeconds(setting.DelaySeconds);
+
+            SpawnBullet(setting, baseDirection);
         }
 
         private void SpawnBullet(
             BulletSpawnSetting setting,
-            Vector3 aimDirectionWorld)
+            Vector3 baseDirection)
         {
             if (setting == null || setting.BulletPrefab == null)
             {
                 return;
             }
 
-            Vector3 direction = ResolveDirection(aimDirectionWorld);
-            Vector3 spawnPosition = GetSpawnPosition(direction);
+            Vector3 direction = ApplyAngleOffset(
+                baseDirection,
+                setting.AngleOffsetDegrees);
+
+            Vector3 spawnPosition = GetSpawnPosition(
+                direction,
+                setting.PositionOffsetLocal);
+
             Quaternion spawnRotation = Quaternion.LookRotation(direction, Vector3.up);
 
             GameObject bulletObject = Instantiate(
@@ -45,7 +90,8 @@ namespace Uraty.Features.Character
                     direction,
                     setting.Damage,
                     setting.Range,
-                    setting.Speed);
+                    setting.Speed,
+                    gameObject);
             }
         }
 
@@ -69,9 +115,47 @@ namespace Uraty.Features.Character
             return Vector3.forward;
         }
 
-        private Vector3 GetSpawnPosition(Vector3 direction)
+        private static Vector3 ApplyAngleOffset(
+            Vector3 direction,
+            float angleOffsetDegrees)
         {
-            return transform.position + direction * Mathf.Max(0f, SpawnForwardOffset);
+            Quaternion rotation = Quaternion.AngleAxis(angleOffsetDegrees, Vector3.up);
+            Vector3 rotatedDirection = rotation * direction;
+            rotatedDirection.y = 0f;
+
+            if (rotatedDirection.sqrMagnitude <= MinDirectionSqrMagnitude)
+            {
+                return Vector3.forward;
+            }
+
+            return rotatedDirection.normalized;
+        }
+
+        private Vector3 GetSpawnPosition(
+            Vector3 direction,
+            Vector3 positionOffsetLocal)
+        {
+            Vector3 forward = direction;
+            forward.y = 0f;
+
+            if (forward.sqrMagnitude <= MinDirectionSqrMagnitude)
+            {
+                forward = Vector3.forward;
+            }
+
+            forward.Normalize();
+
+            Vector3 right = Vector3.Cross(Vector3.up, forward).normalized;
+
+            Vector3 basePosition =
+                transform.position +
+                forward * Mathf.Max(0f, SpawnForwardOffset);
+
+            return
+                basePosition +
+                right * positionOffsetLocal.x +
+                Vector3.up * positionOffsetLocal.y +
+                forward * positionOffsetLocal.z;
         }
 
         [Serializable]
@@ -88,10 +172,20 @@ namespace Uraty.Features.Character
             [Min(0f)]
             [SerializeField] private float _speed = 20f;
 
+            [SerializeField] private float _angleOffsetDegrees;
+
+            [SerializeField] private Vector3 _positionOffsetLocal;
+
+            [Min(0f)]
+            [SerializeField] private float _delaySeconds;
+
             public GameObject BulletPrefab => _bulletPrefab;
             public float Damage => _damage;
             public float Range => _range;
             public float Speed => _speed;
+            public float AngleOffsetDegrees => _angleOffsetDegrees;
+            public Vector3 PositionOffsetLocal => _positionOffsetLocal;
+            public float DelaySeconds => _delaySeconds;
         }
     }
 }

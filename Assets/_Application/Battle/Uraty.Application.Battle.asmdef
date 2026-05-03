@@ -2,10 +2,9 @@
     "name": "Uraty.Application.Battle",
     "rootNamespace": "Uraty.Application.Battle",
     "references": [
-        "GUID:04978391f70af8543a7f624f20623104",
         "GUID:e48439d916031bd409784c3a7ee13d3c",
-        "GUID:5475a3d47d3889e4aa9513bf66fc3413",
         "GUID:aff03c096e22e514e830c9baff70dd4f",
+        "GUID:b5c31c0c834ee7e4b980691b778889bf",
         "GUID:12f6bca580722de41b91f6011da4a584",
         "GUID:c98a5f3a199b4d941957101fdb6a37ef"
     ],

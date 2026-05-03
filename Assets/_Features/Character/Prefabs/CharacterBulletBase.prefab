@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2551935973045454597}
   - component: {fileID: -5927706242983782489}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: CharacterBulletBase
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -44,3 +44,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 11ce6e6ab54d6724c9110bb56d0a86fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterBullet
+  _characterLayers:
+    serializedVersion: 2
+    m_Bits: 8
+  _blockingLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  _isPiercing: 0

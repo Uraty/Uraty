@@ -12,6 +12,10 @@ PrefabInstance:
       propertyPath: _previewDefinition._type
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -1257273843268544866, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
+      propertyPath: _attackSettings.Array.data[0]._bulletPrefab
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 7179965540641218944, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

@@ -1,9 +1,8 @@
 {
-    "name": "Uraty.Features.Character",
-    "rootNamespace": "Uraty.Features.Character",
+    "name": "Uraty.Features.Scene",
+    "rootNamespace": "Uraty.Features.Scene",
     "references": [
-        "GUID:324caed91501a9c47a04ebfd87b68794",
-        "GUID:b5c31c0c834ee7e4b980691b778889bf"
+        "GUID:2bafac87e7f4b9b418d9448d219b01ab"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

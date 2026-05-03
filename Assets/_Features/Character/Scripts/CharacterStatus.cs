@@ -1,0 +1,93 @@
+using UnityEngine;
+
+using Uraty.Shared.Team;
+
+namespace Uraty.Features.Character
+{
+    public sealed class CharacterStatus : MonoBehaviour
+    {
+        [Header("Team")]
+        [SerializeField] private TeamId _teamId = TeamId.None;
+
+        [Header("Health")]
+        [Min(1f)]
+        [SerializeField] private float _maxHp = 100f;
+
+        private float _currentHp;
+        private bool _isDead;
+
+        public TeamId TeamId => _teamId;
+        public float MaxHp => _maxHp;
+        public float CurrentHp => _currentHp;
+        public bool IsDead => _isDead;
+        public bool IsAlive => !_isDead;
+
+        private void Awake()
+        {
+            ResetHealth();
+        }
+
+        public void Initialize(TeamId teamId)
+        {
+            _teamId = teamId;
+            ResetHealth();
+        }
+
+        public bool IsSameTeam(TeamId teamId)
+        {
+            return _teamId == teamId;
+        }
+
+        public void ApplyDamage(float damage)
+        {
+            if (_isDead)
+            {
+                return;
+            }
+
+            float validDamage = Mathf.Max(0f, damage);
+            if (validDamage <= 0f)
+            {
+                return;
+            }
+
+            _currentHp = Mathf.Max(0f, _currentHp - validDamage);
+
+            if (_currentHp <= 0f)
+            {
+                Die();
+            }
+        }
+
+        public void Heal(float amount)
+        {
+            if (_isDead)
+            {
+                return;
+            }
+
+            float validAmount = Mathf.Max(0f, amount);
+            if (validAmount <= 0f)
+            {
+                return;
+            }
+
+            _currentHp = Mathf.Min(_maxHp, _currentHp + validAmount);
+        }
+
+        private void ResetHealth()
+        {
+            _maxHp = Mathf.Max(1f, _maxHp);
+            _currentHp = _maxHp;
+            _isDead = false;
+        }
+
+        private void Die()
+        {
+            _isDead = true;
+            _currentHp = 0f;
+
+            gameObject.SetActive(false);
+        }
+    }
+}
