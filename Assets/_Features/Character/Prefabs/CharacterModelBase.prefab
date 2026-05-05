@@ -1,0 +1,358 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &6732290822289039488
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7836992771483110567}
+  - component: {fileID: 8747978727770030785}
+  - component: {fileID: 2551798694848038042}
+  - component: {fileID: 6457469966860481856}
+  m_Layer: 3
+  m_Name: Capsule
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7836992771483110567
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6732290822289039488}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7179965540641218944}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &8747978727770030785
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6732290822289039488}
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!23 &2551798694848038042
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6732290822289039488}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!136 &6457469966860481856
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6732290822289039488}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &8800056277905460767
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7179965540641218944}
+  - component: {fileID: -1381102960665348235}
+  - component: {fileID: -6497995452392812755}
+  - component: {fileID: 3961964901468283456}
+  - component: {fileID: -1257273843268544866}
+  - component: {fileID: 4360882408181520500}
+  - component: {fileID: 1490220000781514627}
+  - component: {fileID: -3534891964442206321}
+  - component: {fileID: 7197989968914488443}
+  m_Layer: 3
+  m_Name: CharacterModelBase
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7179965540641218944
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8800056277905460767}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 7836992771483110567}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!143 &-1381102960665348235
+CharacterController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8800056277905460767}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Height: 2
+  m_Radius: 0.5
+  m_SlopeLimit: 0
+  m_StepOffset: 0
+  m_SkinWidth: 0.05
+  m_MinMoveDistance: 0
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &-6497995452392812755
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8800056277905460767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 041a31e505024564bb119f63e65c9968, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterStatus
+  _teamId: 0
+  _maxHp: 100
+--- !u!114 &3961964901468283456
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8800056277905460767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 653df7748c8a29e439d249abce4ae406, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterMove
+  _characterController: {fileID: -1381102960665348235}
+--- !u!114 &-1257273843268544866
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8800056277905460767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e90245a7466d2b49ac2a0c93c6b64b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterAttack
+  _status: {fileID: -6497995452392812755}
+  _attackSettings:
+  - _bulletPrefab: {fileID: 0}
+    _damage: 10
+    _range: 8
+    _speed: 16
+    _angleOffsetDegrees: 0
+    _positionOffsetLocal: {x: 0, y: 0, z: 0}
+    _delaySeconds: 0
+--- !u!114 &4360882408181520500
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8800056277905460767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf13a803f06749541bfe3acf1e04515d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterSuper
+  _status: {fileID: -6497995452392812755}
+  _superSettings:
+  - _bulletPrefab: {fileID: 0}
+    _damage: 30
+    _range: 10
+    _speed: 20
+    _angleOffsetDegrees: 0
+    _positionOffsetLocal: {x: 0, y: 0, z: 0}
+    _delaySeconds: 0
+--- !u!114 &1490220000781514627
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8800056277905460767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45fc7373a33a0984dba1eb4716a8706e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterAttackAim
+  _previewDefinition:
+    _type: 0
+    _line:
+      _lines:
+      - _range: 6
+        _width: 1
+        _offsetAngleFromAimLine: 0
+        _offsetDistanceFromAimLine: 0
+    _fan:
+      _lines:
+      - _range: 5
+        _angle: 45
+        _offsetAngleFromAimLine: 0
+    _throw:
+      _isVariableRange: 1
+      _isVariableLandingTime: 1
+      _lines:
+      - _circleRadius: 1
+        _minRange: 1
+        _maxRange: 7
+        _offsetAngleFromAimLine: 0
+        _offsetDistanceFromAimLine: 0
+        _fixedParabolaHeight: 2
+        _minParabolaHeight: 1
+        _maxParabolaHeight: 3
+        _parabolaWidth: 0.25
+      _bullets:
+      - _offsetAngleFromAimLine: 0
+        _offsetDistanceFromAimLine: 0
+  _predictionMaterial: {fileID: 0}
+  _groundOffset: 0.02
+  _throwSampleCount: 16
+  _consumeOnce: 1
+--- !u!114 &-3534891964442206321
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8800056277905460767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74fc12873072aea48a4f59766c4d111e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterSuperAim
+  _previewDefinition:
+    _type: 0
+    _line:
+      _lines:
+      - _range: 6
+        _width: 1
+        _offsetAngleFromAimLine: 0
+        _offsetDistanceFromAimLine: 0
+    _fan:
+      _lines:
+      - _range: 5
+        _angle: 45
+        _offsetAngleFromAimLine: 0
+    _throw:
+      _isVariableRange: 1
+      _isVariableLandingTime: 1
+      _lines:
+      - _circleRadius: 1
+        _minRange: 1
+        _maxRange: 7
+        _offsetAngleFromAimLine: 0
+        _offsetDistanceFromAimLine: 0
+        _fixedParabolaHeight: 2
+        _minParabolaHeight: 1
+        _maxParabolaHeight: 3
+        _parabolaWidth: 0.25
+      _bullets:
+      - _offsetAngleFromAimLine: 0
+        _offsetDistanceFromAimLine: 0
+  _predictionMaterial: {fileID: 0}
+  _groundOffset: 0.02
+  _throwSampleCount: 16
+  _consumeOnce: 1
+--- !u!114 &7197989968914488443
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8800056277905460767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 675ac1f606b532e4eac4795f111ff464, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterReveal
+  _revealRadius: 2
+  _bushLayerMask:
+    serializedVersion: 2
+    m_Bits: 256
+  _maxHitCount: 64
+  _isRevealEnabled: 1

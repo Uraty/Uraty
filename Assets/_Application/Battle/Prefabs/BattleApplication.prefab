@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &483189574294234336
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4645896263127633924}
+  - component: {fileID: -6035043067423633329}
+  m_Layer: 0
+  m_Name: BattleApplication
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4645896263127633924
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 483189574294234336}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -3.17202, y: -0, z: 0.10244}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &-6035043067423633329
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 483189574294234336}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c4daadc15c2de941bc953094927b734, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Application.Battle::Uraty.Application.Battle.BattleApplication
+  _cameraMove: {fileID: 0}
+  _input: {fileID: 0}
+  _playerController: {fileID: 0}
+  _fallbackPlayerRoleType: 2
+  _roleCharacterPrefabEntries:
+  - _roleType: 0
+    _characterPrefab: {fileID: 9095663280809155271, guid: 76225e6227f412541bdd9faa383d1b72, type: 3}
+  - _roleType: 1
+    _characterPrefab: {fileID: 64248493349735629, guid: bc73278e7d937af409cf4ea00c555844, type: 3}
+  - _roleType: 2
+    _characterPrefab: {fileID: 414510161762077789, guid: e3ab0d20fafe40b4e956a3adf576b039, type: 3}
+  - _roleType: 3
+    _characterPrefab: {fileID: 7931562737157900142, guid: e4f55ec51b5d5d346a0a6a7fedc573aa, type: 3}

@@ -5,16 +5,17 @@ TagManager:
   serializedVersion: 3
   tags:
   - Item
+  - Character
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Character
   - Water
   - UI
-  - 
-  - 
-  - 
+  - Bullet
+  - Terrain
+  - Bush
   - 
   - 
   - 

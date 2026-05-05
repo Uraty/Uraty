@@ -1,0 +1,14 @@
+{
+    "name": "Uraty.Systems.Camera",
+    "rootNamespace": "Uraty.Systems.Camera",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

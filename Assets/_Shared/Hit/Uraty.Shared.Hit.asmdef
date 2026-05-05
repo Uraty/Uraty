@@ -1,0 +1,16 @@
+{
+    "name": "Uraty.Shared.Hit",
+    "rootNamespace": "Uraty.Shared.Hit",
+    "references": [
+        "Uraty.Shared.Team"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
