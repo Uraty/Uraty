@@ -106,4 +106,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Uraty.Feature.Camera::CameraMove
   _target: {fileID: 0}
-  _offset: {x: 7, y: 10, z: 0}
+  _offset: {x: 0, y: 15, z: -10}
