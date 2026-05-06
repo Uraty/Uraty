@@ -6,9 +6,16 @@ namespace Uraty.Features.Character
 {
     public sealed class CharacterMove : MonoBehaviour
     {
-        [SerializeField] private CharacterController _characterController;
+        private const float MinMoveDirectionSqrMagnitude = 0.0001f;
 
-        private float _moveSpeed = 20;
+        [SerializeField]
+        private CharacterController _characterController;
+
+        [SerializeField]
+        private float _moveSpeed = 10.0f;
+
+        [SerializeField]
+        private float _rotationSpeedDegrees = 720.0f;
 
         private void Reset()
         {
@@ -38,13 +45,32 @@ namespace Uraty.Features.Character
         {
             moveDirectionWorld.y = 0.0f;
 
+            if (moveDirectionWorld.sqrMagnitude <= MinMoveDirectionSqrMagnitude)
+            {
+                return;
+            }
+
             if (moveDirectionWorld.sqrMagnitude > 1.0f)
             {
                 moveDirectionWorld.Normalize();
             }
 
+            Rotate(moveDirectionWorld);
+
             _characterController.Move(
                 moveDirectionWorld * _moveSpeed * Time.deltaTime);
+        }
+
+        private void Rotate(Vector3 moveDirectionWorld)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(
+                moveDirectionWorld,
+                Vector3.up);
+
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation,
+                targetRotation,
+                _rotationSpeedDegrees * Time.deltaTime);
         }
     }
 }
