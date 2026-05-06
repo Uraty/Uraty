@@ -8,20 +8,24 @@ namespace Uraty.Features.Character
     public sealed class CharacterStatus : MonoBehaviour, IBulletHittable
     {
         [Header("Team")]
-        [SerializeField] private TeamId _teamId = TeamId.None;
+        [SerializeField]
+        private TeamId _teamId = TeamId.None;
 
         [Header("Health")]
         [Min(1f)]
-        [SerializeField] private float _maxHp = 100f;
+        [SerializeField]
+        private float _maxHp = 100f;
 
         private float _currentHp;
         private bool _isDead;
+        private bool _isInsideBush;
 
         public TeamId TeamId => _teamId;
         public float MaxHp => _maxHp;
         public float CurrentHp => _currentHp;
         public bool IsDead => _isDead;
         public bool IsAlive => !_isDead;
+        public bool IsInsideBush => _isInsideBush;
 
         private void Awake()
         {
@@ -32,6 +36,11 @@ namespace Uraty.Features.Character
         {
             _teamId = teamId;
             ResetHealth();
+        }
+
+        public void SetInsideBush(bool isInsideBush)
+        {
+            _isInsideBush = isInsideBush;
         }
 
         public bool ReceiveBulletHit(
@@ -92,6 +101,7 @@ namespace Uraty.Features.Character
             _maxHp = Mathf.Max(1f, _maxHp);
             _currentHp = _maxHp;
             _isDead = false;
+            _isInsideBush = false;
         }
 
         private void Die()

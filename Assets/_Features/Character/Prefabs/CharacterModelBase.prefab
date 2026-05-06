@@ -131,6 +131,7 @@ GameObject:
   - component: {fileID: 1490220000781514627}
   - component: {fileID: -3534891964442206321}
   - component: {fileID: 7197989968914488443}
+  - component: {fileID: 33456693572925344}
   m_Layer: 3
   m_Name: CharacterModelBase
   m_TagString: Untagged
@@ -356,3 +357,20 @@ MonoBehaviour:
     m_Bits: 256
   _maxHitCount: 64
   _isRevealEnabled: 1
+--- !u!114 &33456693572925344
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8800056277905460767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ac7a91fe79d4e5408e8ec34a691b52a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterDetect
+  _characterStatus: {fileID: -6497995452392812755}
+  _bushLayer:
+    serializedVersion: 2
+    m_Bits: 256
+  _checkRadius: 0.05
