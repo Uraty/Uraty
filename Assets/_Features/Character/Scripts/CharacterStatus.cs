@@ -56,6 +56,7 @@ namespace Uraty.Features.Character
 
             ApplyDamage(damage);
 
+            // 貫通攻撃でない場合は弾を壊す
             return !isPiercing;
         }
 

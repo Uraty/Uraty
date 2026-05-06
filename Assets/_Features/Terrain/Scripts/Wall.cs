@@ -9,6 +9,7 @@ namespace Uraty.Features.Terrain
     {
         public bool ReceiveBulletHit(GameObject owner, TeamId teamId, float damage, bool isPiercing)
         {
+            // 弾は壊す
             return true;
         }
     }
