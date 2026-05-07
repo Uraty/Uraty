@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 using R3;
 
@@ -42,6 +43,11 @@ namespace Uraty.Application.Battle
         [Header("Character Prefabs")]
         [SerializeField]
         private RoleCharacterPrefabEntry[] _roleCharacterPrefabEntries;
+
+        [Header("Spawn")]
+        [Tooltip("スポナーを検索する対象レイヤー")]
+        [SerializeField]
+        private LayerMask _spawnerLayerMask;
 
         private readonly List<GameObject> _characterObjects = new();
         private readonly Dictionary<GameObject, Renderer[]> _characterRenderersByObject = new();
@@ -117,6 +123,8 @@ namespace Uraty.Application.Battle
             GameObject characterPrefab = FindCharacterPrefab(roleType);
             GameObject characterObject = Instantiate(characterPrefab);
 
+            AssignCharacterToSpawnerPosition(characterObject, teamId);
+
             CharacterStatus characterStatus = GetRequiredComponent<CharacterStatus>(characterObject);
             characterStatus.Initialize(teamId);
 
@@ -124,6 +132,104 @@ namespace Uraty.Application.Battle
             CacheCharacterRenderers(characterObject);
 
             return characterObject;
+        }
+
+        private void AssignCharacterToSpawnerPosition(GameObject characterObject, TeamId teamId)
+        {
+            if (characterObject == null)
+            {
+                return;
+            }
+
+            if (_spawnerLayerMask.value == 0)
+            {
+                throw new InvalidOperationException(
+                    "Spawner LayerMask が未設定です。BattleApplication の _spawnerLayerMask を設定してください。");
+            }
+
+            Component spawner = FindAndReserveSpawnerComponent(teamId);
+            if (spawner == null)
+            {
+                throw new InvalidOperationException(
+                    $"TeamId={teamId} の未使用スポナーが見つかりません。スポナー数を確認してください。");
+            }
+
+            Transform t = characterObject.transform;
+            t.position = spawner.transform.position;
+            t.rotation = spawner.transform.rotation;
+        }
+
+        private Component FindAndReserveSpawnerComponent(TeamId teamId)
+        {
+            // Terrain 側 asmdef を参照していない Applicationでも動かせるよう、型を文字列で解決する。
+            // 対象は Assets/_Features/Terrain/Scripts/Spawner.cs の `Uraty.Features.Terrain.Spawner` を想定。
+            const string spawnerTypeName = "Uraty.Features.Terrain.Spawner";
+
+            //まずは AppDomainから型を取得（asmdef参照が無い場合は nullになり得る）
+            Type spawnerType = Type.GetType(spawnerTypeName);
+            if (spawnerType == null)
+            {
+                Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
+                for (int i = 0; i < assemblies.Length && spawnerType == null; i++)
+                {
+                    spawnerType = assemblies[i].GetType(spawnerTypeName);
+                }
+            }
+
+            if (spawnerType == null)
+            {
+                throw new InvalidOperationException(
+                    $"{spawnerTypeName} が見つかりません。asmdef参照または型名を確認してください。\n" +
+                    "（Uraty.Features.Terrain のアセンブリが Battleから参照されていない可能性があります）");
+            }
+
+            Component[] spawners = (Component[])FindObjectsByType(
+                spawnerType,
+                FindObjectsInactive.Exclude,
+                FindObjectsSortMode.None);
+
+            PropertyInfo teamIdProperty = spawnerType.GetProperty("TeamId", BindingFlags.Instance | BindingFlags.Public);
+            MethodInfo tryReserveMethod = spawnerType.GetMethod("TryReserve", BindingFlags.Instance | BindingFlags.Public);
+
+            if (teamIdProperty == null)
+            {
+                throw new InvalidOperationException($"{spawnerTypeName}.TeamId プロパティが見つかりません。");
+            }
+
+            if (tryReserveMethod == null)
+            {
+                throw new InvalidOperationException($"{spawnerTypeName}.TryReserve() が見つかりません。");
+            }
+
+            for (int i = 0; i < spawners.Length; i++)
+            {
+                Component spawner = spawners[i];
+                if (spawner == null)
+                {
+                    continue;
+                }
+
+                if (((1 << spawner.gameObject.layer) & _spawnerLayerMask.value) == 0)
+                {
+                    continue;
+                }
+
+                object propertyValue = teamIdProperty.GetValue(spawner, null);
+                if (propertyValue is not TeamId spawnerTeamId || spawnerTeamId != teamId)
+                {
+                    continue;
+                }
+
+                bool reserved = (bool)tryReserveMethod.Invoke(spawner, null);
+                if (!reserved)
+                {
+                    continue;
+                }
+
+                return spawner;
+            }
+
+            return null;
         }
 
         private void ConfigureBushRevealSensors(TeamId visibleTeamId)

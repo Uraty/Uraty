@@ -642,10 +642,6 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1397740527}
     - target: {fileID: -6035043067423633329, guid: a2178361e364e6642a09abe774603270, type: 3}
-      propertyPath: _spawnerLayerMask.m_Bits
-      value: 1024
-      objectReference: {fileID: 0}
-    - target: {fileID: -6035043067423633329, guid: a2178361e364e6642a09abe774603270, type: 3}
       propertyPath: _roleCharacterPrefabEntries.Array.data[0]._characterPrefab
       value: 
       objectReference: {fileID: 9095663280809155271, guid: 76225e6227f412541bdd9faa383d1b72, type: 3}
