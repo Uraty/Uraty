@@ -1,0 +1,16 @@
+{
+    "name": "Uraty.Feature.Button",
+    "rootNamespace": "Uraty.Feature.Button",
+    "references": [
+        "GUID:12f6bca580722de41b91f6011da4a584"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
