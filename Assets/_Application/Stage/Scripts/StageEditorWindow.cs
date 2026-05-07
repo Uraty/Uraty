@@ -1,4 +1,7 @@
+using System.Collections.Generic;
+
 using UnityEditor;
+
 using UnityEngine;
 
 namespace Uraty.Features.Stage
@@ -26,6 +29,15 @@ namespace Uraty.Features.Stage
 
         private bool _showGrid = true;
         private bool _isPanningCamera;
+
+        private bool _isPaintingStage;
+        private int _paintUndoGroup = -1;
+
+        private bool _mirrorLeftRight;
+        private bool _mirrorTopBottom;
+        private bool _mirrorPointSymmetry;
+
+        private readonly List<Vector2Int> _brushTargetCells = new();
 
         [MenuItem("Tools/Stage Editor")]
         private static void OpenFromMenu()
@@ -71,11 +83,16 @@ namespace Uraty.Features.Stage
                 SyncStageSizeFields();
                 _previewRenderer.SetStageData(_stageData);
             }
+
+            Undo.undoRedoPerformed += HandleUndoRedoPerformed;
         }
 
         private void OnDisable()
         {
             _isPanningCamera = false;
+
+            Undo.undoRedoPerformed -= HandleUndoRedoPerformed;
+            EndPaintUndoGroup();
 
             if (_previewRenderer != null)
             {
@@ -204,6 +221,20 @@ namespace Uraty.Features.Stage
                         _previewRenderer.SetShowGrid(_showGrid);
                     }
 
+                    Repaint();
+                }
+
+                EditorGUILayout.Space(4f);
+                EditorGUILayout.LabelField("Brush", EditorStyles.boldLabel);
+
+                EditorGUI.BeginChangeCheck();
+
+                _mirrorLeftRight = EditorGUILayout.Toggle("左右対称配置", _mirrorLeftRight);
+                _mirrorTopBottom = EditorGUILayout.Toggle("上下対称配置", _mirrorTopBottom);
+                _mirrorPointSymmetry = EditorGUILayout.Toggle("点対称配置", _mirrorPointSymmetry);
+
+                if (EditorGUI.EndChangeCheck())
+                {
                     Repaint();
                 }
 
@@ -420,6 +451,7 @@ namespace Uraty.Features.Stage
                 if (currentEvent.type == EventType.MouseUp)
                 {
                     ResetLastPaintCell();
+                    EndPaintUndoGroup();
                 }
 
                 return;
@@ -439,7 +471,11 @@ namespace Uraty.Features.Stage
                     if (currentEvent.button == 0 || currentEvent.button == 1)
                     {
                         GUI.FocusControl(null);
-                        ApplyBrush(currentEvent.mousePosition, previewRect, currentEvent.button == 1);
+
+                        bool shouldErase = currentEvent.button == 1;
+                        BeginPaintUndoGroup(shouldErase);
+                        ApplyBrush(currentEvent.mousePosition, previewRect, shouldErase);
+
                         currentEvent.Use();
                     }
                     break;
@@ -456,6 +492,7 @@ namespace Uraty.Features.Stage
                     if (currentEvent.button == 0 || currentEvent.button == 1)
                     {
                         ResetLastPaintCell();
+                        EndPaintUndoGroup();
                         currentEvent.Use();
                     }
                     break;
@@ -489,10 +526,23 @@ namespace Uraty.Features.Stage
             _lastPaintX = x;
             _lastPaintZ = z;
 
+            BuildBrushTargetCells(x, z);
+
+            if (_brushTargetCells.Count <= 0)
+            {
+                return;
+            }
+
             if (shouldErase)
             {
-                Undo.RecordObject(_stageData, "Erase Stage Block");
-                _stageData.ClearPrefab(x, z);
+                Undo.RecordObject(_stageData, "Erase Stage Blocks");
+
+                for (int i = 0; i < _brushTargetCells.Count; i++)
+                {
+                    Vector2Int cell = _brushTargetCells[i];
+                    _stageData.ClearPrefab(cell.x, cell.y);
+                }
+
                 MarkStageDataDirtyAndRefresh();
                 return;
             }
@@ -503,9 +553,145 @@ namespace Uraty.Features.Stage
                 return;
             }
 
-            Undo.RecordObject(_stageData, "Paint Stage Block");
-            _stageData.SetPrefab(x, z, selectedPrefab);
+            Undo.RecordObject(_stageData, "Paint Stage Blocks");
+
+            for (int i = 0; i < _brushTargetCells.Count; i++)
+            {
+                Vector2Int cell = _brushTargetCells[i];
+                _stageData.SetPrefab(cell.x, cell.y, selectedPrefab);
+            }
+
             MarkStageDataDirtyAndRefresh();
+        }
+
+        private void BuildBrushTargetCells(int x, int z)
+        {
+            _brushTargetCells.Clear();
+
+            AddBrushTargetCell(x, z);
+
+            if (_stageData == null)
+            {
+                return;
+            }
+
+            bool added;
+
+            do
+            {
+                added = false;
+
+                int count = _brushTargetCells.Count;
+                for (int i = 0; i < count; i++)
+                {
+                    Vector2Int cell = _brushTargetCells[i];
+
+                    if (_mirrorLeftRight)
+                    {
+                        added |= AddBrushTargetCell(
+                            _stageData.Width - 1 - cell.x,
+                            cell.y);
+                    }
+
+                    if (_mirrorTopBottom)
+                    {
+                        added |= AddBrushTargetCell(
+                            cell.x,
+                            _stageData.Height - 1 - cell.y);
+                    }
+
+                    if (_mirrorPointSymmetry)
+                    {
+                        added |= AddPointSymmetryCell(cell.x, cell.y);
+                    }
+                }
+            }
+            while (added);
+        }
+
+        private bool AddPointSymmetryCell(int x, int z)
+        {
+            if (_stageData == null)
+            {
+                return false;
+            }
+
+            return AddBrushTargetCell(
+                _stageData.Width - 1 - x,
+                _stageData.Height - 1 - z);
+        }
+
+        private bool AddBrushTargetCell(int x, int z)
+        {
+            if (_stageData == null)
+            {
+                return false;
+            }
+
+            if (!_stageData.IsInBounds(x, z))
+            {
+                return false;
+            }
+
+            Vector2Int cell = new(x, z);
+
+            if (_brushTargetCells.Contains(cell))
+            {
+                return false;
+            }
+
+            _brushTargetCells.Add(cell);
+            return true;
+        }
+
+        private void BeginPaintUndoGroup(bool shouldErase)
+        {
+            if (_isPaintingStage)
+            {
+                return;
+            }
+
+            _isPaintingStage = true;
+
+            Undo.IncrementCurrentGroup();
+            _paintUndoGroup = Undo.GetCurrentGroup();
+
+            Undo.SetCurrentGroupName(
+                shouldErase
+                    ? "Erase Stage Blocks"
+                    : "Paint Stage Blocks");
+        }
+
+        private void EndPaintUndoGroup()
+        {
+            if (!_isPaintingStage)
+            {
+                return;
+            }
+
+            if (_paintUndoGroup >= 0)
+            {
+                Undo.CollapseUndoOperations(_paintUndoGroup);
+            }
+
+            _paintUndoGroup = -1;
+            _isPaintingStage = false;
+        }
+
+        private void HandleUndoRedoPerformed()
+        {
+            if (_stageData != null)
+            {
+                SyncStageSizeFields();
+            }
+
+            if (_previewRenderer != null)
+            {
+                _previewRenderer.Rebuild();
+            }
+
+            ResetLastPaintCell();
+            Repaint();
         }
 
         private void DrawPreviewOverlay(Rect previewRect)
@@ -526,7 +712,9 @@ namespace Uraty.Features.Stage
                 ? $"Prefab: {selectedPrefab.name}"
                 : "Prefab: None";
 
-            Rect infoRect = new Rect(previewRect.x + 8f, previewRect.y + 8f, 420f, 72f);
+            string mirrorText = GetMirrorModeText();
+
+            Rect infoRect = new Rect(previewRect.x + 8f, previewRect.y + 8f, 520f, 88f);
             GUI.Box(infoRect, GUIContent.none);
 
             Rect labelRect = new Rect(infoRect.x + 8f, infoRect.y + 6f, infoRect.width - 16f, 18f);
@@ -536,7 +724,37 @@ namespace Uraty.Features.Stage
             GUI.Label(labelRect, prefabText);
 
             labelRect.y += 16f;
+            GUI.Label(labelRect, mirrorText);
+
+            labelRect.y += 16f;
             GUI.Label(labelRect, "LMB: Paint / RMB: Erase / MMB Drag: Pan / Wheel: Zoom");
+        }
+
+        private string GetMirrorModeText()
+        {
+            List<string> modes = new();
+
+            if (_mirrorLeftRight)
+            {
+                modes.Add("Left-Right");
+            }
+
+            if (_mirrorTopBottom)
+            {
+                modes.Add("Top-Bottom");
+            }
+
+            if (_mirrorPointSymmetry)
+            {
+                modes.Add("Point");
+            }
+
+            if (modes.Count <= 0)
+            {
+                return "Mirror: None";
+            }
+
+            return $"Mirror: {string.Join(" + ", modes)}";
         }
 
         private GameObject GetSelectedPrefab()

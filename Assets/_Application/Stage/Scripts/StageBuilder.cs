@@ -13,11 +13,7 @@ namespace Uraty.Features.Stage
     {
         [SerializeField] private StageData _stageData;
         [SerializeField] private Transform _generatedRoot;
-        [SerializeField] private bool _clearBeforeGenerate = true;
-        [SerializeField] private bool _alignBottomToGround = true;
         [SerializeField] private bool _keepPrefabConnectionInEditor = true;
-        [SerializeField] private bool _generateOnStart = true;
-        [SerializeField] private bool _generateOnValidate = false;
 
         public StageData StageData => _stageData;
 
@@ -27,63 +23,11 @@ namespace Uraty.Features.Stage
 
         private void Start()
         {
-            if (Application.isPlaying && _generateOnStart)
+            if (Application.isPlaying)
             {
                 Generate();
             }
         }
-
-#if UNITY_EDITOR
-        private void OnValidate()
-        {
-            if (Application.isPlaying)
-            {
-                return;
-            }
-
-            if (!_generateOnValidate)
-            {
-                return;
-            }
-
-            if (_stageData == null)
-            {
-                return;
-            }
-
-            QueueGenerateInEditor();
-        }
-
-        private void QueueGenerateInEditor()
-        {
-            if (_isGenerateQueued)
-            {
-                return;
-            }
-
-            _isGenerateQueued = true;
-
-            EditorApplication.delayCall += HandleDelayedGenerate;
-        }
-
-        private void HandleDelayedGenerate()
-        {
-            EditorApplication.delayCall -= HandleDelayedGenerate;
-            _isGenerateQueued = false;
-
-            if (this == null)
-            {
-                return;
-            }
-
-            if (!gameObject.scene.IsValid())
-            {
-                return;
-            }
-
-            Generate();
-        }
-#endif
 
         [ContextMenu("Generate Stage")]
         public void Generate()
@@ -96,11 +40,8 @@ namespace Uraty.Features.Stage
 
             Transform root = EnsureGeneratedRoot();
 
-            if (_clearBeforeGenerate)
-            {
-                Clear();
-                root = EnsureGeneratedRoot();
-            }
+            Clear();
+            root = EnsureGeneratedRoot();
 
             IReadOnlyList<StageCellData> cells = _stageData.Cells;
             if (cells == null || cells.Count == 0)
@@ -131,14 +72,6 @@ namespace Uraty.Features.Stage
                 instance.transform.localScale = Vector3.one;
 
                 Vector3 localPosition = new Vector3(cell.X + 0.5f, 0f, cell.Z + 0.5f);
-
-                instance.transform.localPosition = localPosition;
-
-                if (_alignBottomToGround)
-                {
-                    float yOffset = CalculateBottomAlignYOffset(instance);
-                    localPosition.y += yOffset;
-                }
 
                 instance.transform.localPosition = localPosition;
                 generatedCount++;

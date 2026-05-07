@@ -1,8 +1,9 @@
-using UnityEditor;
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
+using UnityEditor;
+
+using UnityEngine;
 
 namespace Uraty.Features.Stage
 {
@@ -11,6 +12,12 @@ namespace Uraty.Features.Stage
         private const float CameraPitchDegrees = 55f;
         private const float DefaultOrthographicSize = 6f;
         private const float ZoomSensitivity = 0.08f;
+
+        private const float GridLinePixelWidth = 1.5f;
+        private const float MinGridLineThickness = 0.03f;
+        private const float MaxGridLineThickness = 0.18f;
+        private const float GridLineHeight = 0.03f;
+        private const float GridLineY = 0.015f;
 
         private StageData _stageData;
         private PreviewRenderUtility _previewUtility;
@@ -215,6 +222,7 @@ namespace Uraty.Features.Stage
             EnsurePreviewUtility();
             UpdateCameraAspect(rect);
             ApplyCameraTransform();
+            UpdateGridLineThickness(rect);
 
             _previewUtility.BeginPreview(rect, GUIStyle.none);
 
@@ -460,10 +468,6 @@ namespace Uraty.Features.Stage
                 return;
             }
 
-            const float lineThickness = 0.03f;
-            const float lineHeight = 0.03f;
-            const float y = 0.015f;
-
             _gridRoot = new GameObject("GridRoot");
             _gridRoot.hideFlags = HideFlags.HideAndDontSave;
             _gridRoot.transform.SetParent(_staticRoot.transform, false);
@@ -476,8 +480,8 @@ namespace Uraty.Features.Stage
                 line.name = $"Grid_V_{x}";
                 line.hideFlags = HideFlags.HideAndDontSave;
                 line.transform.SetParent(_gridRoot.transform, false);
-                line.transform.localPosition = new Vector3(x, y, _stageData.Height * 0.5f);
-                line.transform.localScale = new Vector3(lineThickness, lineHeight, _stageData.Height);
+                line.transform.localPosition = new Vector3(x, GridLineY, _stageData.Height * 0.5f);
+                line.transform.localScale = new Vector3(MinGridLineThickness, GridLineHeight, _stageData.Height);
 
                 Collider collider = line.GetComponent<Collider>();
                 if (collider != null)
@@ -498,8 +502,8 @@ namespace Uraty.Features.Stage
                 line.name = $"Grid_H_{z}";
                 line.hideFlags = HideFlags.HideAndDontSave;
                 line.transform.SetParent(_gridRoot.transform, false);
-                line.transform.localPosition = new Vector3(_stageData.Width * 0.5f, y, z);
-                line.transform.localScale = new Vector3(_stageData.Width, lineHeight, lineThickness);
+                line.transform.localPosition = new Vector3(_stageData.Width * 0.5f, GridLineY, z);
+                line.transform.localScale = new Vector3(_stageData.Width, GridLineHeight, MinGridLineThickness);
 
                 Collider collider = line.GetComponent<Collider>();
                 if (collider != null)
@@ -512,6 +516,48 @@ namespace Uraty.Features.Stage
                 {
                     renderer.sharedMaterial = _gridMaterial;
                 }
+            }
+        }
+
+        private void UpdateGridLineThickness(Rect previewRect)
+        {
+            if (_gridRoot == null || _stageData == null)
+            {
+                return;
+            }
+
+            float previewHeight = Mathf.Max(1f, previewRect.height);
+            float worldUnitsPerPixel = (_orthographicSize * 2f) / previewHeight;
+
+            float thickness = Mathf.Clamp(
+                worldUnitsPerPixel * GridLinePixelWidth,
+                MinGridLineThickness,
+                MaxGridLineThickness);
+
+            for (int i = 0; i < _gridRoot.transform.childCount; i++)
+            {
+                Transform line = _gridRoot.transform.GetChild(i);
+                if (line == null)
+                {
+                    continue;
+                }
+
+                Vector3 scale = line.localScale;
+
+                if (line.name.StartsWith("Grid_V_"))
+                {
+                    scale.x = thickness;
+                    scale.y = GridLineHeight;
+                    scale.z = _stageData.Height;
+                }
+                else if (line.name.StartsWith("Grid_H_"))
+                {
+                    scale.x = _stageData.Width;
+                    scale.y = GridLineHeight;
+                    scale.z = thickness;
+                }
+
+                line.localScale = scale;
             }
         }
 

@@ -2,11 +2,13 @@ using System.Collections.Generic;
 
 using UnityEngine;
 
+using Uraty.Shared.Team;
+using Uraty.Shared.Hit;
 using Uraty.Shared.Visibility;
 
 namespace Uraty.Features.Terrain
 {
-    public sealed class Bush : MonoBehaviour, IRevealTarget
+    public sealed class Bush : MonoBehaviour, IRevealTarget, IBulletHittable
     {
         private readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private readonly int ColorId = Shader.PropertyToID("_Color");
@@ -191,6 +193,12 @@ namespace Uraty.Features.Terrain
                 ColorPropertyId = colorPropertyId;
                 OriginalColor = originalColor;
             }
+        }
+
+        public bool ReceiveBulletHit(GameObject owner, TeamId teamId, float damage, bool isPiercing)
+        {
+            // 弾は壊さない
+            return false;
         }
     }
 }

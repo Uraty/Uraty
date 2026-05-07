@@ -1,9 +1,16 @@
 using UnityEngine;
 
+using Uraty.Shared.Team;
+using Uraty.Shared.Hit;
+
 namespace Uraty.Features.Terrain
 {
-    public class Fence : MonoBehaviour
+    public class Fence : MonoBehaviour, IBulletHittable
     {
-
+        public bool ReceiveBulletHit(GameObject owner, TeamId teamId, float damage, bool isPiercing)
+        {
+            // 弾は壊す
+            return true;
+        }
     }
 }
