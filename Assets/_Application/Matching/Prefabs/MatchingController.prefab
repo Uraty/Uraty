@@ -44,6 +44,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1d9ca288087e72043b6572cf2d9c3ea4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Uraty.Application.Matching::Uraty.Application.Matching.MatchingController
-  _targetSceneName: ProtoRomScene
+  _targetSceneName: BattleScene
   _loadSceneMode: 0
   _autoTransitionSeconds: 3
