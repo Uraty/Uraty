@@ -185,8 +185,11 @@ namespace Uraty.Features.Character
 
         private Vector3 GetCellCenterPosition(Vector3 worldPosition)
         {
-            float x = Mathf.Round(worldPosition.x / _cellSize) * _cellSize;
-            float z = Mathf.Round(worldPosition.z / _cellSize) * _cellSize;
+            int xIndex = Mathf.FloorToInt(worldPosition.x / _cellSize);
+            int zIndex = Mathf.FloorToInt(worldPosition.z / _cellSize);
+
+            float x = (xIndex * _cellSize) + (_cellSize * 0.5f);
+            float z = (zIndex * _cellSize) + (_cellSize * 0.5f);
 
             return new Vector3(x, worldPosition.y, z);
         }
