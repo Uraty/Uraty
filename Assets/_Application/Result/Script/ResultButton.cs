@@ -3,20 +3,21 @@ using UnityEngine.SceneManagement;
 
 namespace Uraty.Features.Result
 {
-    public class ResultButtan : MonoBehaviour
+    public class ResultButton : MonoBehaviour
     {
         [Header("シーン名設定")]
-        [SerializeField] private string LobbyName;
-        [SerializeField] private string RematchName;
+        [SerializeField] private string _lobbySceneName;
 
-        public void LobbyScene()
+        [SerializeField] private string _rematchSceneName;
+
+        public void LoadLobbyScene()
         {
-            SceneManager.LoadScene(LobbyName);
+            SceneManager.LoadScene(_lobbySceneName);
         }
 
-        public void RematchScene()
+        public void LoadRematchScene()
         {
-            SceneManager.LoadScene(RematchName);
+            SceneManager.LoadScene(_rematchSceneName);
         }
 
         public void QuitGame()
