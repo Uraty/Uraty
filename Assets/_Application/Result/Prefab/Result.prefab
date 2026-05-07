@@ -78,9 +78,8 @@ GameObject:
   m_Component:
   - component: {fileID: 32184231137645546}
   - component: {fileID: 9137217195578447259}
-  - component: {fileID: 5210885730581825877}
   m_Layer: 0
-  m_Name: ResultManager (1)
+  m_Name: ResultManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -132,20 +131,6 @@ MonoBehaviour:
   - {fileID: 4927649781658016414}
   - {fileID: 1051557587189845099}
   - {fileID: 1105138038560983717}
---- !u!114 &5210885730581825877
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 114813298741039664}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: abc2ea6f5b7a60d41a8b973fc9a1f5e4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Uraty.Application::Uraty.Features.Result.ResultButtan
-  _lobbySceneName: TitleScene
-  _rematchSceneName: TitleScene
 --- !u!1 &450321912416487327
 GameObject:
   m_ObjectHideFlags: 0
@@ -346,9 +331,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 5210885730581825877}
-        m_TargetAssemblyTypeName: Uraty.Features.Result.ResultButtan, Uraty.Application
-        m_MethodName: RematchScene
+      - m_Target: {fileID: 5889198515063584819}
+        m_TargetAssemblyTypeName: Uraty.Features.Result.ResultButton, Uraty.Application
+        m_MethodName: LoadRematchScene
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -786,6 +771,7 @@ Transform:
   m_Children:
   - {fileID: 852737710539711743}
   - {fileID: 32184231137645546}
+  - {fileID: 4194618496377799552}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4175450451750490936
@@ -1012,9 +998,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 5210885730581825877}
-        m_TargetAssemblyTypeName: Uraty.Features.Result.ResultButtan, Uraty.Application
-        m_MethodName: LobbyScene
+      - m_Target: {fileID: 5889198515063584819}
+        m_TargetAssemblyTypeName: Uraty.Features.Result.ResultButton, Uraty.Application
+        m_MethodName: LoadLobbyScene
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1382,8 +1368,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 5210885730581825877}
-        m_TargetAssemblyTypeName: Uraty.Features.Result.ResultButtan, Uraty.Application
+      - m_Target: {fileID: 5889198515063584819}
+        m_TargetAssemblyTypeName: Uraty.Features.Result.ResultButton, Uraty.Application
         m_MethodName: QuitGame
         m_Mode: 1
         m_Arguments:
@@ -1636,6 +1622,52 @@ Transform:
   m_Children: []
   m_Father: {fileID: 852737710539711743}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &8556748846476209121
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4194618496377799552}
+  - component: {fileID: 5889198515063584819}
+  m_Layer: 0
+  m_Name: GameInput
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4194618496377799552
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8556748846476209121}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5885153383105893575}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5889198515063584819
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8556748846476209121}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: abc2ea6f5b7a60d41a8b973fc9a1f5e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Application::Uraty.Features.Result.ResultButton
+  _lobbySceneName: TitleScene
+  _rematchSceneName: TitleScene
 --- !u!1 &8673213720860947668
 GameObject:
   m_ObjectHideFlags: 0
