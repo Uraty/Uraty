@@ -114,18 +114,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: adf9ad227a5336f4bb872aff383efbfe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Uraty.Application::Uraty.Features.Result.ResultPlayerData
-  resultPlayerDataTexts:
+  _resultPlayerDataTexts:
   - {fileID: 9000813443229461050}
   - {fileID: 5839343329880260478}
   - {fileID: 4409075677262158730}
   - {fileID: 4826348200863233706}
   - {fileID: 6077359160361283064}
   - {fileID: 6659286030906580318}
-  Assassin: {fileID: 7931562737157900142, guid: e4f55ec51b5d5d346a0a6a7fedc573aa, type: 3}
-  Attacker: {fileID: 414510161762077789, guid: e3ab0d20fafe40b4e956a3adf576b039, type: 3}
-  Fighter: {fileID: 9095663280809155271, guid: 76225e6227f412541bdd9faa383d1b72, type: 3}
-  Sniper: {fileID: 64248493349735629, guid: bc73278e7d937af409cf4ea00c555844, type: 3}
-  CharacterSpawnPos:
+  _assassinPrefab: {fileID: 7931562737157900142, guid: e4f55ec51b5d5d346a0a6a7fedc573aa, type: 3}
+  _attackerPrefab: {fileID: 414510161762077789, guid: e3ab0d20fafe40b4e956a3adf576b039, type: 3}
+  _fighterPrefab: {fileID: 9095663280809155271, guid: 76225e6227f412541bdd9faa383d1b72, type: 3}
+  _sniperPrefab: {fileID: 64248493349735629, guid: bc73278e7d937af409cf4ea00c555844, type: 3}
+  _characterSpawnPositions:
   - {fileID: 4048324344578025772}
   - {fileID: 5396699175063472119}
   - {fileID: 4690185211437606835}
@@ -144,8 +144,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: abc2ea6f5b7a60d41a8b973fc9a1f5e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Uraty.Application::Uraty.Features.Result.ResultButtan
-  LobbyName: TitleScene
-  RematchName: 
+  _lobbySceneName: 
+  _rematchSceneName: 
 --- !u!1 &450321912416487327
 GameObject:
   m_ObjectHideFlags: 0
