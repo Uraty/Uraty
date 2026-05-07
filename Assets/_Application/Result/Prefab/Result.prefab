@@ -144,8 +144,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: abc2ea6f5b7a60d41a8b973fc9a1f5e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Uraty.Application::Uraty.Features.Result.ResultButtan
-  _lobbySceneName: 
-  _rematchSceneName: 
+  _lobbySceneName: TitleScene
+  _rematchSceneName: TitleScene
 --- !u!1 &450321912416487327
 GameObject:
   m_ObjectHideFlags: 0
