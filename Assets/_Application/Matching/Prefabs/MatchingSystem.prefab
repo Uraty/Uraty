@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 3773796519833049774}
   - component: {fileID: 2618762551910365100}
   m_Layer: 0
-  m_Name: MatchingController
+  m_Name: MatchingSystem
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -46,4 +46,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: Uraty.Application.Matching::Uraty.Application.Matching.MatchingController
   _targetSceneName: BattleScene
   _loadSceneMode: 0
-  _autoTransitionSeconds: 3
+  _autoTransitionSeconds: 100
