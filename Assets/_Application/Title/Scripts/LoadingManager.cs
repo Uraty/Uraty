@@ -3,18 +3,16 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
-namespace Uraty.Features.Title
+namespace Uraty.Application.Title
 {
     public sealed class LoadingManager : MonoBehaviour
     {
         [SerializeField] private Slider _loadingBar;
+        [SerializeField] private const string NextSceneName = "LobbyScene";
+        [SerializeField] private const float MinLoadingSeconds = 4.0f;
 
         private const string BgmVolumeKey = "BGM_Volume";
         private const string SeVolumeKey  = "SE_Volume";
-        private const string NextSceneName = "Lobby";
-
-        // シーンが軽量でも最低限この秒数はローディング画面を表示する
-        private const float MinLoadingSeconds = 4.0f;
 
         private void Start()
         {
