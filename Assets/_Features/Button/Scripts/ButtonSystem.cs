@@ -40,30 +40,9 @@ namespace Uraty.Feature.Button
 
         private bool _isInputSubscribed;
 
-        private void Awake()
+        private void Start()
         {
-            if (_gameInput == null)
-            {
-                _gameInput = FindFirstObjectByType<GameInput>();
-                LogDebug("Scene内からGameInputを検索しました。");
-            }
-
-            if (_targetRectTransform == null)
-            {
-                _targetRectTransform = GetComponent<RectTransform>();
-                LogDebug("自身のRectTransformをクリック判定対象に設定しました。");
-            }
-
-            if (_targetCanvas == null)
-            {
-                _targetCanvas = GetComponentInParent<Canvas>();
-                LogDebug("親階層からCanvasを取得しました。");
-            }
-        }
-
-        private void OnEnable()
-        {
-            LogDebug("OnEnableが呼ばれました。");
+            LogDebug("Startが呼ばれました。");
 
             if (_gameInput == null)
             {
