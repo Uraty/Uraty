@@ -1,0 +1,21 @@
+{
+    "name": "Uraty.Application.Lobby",
+    "rootNamespace": "Uraty.Application.Lobby",
+    "references": [
+        "Unity.TextMeshPro",
+        "Uraty.Feature.Akane_GameMode",
+        "Uraty.Feature.Akane_TestCharacter",
+        "Uraty.Systems.Input",
+        "Uraty.Features.Character",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

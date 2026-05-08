@@ -35,6 +35,12 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/_Sandboxes/Nishiguchi/Scene/ProtoRomScene.unity
     guid: 54b0d994382188a4699138ec9b6c7fdd
+  - enabled: 1
+    path: Assets/_Application/Battle/Scenes/BattleScene.unity
+    guid: b5ee3e56d2fd97b4e8759cfaddddd98f
+  - enabled: 1
+    path: Assets/_Application/Lobby/Scenes/LobbyCharacterSelectScene.unity
+    guid: 2d078939225c76d4eb2092e8f1eb1c07
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0
