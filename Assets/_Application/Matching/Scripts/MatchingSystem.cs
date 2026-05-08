@@ -1,10 +1,13 @@
 using UnityEngine;
+using Uraty.Systems.Input;
 using UnityEngine.SceneManagement;
 
 namespace Uraty.Application.Matching
 {
-    public sealed class MatchingController : MonoBehaviour
+    public sealed class MatchingSystem : MonoBehaviour
     {
+        [SerializeField] private GameInput _gameInput;
+
         [Header("遷移先Scene名")]
         [SerializeField] private string _targetSceneName = "";
 
@@ -17,6 +20,16 @@ namespace Uraty.Application.Matching
         private float _elapsedSeconds;
         private bool _hasLoadedScene;
 
+        private void Awake()
+        {
+            if(_gameInput == null)
+            {
+                Debug.LogError($"{nameof(MatchingSystem)}: GameInputが設定されていません。");
+                return;
+            }
+
+            _gameInput.EnableUIInput();
+        }
         private void OnEnable()
         {
             _elapsedSeconds = 0.0f;
@@ -44,7 +57,7 @@ namespace Uraty.Application.Matching
         {
             if (string.IsNullOrWhiteSpace(_targetSceneName))
             {
-                Debug.LogError($"{nameof(MatchingController)}: 遷移先Scene名が設定されていません。");
+                Debug.LogError($"{nameof(MatchingSystem)}: 遷移先Scene名が設定されていません。");
                 return;
             }
 
