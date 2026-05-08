@@ -11,28 +11,32 @@ namespace Uraty.Feature.Button
     /// </summary>
     public sealed class ButtonSystem : MonoBehaviour
     {
-        [Header("入力管理")]
-        [SerializeField] private GameInput _gameInput;
+        [SerializeField, Tooltip("入力管理")]
+        private GameInput _gameInput;
 
-        [Header("クリック判定対象")]
-        [SerializeField] private RectTransform _targetRectTransform;
+        [SerializeField, Tooltip("クリック判定対象")]
+        private RectTransform _targetRectTransform;
 
-        [Header("対象UIが所属するCanvas")]
-        [SerializeField] private Canvas _targetCanvas;
+        [SerializeField, Tooltip("対象UIが所属するCanvas")]
+        private Canvas _targetCanvas;
 
-        [Header("使用する入力")]
-        [SerializeField] private bool _usesSubmit = true;
+        [SerializeField, Tooltip("Submit入力で押下判定を行う")]
+        private bool _usesSubmit = true;
 
-        [SerializeField] private bool _usesCancel = false;
+        [SerializeField, Tooltip("Cancel入力で押下判定を行う")]
+        private bool _usesCancel = false;
 
-        [Header("対象UI上で押された時だけ反応する")]
-        [SerializeField] private bool _requiresPointerInside = true;
+        [SerializeField, Tooltip("対象UI上で押された時だけ反応する")]
+        private bool _requiresPointerInside = true;
 
-        [Header("非ポインター入力を許可する")]
-        [SerializeField] private bool _allowsNonPointerInput = false;
+        [SerializeField, Tooltip("ゲームパッドやキーボードなど、座標を持たない入力も許可する")]
+        private bool _allowsNonPointerInput = false;
 
-        [Header("押された時に実行する処理")]
-        [SerializeField] private UnityEvent _pressed = new UnityEvent();
+        [SerializeField, Tooltip("挙動確認用ログを出力する")]
+        private bool _outputsDebugLog = true;
+
+        [SerializeField, Tooltip("押された時に実行する処理")]
+        private UnityEvent _pressed = new UnityEvent();
 
         private bool _isInputSubscribed;
 
@@ -41,32 +45,41 @@ namespace Uraty.Feature.Button
             if (_gameInput == null)
             {
                 _gameInput = FindFirstObjectByType<GameInput>();
+                LogDebug("Scene内からGameInputを検索しました。");
             }
 
             if (_targetRectTransform == null)
             {
                 _targetRectTransform = GetComponent<RectTransform>();
+                LogDebug("自身のRectTransformをクリック判定対象に設定しました。");
             }
 
             if (_targetCanvas == null)
             {
                 _targetCanvas = GetComponentInParent<Canvas>();
+                LogDebug("親階層からCanvasを取得しました。");
             }
         }
 
         private void OnEnable()
         {
+            LogDebug("OnEnableが呼ばれました。");
+
             if (_gameInput == null)
             {
                 Debug.LogError($"{nameof(ButtonSystem)}: Scene内にGameInputが見つかりません。");
                 return;
             }
 
+            LogDebug("GameInput.EnableUIInput() を呼び出しました。");
+
             if (!_gameInput.UI.enabled)
             {
                 Debug.LogError($"{nameof(ButtonSystem)}: GameInput.UIが有効化されていません。");
                 return;
             }
+
+            LogDebug("GameInput.UI は有効です。");
 
             if (_usesSubmit && _gameInput.UI.Submit == null)
             {
@@ -85,6 +98,7 @@ namespace Uraty.Feature.Button
 
         private void OnDisable()
         {
+            LogDebug("OnDisableが呼ばれました。");
             UnsubscribeInput();
         }
 
@@ -95,10 +109,12 @@ namespace Uraty.Feature.Button
         {
             if (listener == null)
             {
+                Debug.LogError($"{nameof(ButtonSystem)}: 登録しようとした関数がnullです。");
                 return;
             }
 
             _pressed.AddListener(listener);
+            LogDebug("PressedListenerを登録しました。");
         }
 
         /// <summary>
@@ -112,6 +128,7 @@ namespace Uraty.Feature.Button
             }
 
             _pressed.RemoveListener(listener);
+            LogDebug("PressedListenerを解除しました。");
         }
 
         public void UseSubmit()
@@ -136,6 +153,8 @@ namespace Uraty.Feature.Button
 
         private void SetInputMode(bool usesSubmit, bool usesCancel)
         {
+            LogDebug($"入力モード変更開始: Submit={usesSubmit}, Cancel={usesCancel}");
+
             bool shouldResubscribe = _isInputSubscribed;
 
             if (shouldResubscribe)
@@ -150,12 +169,15 @@ namespace Uraty.Feature.Button
             {
                 SubscribeInput();
             }
+
+            LogDebug($"入力モード変更完了: Submit={_usesSubmit}, Cancel={_usesCancel}");
         }
 
         private void SubscribeInput()
         {
             if (_isInputSubscribed)
             {
+                LogDebug("すでに入力購読済みのため、SubscribeInputをスキップしました。");
                 return;
             }
 
@@ -168,14 +190,17 @@ namespace Uraty.Feature.Button
             if (_usesSubmit)
             {
                 _gameInput.UI.Submit.performed += HandleSubmitPerformed;
+                LogDebug("UI.Submit.performed を購読しました。");
             }
 
             if (_usesCancel)
             {
                 _gameInput.UI.Cancel.performed += HandleCancelPerformed;
+                LogDebug("UI.Cancel.performed を購読しました。");
             }
 
             _isInputSubscribed = _usesSubmit || _usesCancel;
+            LogDebug($"SubscribeInput完了: IsInputSubscribed={_isInputSubscribed}");
         }
 
         private void UnsubscribeInput()
@@ -191,6 +216,7 @@ namespace Uraty.Feature.Button
             _gameInput.UI.Cancel.performed -= HandleCancelPerformed;
 
             _isInputSubscribed = false;
+            LogDebug("Submit / Cancel の購読を解除しました。");
         }
 
         /// <summary>
@@ -199,6 +225,9 @@ namespace Uraty.Feature.Button
         /// </summary>
         private void HandleSubmitPerformed(InputAction.CallbackContext context)
         {
+            LogDebug(
+                $"Submit入力を検知しました。Device={context.control.device.displayName}, Control={context.control.name}");
+
             InvokePressedIfAllowed(context);
         }
 
@@ -208,45 +237,85 @@ namespace Uraty.Feature.Button
         /// </summary>
         private void HandleCancelPerformed(InputAction.CallbackContext context)
         {
+            LogDebug(
+                $"Cancel入力を検知しました。Device={context.control.device.displayName}, Control={context.control.name}");
+
             InvokePressedIfAllowed(context);
         }
 
         private void InvokePressedIfAllowed(InputAction.CallbackContext context)
         {
-            bool isPointerInput = IsPointerInput(context);
+            bool hasPointerPosition = TryGetPointerPosition(context, out Vector2 pointerPosition);
 
-            if (_requiresPointerInside && isPointerInput && !IsPointerInsideTarget())
+            LogDebug(
+                $"押下判定開始: RequiresPointerInside={_requiresPointerInside}, HasPointerPosition={hasPointerPosition}, AllowsNonPointerInput={_allowsNonPointerInput}, PointerPosition={pointerPosition}");
+
+            if (_requiresPointerInside && hasPointerPosition && !IsPointerInsideTarget(pointerPosition))
             {
+                LogDebug("対象UI外で押されたため、Pressedを実行しません。");
                 return;
             }
 
-            if (_requiresPointerInside && !isPointerInput && !_allowsNonPointerInput)
+            if (_requiresPointerInside && !hasPointerPosition && !_allowsNonPointerInput)
             {
+                LogDebug("非ポインター入力が許可されていないため、Pressedを実行しません。");
                 return;
             }
 
-            Debug.Log($"{nameof(ButtonSystem)}: ボタンが押されました。");
+            LogDebug("Pressedを実行します。");
             _pressed.Invoke();
         }
 
-        private bool IsPointerInput(InputAction.CallbackContext context)
+        /// <summary>
+        /// 入力を発生させたデバイスから、ポインター座標を取得する。
+        /// Mouse は「マウス」、Pen は「ペン」、Touchscreen は「タッチ画面」を表す。
+        /// </summary>
+        private bool TryGetPointerPosition(
+            InputAction.CallbackContext context,
+            out Vector2 pointerPosition)
         {
-            InputDevice inputDevice = context.control.device;
+            pointerPosition = Vector2.zero;
 
-            return inputDevice is Mouse
-                || inputDevice is Touchscreen
-                || inputDevice is Pen;
+            if (context.control.device is Mouse mouse)
+            {
+                pointerPosition = mouse.position.ReadValue();
+                LogDebug($"Mouse座標を取得しました: {pointerPosition}");
+                return true;
+            }
+
+            if (context.control.device is Pen pen)
+            {
+                pointerPosition = pen.position.ReadValue();
+                LogDebug($"Pen座標を取得しました: {pointerPosition}");
+                return true;
+            }
+
+            if (context.control.device is Touchscreen)
+            {
+                Touchscreen touchscreen = Touchscreen.current;
+
+                if (touchscreen == null)
+                {
+                    LogDebug("Touchscreen.current がnullです。");
+                    return false;
+                }
+
+                pointerPosition = touchscreen.primaryTouch.position.ReadValue();
+                LogDebug($"Touchscreen座標を取得しました: {pointerPosition}");
+                return true;
+            }
+
+            LogDebug($"ポインター座標を持たない入力です: Device={context.control.device.displayName}");
+            return false;
         }
 
-        private bool IsPointerInsideTarget()
+        private bool IsPointerInsideTarget(Vector2 pointerPosition)
         {
             if (_targetRectTransform == null)
             {
                 Debug.LogError($"{nameof(ButtonSystem)}: クリック判定対象が設定されていません。");
                 return false;
             }
-
-            Vector2 pointerPosition = _gameInput.UI.Point.ReadValue<Vector2>();
 
             Camera targetCamera = null;
 
@@ -255,10 +324,24 @@ namespace Uraty.Feature.Button
                 targetCamera = _targetCanvas.worldCamera;
             }
 
-            return RectTransformUtility.RectangleContainsScreenPoint(
+            bool isPointerInside = RectTransformUtility.RectangleContainsScreenPoint(
                 _targetRectTransform,
                 pointerPosition,
                 targetCamera);
+
+            LogDebug($"PointerPosition={pointerPosition}, IsPointerInside={isPointerInside}");
+
+            return isPointerInside;
+        }
+
+        private void LogDebug(string message)
+        {
+            if (!_outputsDebugLog)
+            {
+                return;
+            }
+
+            Debug.Log($"{nameof(ButtonSystem)}: {message}", this);
         }
     }
 }
