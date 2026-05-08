@@ -62,8 +62,6 @@ namespace Uraty.Feature.Button
                 return;
             }
 
-            _gameInput.EnableUIInput();
-
             if (!_gameInput.UI.enabled)
             {
                 Debug.LogError($"{nameof(ButtonSystem)}: GameInput.UIが有効化されていません。");
