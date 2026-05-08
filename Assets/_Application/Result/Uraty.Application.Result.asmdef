@@ -1,0 +1,17 @@
+{
+    "name": "Uraty.Application.Reslut",
+    "rootNamespace": "Uraty.Application.Reslut",
+    "references": [
+        "GUID:23c89cf83b9ef45438edac8a0000726e",
+        "GUID:12f6bca580722de41b91f6011da4a584"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

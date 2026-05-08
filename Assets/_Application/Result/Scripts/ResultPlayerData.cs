@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Uraty.Features.Result
+namespace Uraty.Application.Result
 {
     public class ResultPlayerData : MonoBehaviour
     {

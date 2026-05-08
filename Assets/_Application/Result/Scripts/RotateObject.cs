@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Uraty.Features.Result
+namespace Uraty.Application.Result
 {
     public class RotateObject : MonoBehaviour
     {

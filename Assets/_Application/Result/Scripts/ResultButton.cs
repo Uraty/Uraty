@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace Uraty.Features.Result
+namespace Uraty.Application.Result
 {
     public class ResultButton : MonoBehaviour
     {
