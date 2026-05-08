@@ -110,7 +110,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Cancel (1)_0
+      name: Cancel
       rect:
         serializedVersion: 2
         x: 153
@@ -118,7 +118,7 @@ TextureImporter:
         width: 1270
         height: 391
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -145,7 +145,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Cancel (1)_0: -952934646
+      Cancel: -952934646
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
