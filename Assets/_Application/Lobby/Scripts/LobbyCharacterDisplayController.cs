@@ -24,6 +24,10 @@ namespace Uraty.Application.Lobby
         // キャラPrefabを生成する位置。
         [SerializeField] private Transform _previewRoot;
 
+        // ロビーのメインUI。
+        // キャラ選択画面を開いている間は非表示にする。
+        [SerializeField] private GameObject _mainPanel;
+
         // 現在表示中のキャラを押すためのボタン。
         // 透明ボタンとしてキャラ表示部分に重ねる想定
         [SerializeField] private Button _currentCharacterButton;
@@ -49,6 +53,9 @@ namespace Uraty.Application.Lobby
             // 選択キャラが変更されたら、ロビー中央の表示を更新する。
             CharacterSelectionStore.SelectedCharacterChanged += RefreshCharacter;
 
+            // キャラ選択Sceneが閉じられたら、ロビー中央のキャラ表示を再表示する。
+            SceneManager.sceneUnloaded += OnSceneUnloaded;
+
             // まだ選択キャラが存在しない場合、初期キャラを設定する。
             if (CharacterSelectionStore.SelectedCharacter == null)
             {
@@ -66,6 +73,9 @@ namespace Uraty.Application.Lobby
             // 登録したイベントは破棄時に解除する。
             _currentCharacterButton.onClick.RemoveListener(OpenCharacterSelectScene);
             CharacterSelectionStore.SelectedCharacterChanged -= RefreshCharacter;
+
+            // SceneのUnload通知も解除する。
+            SceneManager.sceneUnloaded -= OnSceneUnloaded;
         }
 
         /// <summary>
@@ -96,6 +106,11 @@ namespace Uraty.Application.Lobby
         private IEnumerator OpenCharacterSelectSceneRoutine()
         {
             _isLoading = true;
+
+            // キャラ選択画面を開いている間は、
+            // ロビー中央の現在選択中キャラとメインUIを非表示にする。
+            SetPreviewRootVisible(false);
+            SetMainPanelVisible(false);
 
             yield return SceneManager.LoadSceneAsync(
                 _characterSelectSceneName,
@@ -147,6 +162,49 @@ namespace Uraty.Application.Lobby
                 _previewRoot.rotation,
                 _previewRoot
             );
+        }
+
+        /// <summary>
+        /// SceneがUnloadされたときに呼ばれる。
+        /// キャラ選択Sceneが閉じられた場合だけ、ロビー中央のキャラ表示を戻す。
+        /// </summary>
+        private void OnSceneUnloaded(Scene scene)
+        {
+            if (scene.name != _characterSelectSceneName)
+            {
+                return;
+            }
+
+            // キャラ選択Sceneが閉じられたので、
+            // ロビー中央の現在選択中キャラとメインUIを再表示する。
+            SetPreviewRootVisible(true);
+            SetMainPanelVisible(true);
+        }
+
+        /// <summary>
+        /// ロビー中央のキャラ表示Rootを表示・非表示にする。
+        /// </summary>
+        private void SetPreviewRootVisible(bool visible)
+        {
+            if (_previewRoot == null)
+            {
+                return;
+            }
+
+            _previewRoot.gameObject.SetActive(visible);
+        }
+
+        /// <summary>
+        /// ロビーのメインUIを表示・非表示にする。
+        /// </summary>
+        private void SetMainPanelVisible(bool visible)
+        {
+            if (_mainPanel == null)
+            {
+                return;
+            }
+
+            _mainPanel.SetActive(visible);
         }
     }
 }
