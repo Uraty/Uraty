@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 using UnityEngine;
 
-namespace Uraty.Features.Stage
+namespace Uraty.Application.Stage
 {
     [CustomEditor(typeof(StageData))]
     public sealed class StageDataEditor : Editor

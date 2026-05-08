@@ -6,9 +6,10 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-namespace Uraty.Features.Stage
+namespace Uraty.Application.Stage
 {
     [ExecuteAlways]
+    [DefaultExecutionOrder(-100)]
     public sealed class StageBuilder : MonoBehaviour
     {
         [SerializeField] private StageData _stageData;
@@ -23,7 +24,7 @@ namespace Uraty.Features.Stage
 
         private void Start()
         {
-            if (Application.isPlaying)
+            if (UnityEngine.Application.isPlaying)
             {
                 Generate();
             }
@@ -133,7 +134,7 @@ namespace Uraty.Features.Stage
             }
 
 #if UNITY_EDITOR
-            if (!Application.isPlaying && _keepPrefabConnectionInEditor)
+            if (!UnityEngine.Application.isPlaying && _keepPrefabConnectionInEditor)
             {
                 GameObject instance = PrefabUtility.InstantiatePrefab(prefab, parent) as GameObject;
                 if (instance != null)
@@ -194,7 +195,7 @@ namespace Uraty.Features.Stage
             }
 
 #if UNITY_EDITOR
-            if (!Application.isPlaying)
+            if (!UnityEngine.Application.isPlaying)
             {
                 DestroyImmediate(target);
                 return;

@@ -4,7 +4,7 @@ using UnityEditor;
 
 using UnityEngine;
 
-namespace Uraty.Features.Stage
+namespace Uraty.Application.Stage
 {
     public sealed class StageEditorWindow : EditorWindow
     {
