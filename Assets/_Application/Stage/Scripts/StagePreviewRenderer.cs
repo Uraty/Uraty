@@ -5,7 +5,7 @@ using UnityEditor;
 
 using UnityEngine;
 
-namespace Uraty.Features.Stage
+namespace Uraty.Application.Stage
 {
     public sealed class StagePreviewRenderer : IDisposable
     {

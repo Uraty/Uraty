@@ -3,11 +3,14 @@ using UnityEngine;
 using Uraty.Shared.Hit;
 using Uraty.Shared.Team;
 
-public class StageWall : MonoBehaviour, IBulletHittable
+namespace Uraty.Application.Stage
 {
-    public bool ReceiveBulletHit(GameObject owner, TeamId teamId, float damage, bool isPiercing)
+    public class StageWall : MonoBehaviour, IBulletHittable
     {
-        // 弾は壊す
-        return true;
+        public bool ReceiveBulletHit(GameObject owner, TeamId teamId, float damage, bool isPiercing)
+        {
+            // 弾は壊す
+            return true;
+        }
     }
 }

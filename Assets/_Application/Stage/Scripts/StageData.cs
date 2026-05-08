@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 using UnityEngine;
 
-namespace Uraty.Features.Stage
+namespace Uraty.Application.Stage
 {
     [Serializable]
     public struct StageCellData
