@@ -49,7 +49,24 @@ namespace Uraty.Feature.Button
                 return;
             }
 
-            _gameInput.EnableUIInput();
+            if (!_gameInput.UI.enabled)
+            {
+                Debug.LogError($"{nameof(ButtonSystem)}: GameInput.UIが有効化されていません。");
+                return;
+            }
+
+            if (_usesSubmit && _gameInput.UI.Submit == null)
+            {
+                Debug.LogError($"{nameof(ButtonSystem)}: GameInput.UI.Submitが見つかりません。");
+                return;
+            }
+
+            if (_usesCancel && _gameInput.UI.Cancel == null)
+            {
+                Debug.LogError($"{nameof(ButtonSystem)}: GameInput.UI.Cancelが見つかりません。");
+                return;
+            }
+
             SubscribeInput();
         }
 
@@ -74,34 +91,56 @@ namespace Uraty.Feature.Button
             _pressed.RemoveListener(listener);
         }
 
+        private bool _isInputSubscribed;
+
         public void UseSubmit()
         {
-            _usesSubmit = true;
-            _usesCancel = false;
+            SetInputMode(usesSubmit: true, usesCancel: false);
         }
 
         public void UseCancel()
         {
-            _usesSubmit = false;
-            _usesCancel = true;
+            SetInputMode(usesSubmit: false, usesCancel: true);
         }
 
         public void UseSubmitCancel()
         {
-            _usesSubmit = true;
-            _usesCancel = true;
+            SetInputMode(usesSubmit: true, usesCancel: true);
         }
 
         public void UseNone()
         {
-            _usesSubmit = false;
-            _usesCancel = false;
+            SetInputMode(usesSubmit: false, usesCancel: false);
+        }
+
+        private void SetInputMode(bool usesSubmit, bool usesCancel)
+        {
+            bool shouldResubscribe = _isInputSubscribed;
+
+            if (shouldResubscribe)
+            {
+                UnsubscribeInput();
+            }
+
+            _usesSubmit = usesSubmit;
+            _usesCancel = usesCancel;
+
+            if (shouldResubscribe && isActiveAndEnabled)
+            {
+                SubscribeInput();
+            }
         }
 
         private void SubscribeInput()
         {
-            if (_isSubscribed)
+            if (_isInputSubscribed)
             {
+                return;
+            }
+
+            if (_gameInput == null)
+            {
+                Debug.LogError($"{nameof(ButtonSystem)}: GameInputが設定されていません。");
                 return;
             }
 
@@ -115,27 +154,23 @@ namespace Uraty.Feature.Button
                 _gameInput.UI.Cancel.performed += HandleCancelPerformed;
             }
 
-            _isSubscribed = true;
+            _isInputSubscribed = _usesSubmit || _usesCancel;
         }
 
         private void UnsubscribeInput()
         {
-            if (!_isSubscribed || _gameInput == null)
+            if (_gameInput == null)
             {
+                _isInputSubscribed = false;
                 return;
             }
 
-            if (_usesSubmit)
-            {
-                _gameInput.UI.Submit.performed -= HandleSubmitPerformed;
-            }
+            // モードフラグに関係なく、登録される可能性がある入力は必ず解除する。
+            // これにより、UseSubmit / UseCancel などでモード変更した後も古いデリゲートが残らない。
+            _gameInput.UI.Submit.performed -= HandleSubmitPerformed;
+            _gameInput.UI.Cancel.performed -= HandleCancelPerformed;
 
-            if (_usesCancel)
-            {
-                _gameInput.UI.Cancel.performed -= HandleCancelPerformed;
-            }
-
-            _isSubscribed = false;
+            _isInputSubscribed = false;
         }
 
         /// <summary>
