@@ -46,10 +46,8 @@ namespace Uraty.Application.Matching
             {
                 return;
             }
-            if (isUseCancelInput)
-            {
-                _buttonSystem.RemovePressedListener(LoadTargetScene);
-            }
+
+            _buttonSystem.RemovePressedListener(LoadTargetScene);
         }
 
         private void LoadTargetScene()
