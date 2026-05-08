@@ -1,0 +1,14 @@
+{
+    "name": "Uraty.Feature.Akane_GameMode",
+    "rootNamespace": "Uraty.Feature.Akane_GameMode",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
