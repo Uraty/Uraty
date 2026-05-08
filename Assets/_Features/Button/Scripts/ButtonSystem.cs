@@ -71,7 +71,6 @@ namespace Uraty.Feature.Button
                 return;
             }
 
-            _gameInput.EnableUIInput();
             LogDebug("GameInput.EnableUIInput() を呼び出しました。");
 
             if (!_gameInput.UI.enabled)
