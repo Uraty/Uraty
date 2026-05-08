@@ -28,16 +28,29 @@ namespace Uraty.Feature.Button
         [Header("対象UI上で押された時だけ反応する")]
         [SerializeField] private bool _requiresPointerInside = true;
 
+        [Header("非ポインター入力を許可する")]
+        [SerializeField] private bool _allowsNonPointerInput = false;
+
         [Header("押された時に実行する処理")]
         [SerializeField] private UnityEvent _pressed = new UnityEvent();
 
-        private bool _isSubscribed;
+        private bool _isInputSubscribed;
 
         private void Awake()
         {
+            if (_gameInput == null)
+            {
+                _gameInput = FindFirstObjectByType<GameInput>();
+            }
+
             if (_targetRectTransform == null)
             {
                 _targetRectTransform = GetComponent<RectTransform>();
+            }
+
+            if (_targetCanvas == null)
+            {
+                _targetCanvas = GetComponentInParent<Canvas>();
             }
         }
 
@@ -45,9 +58,11 @@ namespace Uraty.Feature.Button
         {
             if (_gameInput == null)
             {
-                Debug.LogError($"{nameof(ButtonSystem)}: GameInputが設定されていません。");
+                Debug.LogError($"{nameof(ButtonSystem)}: Scene内にGameInputが見つかりません。");
                 return;
             }
+
+            _gameInput.EnableUIInput();
 
             if (!_gameInput.UI.enabled)
             {
@@ -80,6 +95,11 @@ namespace Uraty.Feature.Button
         /// </summary>
         public void AddPressedListener(UnityAction listener)
         {
+            if (listener == null)
+            {
+                return;
+            }
+
             _pressed.AddListener(listener);
         }
 
@@ -88,10 +108,13 @@ namespace Uraty.Feature.Button
         /// </summary>
         public void RemovePressedListener(UnityAction listener)
         {
+            if (listener == null)
+            {
+                return;
+            }
+
             _pressed.RemoveListener(listener);
         }
-
-        private bool _isInputSubscribed;
 
         public void UseSubmit()
         {
@@ -166,7 +189,6 @@ namespace Uraty.Feature.Button
             }
 
             // モードフラグに関係なく、登録される可能性がある入力は必ず解除する。
-            // これにより、UseSubmit / UseCancel などでモード変更した後も古いデリゲートが残らない。
             _gameInput.UI.Submit.performed -= HandleSubmitPerformed;
             _gameInput.UI.Cancel.performed -= HandleCancelPerformed;
 
@@ -179,7 +201,7 @@ namespace Uraty.Feature.Button
         /// </summary>
         private void HandleSubmitPerformed(InputAction.CallbackContext context)
         {
-            PressIfAllowed();
+            InvokePressedIfAllowed(context);
         }
 
         /// <summary>
@@ -188,18 +210,34 @@ namespace Uraty.Feature.Button
         /// </summary>
         private void HandleCancelPerformed(InputAction.CallbackContext context)
         {
-            PressIfAllowed();
+            InvokePressedIfAllowed(context);
         }
 
-        private void PressIfAllowed()
+        private void InvokePressedIfAllowed(InputAction.CallbackContext context)
         {
-            if (_requiresPointerInside && !IsPointerInsideTarget())
+            bool isPointerInput = IsPointerInput(context);
+
+            if (_requiresPointerInside && isPointerInput && !IsPointerInsideTarget())
+            {
+                return;
+            }
+
+            if (_requiresPointerInside && !isPointerInput && !_allowsNonPointerInput)
             {
                 return;
             }
 
             Debug.Log($"{nameof(ButtonSystem)}: ボタンが押されました。");
             _pressed.Invoke();
+        }
+
+        private bool IsPointerInput(InputAction.CallbackContext context)
+        {
+            InputDevice inputDevice = context.control.device;
+
+            return inputDevice is Mouse
+                || inputDevice is Touchscreen
+                || inputDevice is Pen;
         }
 
         private bool IsPointerInsideTarget()
@@ -210,12 +248,7 @@ namespace Uraty.Feature.Button
                 return false;
             }
 
-            if (Mouse.current == null)
-            {
-                return false;
-            }
-
-            Vector2 pointerPosition = Mouse.current.position.ReadValue();
+            Vector2 pointerPosition = _gameInput.UI.Point.ReadValue<Vector2>();
 
             Camera targetCamera = null;
 
