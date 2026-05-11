@@ -15,6 +15,7 @@ namespace Uraty.Application.Stage
         [SerializeField] private StageData _stageData;
         [SerializeField] private Transform _generatedRoot;
         [SerializeField] private bool _keepPrefabConnectionInEditor = true;
+        [SerializeField] private StageGenerator _generator;
 
         public StageData StageData => _stageData;
 
@@ -27,6 +28,7 @@ namespace Uraty.Application.Stage
             if (UnityEngine.Application.isPlaying)
             {
                 Generate();
+                _generator.GenerateStage();
             }
         }
 

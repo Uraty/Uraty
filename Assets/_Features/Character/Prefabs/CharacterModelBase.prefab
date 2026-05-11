@@ -132,6 +132,7 @@ GameObject:
   - component: {fileID: -3534891964442206321}
   - component: {fileID: 7197989968914488443}
   - component: {fileID: 33456693572925344}
+  - component: {fileID: -1370823195548082760}
   m_Layer: 3
   m_Name: CharacterModelBase
   m_TagString: Untagged
@@ -207,6 +208,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterMove
   _characterController: {fileID: -1381102960665348235}
+  _moveSpeed: 10
+  _rotationSpeedDegrees: 720
 --- !u!114 &-1257273843268544866
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -351,7 +354,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 675ac1f606b532e4eac4795f111ff464, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterReveal
-  _revealRadius: 2
+  _cellSize: 1
+  _cellCheckScale: 0.9
+  _cellCheckHeight: 2
   _bushLayerMask:
     serializedVersion: 2
     m_Bits: 256
@@ -374,3 +379,25 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   _checkRadius: 0.05
+--- !u!195 &-1370823195548082760
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8800056277905460767}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 1
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
