@@ -224,7 +224,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterAttack
   _status: {fileID: -6497995452392812755}
   _attackSettings:
-  - _bulletPrefab: {fileID: 0}
+  - _bulletPrefab: {fileID: 3889814631699899837, guid: 5265405e7bfef534bb386f823db27161, type: 3}
     _damage: 10
     _range: 8
     _speed: 16

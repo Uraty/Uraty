@@ -1,219 +1,151 @@
-using System.Collections.Generic;
+using R3;
 
 using UnityEngine;
-using UnityEngine.AI;
-
-using Uraty.Features.Character;
 
 namespace Uraty.Features.Bot
 {
     /// <summary>
-    /// シーンに1つだけ存在するBotController
+    /// BotInputInterpreter の入力結果を
+    /// Stream として公開する。
     /// </summary>
+    [DefaultExecutionOrder(-90)]
     public sealed class BotController : MonoBehaviour
     {
-        private const float MinMoveSqrMagnitude = 0.001f;
-
         [SerializeField]
-        private float _updateInterval = 0.1f;
+        private BotInputInterpreter _inputInterpreter;
 
-        private readonly List<BotUnit> _bots = new();
+        private readonly Subject<MoveRequest>
+            _moveRequestedSubject = new();
 
-        private float _timer;
+        private readonly Subject<AimRequest>
+            _aimRequestedSubject = new();
 
-        public void Initialize(
-            GameObject playerObject,
-            IReadOnlyList<GameObject> characterObjects)
+        private readonly Subject<ActionRequest>
+            _attackRequestedSubject = new();
+
+        private DisposableBag _disposables;
+
+        public Observable<MoveRequest>
+            MoveRequestedStream =>
+            _moveRequestedSubject;
+
+        public Observable<AimRequest>
+            AimRequestedStream =>
+            _aimRequestedSubject;
+
+        public Observable<ActionRequest>
+            AttackRequestedStream =>
+            _attackRequestedSubject;
+
+        private void Reset()
         {
-            _bots.Clear();
+            _inputInterpreter =
+                GetComponent<BotInputInterpreter>();
+        }
 
-            for (int i = 0; i < characterObjects.Count; i++)
+        private void Awake()
+        {
+            if (_inputInterpreter == null)
             {
-                GameObject obj = characterObjects[i];
-
-                if (obj == null)
-                {
-                    continue;
-                }
-
-                // プレイヤーは除外
-                if (obj == playerObject)
-                {
-                    continue;
-                }
-
-                if (!obj.TryGetComponent(out CharacterStatus status))
-                {
-                    continue;
-                }
-
-                if (!obj.TryGetComponent(out CharacterMove move))
-                {
-                    continue;
-                }
-
-                if (!obj.TryGetComponent(out NavMeshAgent agent))
-                {
-                    continue;
-                }
-
-                // NavMeshAgentは経路探索専用
-                agent.updatePosition = false;
-                agent.updateRotation = false;
-
-                _bots.Add(new BotUnit(
-                    obj,
-                    status,
-                    move,
-                    agent));
+                _inputInterpreter =
+                    GetComponent<BotInputInterpreter>();
             }
         }
 
-        private void Update()
+        private void Start()
         {
-            _timer += Time.deltaTime;
+            Observable.EveryUpdate()
+                .Subscribe(_ => PublishRequests())
+                .AddTo(ref _disposables);
+        }
 
-            if (_timer < _updateInterval)
+        private void PublishRequests()
+        {
+            if (_inputInterpreter == null)
             {
                 return;
             }
 
-            _timer = 0f;
-
-            UpdateBots();
+            PublishMoveRequest();
+            PublishAimRequest();
+            PublishAttackRequest();
         }
 
-        private void UpdateBots()
+        private void PublishMoveRequest()
         {
-            foreach (BotUnit bot in _bots)
+            _moveRequestedSubject.OnNext(
+                new MoveRequest(
+                    _inputInterpreter.MoveDirectionWorld));
+        }
+
+        private void PublishAimRequest()
+        {
+            _aimRequestedSubject.OnNext(
+                new AimRequest(
+                    _inputInterpreter.AimDirectionWorld,
+                    _inputInterpreter.AimPointWorld));
+        }
+
+        private void PublishAttackRequest()
+        {
+            if (_inputInterpreter
+                .AttackReleasedThisFrame)
             {
-                if (bot.Status.IsDead)
-                {
-                    continue;
-                }
-
-                GameObject target = FindNearestEnemy(bot);
-
-                if (target == null)
-                {
-                    bot.Move.Move(Vector3.zero);
-                    continue;
-                }
-
-                Move(bot, target);
+                _attackRequestedSubject
+                    .OnNext(new ActionRequest());
             }
         }
 
-        private GameObject FindNearestEnemy(BotUnit self)
+        private void OnDestroy()
         {
-            GameObject nearest = null;
+            _disposables.Dispose();
 
-            float nearestSqrDistance = float.MaxValue;
-
-            foreach (BotUnit other in _bots)
-            {
-                if (other == self)
-                {
-                    continue;
-                }
-
-                if (other.Status.TeamId == self.Status.TeamId)
-                {
-                    continue;
-                }
-
-                if (other.Status.IsDead)
-                {
-                    continue;
-                }
-
-                // bush内は索敵しない
-                if (other.Status.IsInsideBush)
-                {
-                    continue;
-                }
-
-                Vector3 diff =
-                    other.Object.transform.position
-                    - self.Object.transform.position;
-
-                diff.y = 0f;
-
-                float sqrDistance = diff.sqrMagnitude;
-
-                if (sqrDistance < nearestSqrDistance)
-                {
-                    nearestSqrDistance = sqrDistance;
-                    nearest = other.Object;
-                }
-            }
-
-            return nearest;
+            _moveRequestedSubject.Dispose();
+            _aimRequestedSubject.Dispose();
+            _attackRequestedSubject.Dispose();
         }
 
-        private void Move(
-            BotUnit bot,
-            GameObject target)
+        public readonly struct MoveRequest
         {
-            bot.Agent.SetDestination(
-                target.transform.position);
-
-            if (!bot.Agent.hasPath)
+            public MoveRequest(
+                Vector3 moveDirectionWorld)
             {
-                bot.Move.Move(Vector3.zero);
-                return;
+                MoveDirectionWorld =
+                    moveDirectionWorld;
             }
 
-            Vector3 direction =
-                bot.Agent.steeringTarget
-                - bot.Object.transform.position;
-
-            direction.y = 0f;
-
-            if (direction.sqrMagnitude <= MinMoveSqrMagnitude)
+            public Vector3 MoveDirectionWorld
             {
-                bot.Move.Move(Vector3.zero);
-                return;
+                get;
             }
-
-            direction.Normalize();
-
-            bot.Move.Move(direction);
         }
 
-        private sealed class BotUnit
+        public readonly struct AimRequest
         {
-            public GameObject Object
+            public AimRequest(
+                Vector3 aimDirectionWorld,
+                Vector3 aimPointWorld)
+            {
+                AimDirectionWorld =
+                    aimDirectionWorld;
+
+                AimPointWorld =
+                    aimPointWorld;
+            }
+
+            public Vector3 AimDirectionWorld
             {
                 get;
             }
 
-            public CharacterStatus Status
+            public Vector3 AimPointWorld
             {
                 get;
             }
+        }
 
-            public CharacterMove Move
-            {
-                get;
-            }
-
-            public NavMeshAgent Agent
-            {
-                get;
-            }
-
-            public BotUnit(
-                GameObject obj,
-                CharacterStatus status,
-                CharacterMove move,
-                NavMeshAgent agent)
-            {
-                Object = obj;
-                Status = status;
-                Move = move;
-                Agent = agent;
-            }
+        public readonly struct ActionRequest
+        {
         }
     }
 }
