@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 
@@ -6,11 +7,10 @@ using R3;
 
 using UnityEngine;
 
+using Uraty.Features.Bot;
 using Uraty.Features.Character;
 using Uraty.Features.Player;
-
 using Uraty.Shared.Team;
-
 using Uraty.Systems.Camera;
 using Uraty.Systems.Input;
 
@@ -32,6 +32,10 @@ namespace Uraty.Application.Battle
         [SerializeField]
         private PlayerController _playerController;
 
+        [Header("Bot")]
+        [SerializeField]
+        private BotController[] _botControllers;
+
         [Header("Visibility")]
         [SerializeField]
         private TeamId _visibleTeamId = TeamId.Primary;
@@ -49,27 +53,50 @@ namespace Uraty.Application.Battle
         [SerializeField]
         private LayerMask _spawnerLayerMask;
 
-        private readonly List<GameObject> _characterObjects = new();
-        private readonly Dictionary<GameObject, Renderer[]> _characterRenderersByObject = new();
+        private readonly List<GameObject>
+            _characterObjects = new();
+
+        private readonly Dictionary<GameObject, Renderer[]>
+            _characterRenderersByObject = new();
 
         private DisposableBag _disposables;
 
-        private void Start()
+        private IEnumerator Start()
         {
+            yield return null;
+
             _input.Player.Enable();
 
-            RoleType[] roleTypes = (RoleType[])Enum.GetValues(typeof(RoleType));
-            int selectedIndex = Array.IndexOf(roleTypes, _fallbackPlayerRoleType);
+            RoleType[] roleTypes =
+                (RoleType[])Enum.GetValues(
+                    typeof(RoleType));
 
-            GameObject playerObject = SpawnPlayerTeam(roleTypes, selectedIndex);
+            int selectedIndex =
+                Array.IndexOf(
+                    roleTypes,
+                    _fallbackPlayerRoleType);
 
-            SpawnEnemyTeam(roleTypes, selectedIndex);
+            GameObject playerObject =
+                SpawnPlayerTeam(
+                    roleTypes,
+                    selectedIndex);
 
-            ConfigureBushRevealSensors(_visibleTeamId);
+            SpawnEnemyTeam(
+                roleTypes,
+                selectedIndex);
 
-            _playerCamera.GetComponent<CameraMove>().SetTarget(playerObject);
+            ConfigureBushRevealSensors(
+                _visibleTeamId);
 
-            SubscribePlayerController(playerObject);
+            _playerCamera
+                .GetComponent<CameraMove>()
+                .SetTarget(playerObject);
+
+            SubscribePlayerController(
+                playerObject);
+
+            SubscribeBotControllers(
+                playerObject);
         }
 
         private void Update()
@@ -77,40 +104,56 @@ namespace Uraty.Application.Battle
             UpdateCharacterVisibility();
         }
 
-        private GameObject SpawnPlayerTeam(RoleType[] roleTypes, int selectedIndex)
+        private GameObject SpawnPlayerTeam(
+            RoleType[] roleTypes,
+            int selectedIndex)
         {
             GameObject playerObject = null;
 
-            for (int i = 0; i < TeamMemberCount; i++)
+            for (int i = 0;
+                 i < TeamMemberCount;
+                 i++)
             {
                 RoleType roleType =
-                    roleTypes[(selectedIndex + i) % roleTypes.Length];
+                    roleTypes[
+                        (selectedIndex + i)
+                        % roleTypes.Length];
 
-                GameObject characterObject = SpawnCharacter(
-                    roleType,
-                    TeamId.Primary);
+                GameObject characterObject =
+                    SpawnCharacter(
+                        roleType,
+                        TeamId.Primary);
 
                 if (i == 0)
                 {
-                    playerObject = characterObject;
+                    playerObject =
+                        characterObject;
                 }
             }
 
             if (playerObject == null)
             {
                 throw new InvalidOperationException(
-                    "操作対象の Character が生成されませんでした。");
+                    "操作対象 Character が生成されませんでした。");
             }
 
             return playerObject;
         }
 
-        private void SpawnEnemyTeam(RoleType[] roleTypes, int selectedIndex)
+        private void SpawnEnemyTeam(
+            RoleType[] roleTypes,
+            int selectedIndex)
         {
-            for (int i = 0; i < TeamMemberCount; i++)
+            for (int i = 0;
+                 i < TeamMemberCount;
+                 i++)
             {
                 RoleType roleType =
-                    roleTypes[(selectedIndex + TeamMemberCount + i) % roleTypes.Length];
+                    roleTypes[
+                        (selectedIndex
+                         + TeamMemberCount
+                         + i)
+                        % roleTypes.Length];
 
                 SpawnCharacter(
                     roleType,
@@ -118,284 +161,215 @@ namespace Uraty.Application.Battle
             }
         }
 
-        private GameObject SpawnCharacter(RoleType roleType, TeamId teamId)
+        private GameObject SpawnCharacter(
+            RoleType roleType,
+            TeamId teamId)
         {
-            GameObject characterPrefab = FindCharacterPrefab(roleType);
-            GameObject characterObject = Instantiate(characterPrefab);
+            GameObject prefab =
+                FindCharacterPrefab(roleType);
 
-            AssignCharacterToSpawnerPosition(characterObject, teamId);
+            GameObject obj =
+                Instantiate(prefab);
 
-            CharacterStatus characterStatus = GetRequiredComponent<CharacterStatus>(characterObject);
-            characterStatus.Initialize(teamId);
+            AssignCharacterToSpawnerPosition(
+                obj,
+                teamId);
 
-            _characterObjects.Add(characterObject);
-            CacheCharacterRenderers(characterObject);
+            CharacterStatus status =
+                GetRequiredComponent<CharacterStatus>(
+                    obj);
 
-            return characterObject;
+            status.Initialize(teamId);
+
+            _characterObjects.Add(obj);
+
+            CacheCharacterRenderers(obj);
+
+            return obj;
         }
 
-        private void AssignCharacterToSpawnerPosition(GameObject characterObject, TeamId teamId)
+        private void SubscribeBotControllers(
+            GameObject playerObject)
         {
-            if (characterObject == null)
+            int botIndex = 0;
+
+            for (int i = 0;
+                 i < _characterObjects.Count;
+                 i++)
             {
-                return;
-            }
+                GameObject obj =
+                    _characterObjects[i];
 
-            if (_spawnerLayerMask.value == 0)
-            {
-                throw new InvalidOperationException(
-                    "Spawner LayerMask が未設定です。BattleApplication の _spawnerLayerMask を設定してください。");
-            }
-
-            Component spawner = FindAndReserveSpawnerComponent(teamId);
-            if (spawner == null)
-            {
-                throw new InvalidOperationException(
-                    $"TeamId={teamId} の未使用スポナーが見つかりません。スポナー数を確認してください。");
-            }
-
-            Transform t = characterObject.transform;
-            t.position = spawner.transform.position;
-            t.rotation = spawner.transform.rotation;
-        }
-
-        private Component FindAndReserveSpawnerComponent(TeamId teamId)
-        {
-            // Terrain 側 asmdef を参照していない Applicationでも動かせるよう、型を文字列で解決する。
-            // 対象は Assets/_Features/Terrain/Scripts/Spawner.cs の `Uraty.Features.Terrain.Spawner` を想定。
-            const string spawnerTypeName = "Uraty.Features.Terrain.Spawner";
-
-            //まずは AppDomainから型を取得（asmdef参照が無い場合は nullになり得る）
-            Type spawnerType = Type.GetType(spawnerTypeName);
-            if (spawnerType == null)
-            {
-                Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
-                for (int i = 0; i < assemblies.Length && spawnerType == null; i++)
-                {
-                    spawnerType = assemblies[i].GetType(spawnerTypeName);
-                }
-            }
-
-            if (spawnerType == null)
-            {
-                throw new InvalidOperationException(
-                    $"{spawnerTypeName} が見つかりません。asmdef参照または型名を確認してください。\n" +
-                    "（Uraty.Features.Terrain のアセンブリが Battleから参照されていない可能性があります）");
-            }
-
-            Component[] spawners = (Component[])FindObjectsByType(
-                spawnerType,
-                FindObjectsInactive.Exclude,
-                FindObjectsSortMode.None);
-
-            PropertyInfo teamIdProperty = spawnerType.GetProperty("TeamId", BindingFlags.Instance | BindingFlags.Public);
-            MethodInfo tryReserveMethod = spawnerType.GetMethod("TryReserve", BindingFlags.Instance | BindingFlags.Public);
-
-            if (teamIdProperty == null)
-            {
-                throw new InvalidOperationException($"{spawnerTypeName}.TeamId プロパティが見つかりません。");
-            }
-
-            if (tryReserveMethod == null)
-            {
-                throw new InvalidOperationException($"{spawnerTypeName}.TryReserve() が見つかりません。");
-            }
-
-            for (int i = 0; i < spawners.Length; i++)
-            {
-                Component spawner = spawners[i];
-                if (spawner == null)
+                if (obj == null)
                 {
                     continue;
                 }
 
-                if (((1 << spawner.gameObject.layer) & _spawnerLayerMask.value) == 0)
+                if (obj == playerObject)
                 {
                     continue;
                 }
 
-                object propertyValue = teamIdProperty.GetValue(spawner, null);
-                if (propertyValue is not TeamId spawnerTeamId || spawnerTeamId != teamId)
+                if (botIndex >= _botControllers.Length)
                 {
-                    continue;
+                    Debug.LogWarning(
+                        "BotController が不足しています。");
+
+                    return;
                 }
 
-                bool reserved = (bool)tryReserveMethod.Invoke(spawner, null);
-                if (!reserved)
-                {
-                    continue;
-                }
+                BotController botController =
+                    _botControllers[botIndex];
 
-                return spawner;
-            }
+                Debug.Log(
+                    $"Bot[{botIndex}] が操作するキャラクター: {obj.name}");
 
-            return null;
-        }
+                SubscribeBotController(
+                    botController,
+                    obj);
 
-        private void ConfigureBushRevealSensors(TeamId visibleTeamId)
-        {
-            for (int i = 0; i < _characterObjects.Count; i++)
-            {
-                GameObject characterObject = _characterObjects[i];
-
-                if (characterObject == null)
-                {
-                    continue;
-                }
-
-                CharacterStatus characterStatus =
-                    GetRequiredComponent<CharacterStatus>(characterObject);
-
-                CharacterReveal revealSensor =
-                    GetRequiredComponent<CharacterReveal>(characterObject);
-
-                bool shouldRevealBush =
-                    characterStatus.TeamId == visibleTeamId
-                    && !characterStatus.IsDead;
-
-                revealSensor.SetRevealEnabled(shouldRevealBush);
+                botIndex++;
             }
         }
 
-        private void UpdateCharacterVisibility()
+        private void SubscribeBotController(
+            BotController botController,
+            GameObject characterObject)
         {
-            ConfigureBushRevealSensors(_visibleTeamId);
+            BotInputInterpreter inputInterpreter =
+                botController
+                    .GetComponent<BotInputInterpreter>();
 
-            for (int i = 0; i < _characterObjects.Count; i++)
-            {
-                GameObject targetObject = _characterObjects[i];
+            CharacterStatus status =
+                GetRequiredComponent<CharacterStatus>(
+                    characterObject);
 
-                if (targetObject == null)
+            // BotInputInterpreter が CharacterStatus を参照しないように、
+            // 必要最小限の情報（Transform と敵探索関数）だけを注入する。
+            inputInterpreter.Initialize(
+                characterObject.transform,
+                FindNearestVisibleEnemyForBot);
+
+            // 毎フレーム Application 側の状態を注入
+            Observable.EveryUpdate()
+                .Subscribe(_ =>
                 {
-                    continue;
-                }
+                    if (status == null)
+                    {
+                        return;
+                    }
 
-                if (!targetObject.activeInHierarchy)
+                    inputInterpreter.SetIsDead(status.IsDead);
+                })
+                .AddTo(ref _disposables);
+
+            CharacterMove characterMove =
+                GetRequiredComponent<CharacterMove>(
+                    characterObject);
+
+            CharacterAttackAim characterAttackAim =
+                GetRequiredComponent<CharacterAttackAim>(
+                    characterObject);
+
+            CharacterSuperAim characterSuperAim =
+                GetRequiredComponent<CharacterSuperAim>(
+                    characterObject);
+
+            CharacterAttack characterAttack =
+                GetRequiredComponent<CharacterAttack>(
+                    characterObject);
+
+            CharacterSuper characterSuper =
+                GetRequiredComponent<CharacterSuper>(
+                    characterObject);
+
+            Vector3 latestAimDirectionWorld =
+                Vector3.forward;
+
+            botController.MoveRequestedStream
+                .Subscribe(request =>
                 {
-                    continue;
-                }
+                    characterMove.Move(
+                        request.MoveDirectionWorld);
+                })
+                .AddTo(ref _disposables);
 
-                bool shouldRender = ShouldRenderCharacter(targetObject);
+            botController.AimRequestedStream
+                .Subscribe(request =>
+                {
+                    if (request.AimDirectionWorld
+                        .sqrMagnitude >
+                        MinDirectionSqrMagnitude)
+                    {
+                        latestAimDirectionWorld =
+                            request.AimDirectionWorld;
+                    }
 
-                SetCharacterRenderersEnabled(
-                    targetObject,
-                    shouldRender);
-            }
+                    characterAttackAim.SetAim(
+                        request.AimDirectionWorld,
+                        request.AimPointWorld,
+                        Vector2.zero);
+
+                    characterSuperAim.SetAim(
+                        request.AimDirectionWorld,
+                        request.AimPointWorld,
+                        Vector2.zero);
+                })
+                .AddTo(ref _disposables);
+
+            botController.AttackRequestedStream
+                .Subscribe(_ =>
+                {
+                    characterAttack.Attack(
+                        latestAimDirectionWorld);
+                })
+                .AddTo(ref _disposables);
         }
 
-        private bool ShouldRenderCharacter(GameObject targetObject)
+        private void SubscribePlayerController(
+            GameObject playerObject)
         {
-            CharacterStatus targetStatus =
-                GetRequiredComponent<CharacterStatus>(targetObject);
+            CharacterMove characterMove =
+                GetRequiredComponent<CharacterMove>(
+                    playerObject);
 
-            return
-                targetStatus.TeamId == _visibleTeamId
-                || !targetStatus.IsInsideBush
-                || IsInsideVisibleTeamRevealRange(targetObject);
-        }
+            CharacterAttackAim characterAttackAim =
+                GetRequiredComponent<CharacterAttackAim>(
+                    playerObject);
 
-        private bool IsInsideVisibleTeamRevealRange(GameObject targetObject)
-        {
-            Vector3 targetPosition = targetObject.transform.position;
+            CharacterSuperAim characterSuperAim =
+                GetRequiredComponent<CharacterSuperAim>(
+                    playerObject);
 
-            for (int i = 0; i < _characterObjects.Count; i++)
-            {
-                GameObject viewerObject = _characterObjects[i];
+            CharacterAttack characterAttack =
+                GetRequiredComponent<CharacterAttack>(
+                    playerObject);
 
-                if (viewerObject == null || viewerObject == targetObject)
-                {
-                    continue;
-                }
+            CharacterSuper characterSuper =
+                GetRequiredComponent<CharacterSuper>(
+                    playerObject);
 
-                if (!viewerObject.activeInHierarchy)
-                {
-                    continue;
-                }
-
-                CharacterStatus viewerStatus =
-                    GetRequiredComponent<CharacterStatus>(viewerObject);
-
-                if (viewerStatus.TeamId != _visibleTeamId)
-                {
-                    continue;
-                }
-
-                if (viewerStatus.IsDead)
-                {
-                    continue;
-                }
-
-                CharacterReveal viewerReveal =
-                    GetRequiredComponent<CharacterReveal>(viewerObject);
-
-                if (viewerReveal.ContainsWorldPosition(targetPosition))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private void CacheCharacterRenderers(GameObject characterObject)
-        {
-            Renderer[] renderers =
-                characterObject.GetComponentsInChildren<Renderer>(true);
-
-            _characterRenderersByObject[characterObject] = renderers;
-        }
-
-        private void SetCharacterRenderersEnabled(
-            GameObject characterObject,
-            bool isEnabled)
-        {
-            if (!_characterRenderersByObject.TryGetValue(
-                    characterObject,
-                    out Renderer[] renderers))
-            {
-                CacheCharacterRenderers(characterObject);
-                renderers = _characterRenderersByObject[characterObject];
-            }
-
-            for (int i = 0; i < renderers.Length; i++)
-            {
-                Renderer renderer = renderers[i];
-
-                if (renderer == null)
-                {
-                    continue;
-                }
-
-                if (renderer.enabled == isEnabled)
-                {
-                    continue;
-                }
-
-                renderer.enabled = isEnabled;
-            }
-        }
-
-        private void SubscribePlayerController(GameObject playerObject)
-        {
-            CharacterMove characterMove = GetRequiredComponent<CharacterMove>(playerObject);
-            CharacterAttackAim characterAttackAim = GetRequiredComponent<CharacterAttackAim>(playerObject);
-            CharacterSuperAim characterSuperAim = GetRequiredComponent<CharacterSuperAim>(playerObject);
-            CharacterAttack characterAttack = GetRequiredComponent<CharacterAttack>(playerObject);
-            CharacterSuper characterSuper = GetRequiredComponent<CharacterSuper>(playerObject);
-
-            Vector3 latestAimDirectionWorld = Vector3.forward;
+            Vector3 latestAimDirectionWorld =
+                Vector3.forward;
 
             _playerController.MoveRequestedStream
                 .Subscribe(request =>
                 {
-                    characterMove.Move(request.MoveDirectionWorld);
+                    characterMove.Move(
+                        request.MoveDirectionWorld);
                 })
                 .AddTo(ref _disposables);
 
             _playerController.AimRequestedStream
                 .Subscribe(request =>
                 {
-                    latestAimDirectionWorld = request.AimDirectionWorld;
+                    if (request.AimDirectionWorld
+                        .sqrMagnitude >
+                        MinDirectionSqrMagnitude)
+                    {
+                        latestAimDirectionWorld =
+                            request.AimDirectionWorld;
+                    }
 
                     characterAttackAim.SetAim(
                         request.AimDirectionWorld,
@@ -409,218 +383,148 @@ namespace Uraty.Application.Battle
                 })
                 .AddTo(ref _disposables);
 
-            _playerController.AttackInputRequestedStream
-                .Subscribe(request =>
-                {
-                    if (request.PressedThisFrame)
-                    {
-                        characterAttackAim.BeginAttackAim();
-                    }
-
-                    if (request.ReleasedThisFrame)
-                    {
-                        characterAttackAim.CompleteAttackAim();
-                    }
-                })
-                .AddTo(ref _disposables);
-
-            _playerController.SuperInputRequestedStream
-                .Subscribe(request =>
-                {
-                    if (request.PressedThisFrame)
-                    {
-                        characterSuperAim.BeginSuperAim();
-                    }
-
-                    if (request.ReleasedThisFrame)
-                    {
-                        characterSuperAim.CompleteSuperAim();
-                    }
-                })
-                .AddTo(ref _disposables);
-
             _playerController.AttackRequestedStream
-                .Subscribe(request =>
+                .Subscribe(_ =>
                 {
-                    Vector3 attackDirection = latestAimDirectionWorld;
-
-                    if (characterAttackAim.TryConsumeAttack(
-                            out Vector3 aimPoint,
-                            out Vector3 targetDirection,
-                            out bool canAutoAim))
-                    {
-                        if (canAutoAim)
-                        {
-                            if (!TryResolveAutoAimDirection(
-                                    playerObject,
-                                    out attackDirection))
-                            {
-                                attackDirection = ResolveForwardDirection(playerObject);
-                            }
-                        }
-                        else
-                        {
-                            attackDirection = targetDirection;
-                        }
-                    }
-
-                    characterAttack.Attack(attackDirection);
+                    characterAttack.Attack(
+                        latestAimDirectionWorld);
                 })
                 .AddTo(ref _disposables);
 
             _playerController.SuperRequestedStream
-                .Subscribe(request =>
+                .Subscribe(_ =>
                 {
-                    Vector3 superDirection = latestAimDirectionWorld;
-
-                    if (characterSuperAim.TryConsumeSuper(
-                            out Vector3 aimPoint,
-                            out Vector3 targetDirection,
-                            out bool canAutoAim))
-                    {
-                        if (canAutoAim)
-                        {
-                            if (!TryResolveAutoAimDirection(
-                                    playerObject,
-                                    out superDirection))
-                            {
-                                superDirection = ResolveForwardDirection(playerObject);
-                            }
-                        }
-                        else
-                        {
-                            superDirection = targetDirection;
-                        }
-                    }
-
-                    characterSuper.Super(superDirection);
+                    characterSuper.Super(
+                        latestAimDirectionWorld);
                 })
                 .AddTo(ref _disposables);
         }
 
-        private bool TryResolveAutoAimDirection(
-            GameObject sourceObject,
-            out Vector3 direction)
+        private void ConfigureBushRevealSensors(
+            TeamId visibleTeamId)
         {
-            Vector3 sourcePosition = sourceObject.transform.position;
-            CharacterStatus sourceStatus = GetRequiredComponent<CharacterStatus>(sourceObject);
-
-            GameObject nearestObject = null;
-            float nearestSqrDistance = float.MaxValue;
-
-            for (int i = 0; i < _characterObjects.Count; i++)
+            for (int i = 0;
+                 i < _characterObjects.Count;
+                 i++)
             {
-                GameObject characterObject = _characterObjects[i];
+                GameObject characterObject =
+                    _characterObjects[i];
 
-                if (characterObject == null || characterObject == sourceObject)
-                {
-                    continue;
-                }
-
-                if (!characterObject.activeInHierarchy)
+                if (characterObject == null)
                 {
                     continue;
                 }
 
                 CharacterStatus characterStatus =
-                    GetRequiredComponent<CharacterStatus>(characterObject);
+                    GetRequiredComponent<CharacterStatus>(
+                        characterObject);
 
-                if (characterStatus.TeamId == sourceStatus.TeamId)
-                {
-                    continue;
-                }
+                CharacterReveal revealSensor =
+                    GetRequiredComponent<CharacterReveal>(
+                        characterObject);
 
-                if (characterStatus.IsDead)
-                {
-                    continue;
-                }
+                bool shouldRevealBush =
+                    characterStatus.TeamId
+                    == visibleTeamId
+                    && !characterStatus.IsDead;
 
-                if (!ShouldRenderCharacter(characterObject))
-                {
-                    continue;
-                }
-
-                if (!IsCharacterRendererInsidePlayerCamera(characterObject))
-                {
-                    continue;
-                }
-
-                Vector3 toTarget = characterObject.transform.position - sourcePosition;
-                toTarget.y = 0.0f;
-
-                float sqrDistance = toTarget.sqrMagnitude;
-
-                if (sqrDistance <= MinDirectionSqrMagnitude)
-                {
-                    continue;
-                }
-
-                if (sqrDistance < nearestSqrDistance)
-                {
-                    nearestSqrDistance = sqrDistance;
-                    nearestObject = characterObject;
-                }
+                revealSensor.SetRevealEnabled(
+                    shouldRevealBush);
             }
-
-            if (nearestObject == null)
-            {
-                direction = Vector3.zero;
-                return false;
-            }
-
-            Vector3 resolvedDirection = nearestObject.transform.position - sourcePosition;
-            resolvedDirection.y = 0.0f;
-
-            if (resolvedDirection.sqrMagnitude <= MinDirectionSqrMagnitude)
-            {
-                direction = Vector3.zero;
-                return false;
-            }
-
-            direction = resolvedDirection.normalized;
-            return true;
         }
 
-        private bool IsCharacterRendererInsidePlayerCamera(GameObject targetObject)
+        private void UpdateCharacterVisibility()
         {
-            if (_playerCamera == null)
-            {
-                return false;
-            }
+            ConfigureBushRevealSensors(
+                _visibleTeamId);
 
-            if (!_characterRenderersByObject.TryGetValue(
+            for (int i = 0;
+                 i < _characterObjects.Count;
+                 i++)
+            {
+                GameObject targetObject =
+                    _characterObjects[i];
+
+                if (targetObject == null)
+                {
+                    continue;
+                }
+
+                if (!targetObject.activeInHierarchy)
+                {
+                    continue;
+                }
+
+                bool shouldRender =
+                    ShouldRenderCharacter(
+                        targetObject);
+
+                SetCharacterRenderersEnabled(
                     targetObject,
-                    out Renderer[] renderers))
-            {
-                CacheCharacterRenderers(targetObject);
-                renderers = _characterRenderersByObject[targetObject];
+                    shouldRender);
             }
+        }
 
-            if (renderers == null || renderers.Length == 0)
+        private bool ShouldRenderCharacter(
+            GameObject targetObject)
+        {
+            CharacterStatus targetStatus =
+                GetRequiredComponent<CharacterStatus>(
+                    targetObject);
+
+            return
+                targetStatus.TeamId
+                == _visibleTeamId
+                || !targetStatus.IsInsideBush
+                || IsInsideVisibleTeamRevealRange(
+                    targetObject);
+        }
+
+        private bool IsInsideVisibleTeamRevealRange(
+            GameObject targetObject)
+        {
+            Vector3 targetPosition =
+                targetObject.transform.position;
+
+            for (int i = 0;
+                 i < _characterObjects.Count;
+                 i++)
             {
-                return false;
-            }
+                GameObject viewerObject =
+                    _characterObjects[i];
 
-            Plane[] cameraPlanes =
-                GeometryUtility.CalculateFrustumPlanes(_playerCamera);
-
-            for (int i = 0; i < renderers.Length; i++)
-            {
-                Renderer renderer = renderers[i];
-
-                if (renderer == null)
+                if (viewerObject == null
+                    || viewerObject == targetObject)
                 {
                     continue;
                 }
 
-                if (!renderer.gameObject.activeInHierarchy)
+                if (!viewerObject.activeInHierarchy)
                 {
                     continue;
                 }
 
-                if (GeometryUtility.TestPlanesAABB(
-                        cameraPlanes,
-                        renderer.bounds))
+                CharacterStatus viewerStatus =
+                    GetRequiredComponent<CharacterStatus>(
+                        viewerObject);
+
+                if (viewerStatus.TeamId
+                    != _visibleTeamId)
+                {
+                    continue;
+                }
+
+                if (viewerStatus.IsDead)
+                {
+                    continue;
+                }
+
+                CharacterReveal viewerReveal =
+                    GetRequiredComponent<CharacterReveal>(
+                        viewerObject);
+
+                if (viewerReveal.ContainsWorldPosition(
+                        targetPosition))
                 {
                     return true;
                 }
@@ -629,22 +533,217 @@ namespace Uraty.Application.Battle
             return false;
         }
 
-        private static Vector3 ResolveForwardDirection(GameObject sourceObject)
+        private void CacheCharacterRenderers(
+            GameObject characterObject)
         {
-            Vector3 forward = sourceObject.transform.forward;
-            forward.y = 0.0f;
+            Renderer[] renderers =
+                characterObject
+                    .GetComponentsInChildren<Renderer>(
+                        true);
 
-            if (forward.sqrMagnitude <= MinDirectionSqrMagnitude)
-            {
-                return Vector3.forward;
-            }
-
-            return forward.normalized;
+            _characterRenderersByObject[
+                characterObject] =
+                renderers;
         }
 
-        private GameObject FindCharacterPrefab(RoleType roleType)
+        private void SetCharacterRenderersEnabled(
+            GameObject characterObject,
+            bool isEnabled)
         {
-            foreach (RoleCharacterPrefabEntry entry in _roleCharacterPrefabEntries)
+            if (!_characterRenderersByObject
+                    .TryGetValue(
+                        characterObject,
+                        out Renderer[] renderers))
+            {
+                CacheCharacterRenderers(
+                    characterObject);
+
+                renderers =
+                    _characterRenderersByObject[
+                        characterObject];
+            }
+
+            for (int i = 0;
+                 i < renderers.Length;
+                 i++)
+            {
+                Renderer renderer =
+                    renderers[i];
+
+                if (renderer == null)
+                {
+                    continue;
+                }
+
+                renderer.enabled =
+                    isEnabled;
+            }
+        }
+
+        private void AssignCharacterToSpawnerPosition(
+            GameObject characterObject,
+            TeamId teamId)
+        {
+            if (characterObject == null)
+            {
+                return;
+            }
+
+            Component spawner =
+                FindAndReserveSpawnerComponent(
+                    teamId);
+
+            Transform t =
+                characterObject.transform;
+
+            t.position =
+                spawner.transform.position;
+
+            t.rotation =
+                spawner.transform.rotation;
+        }
+
+        private Component FindAndReserveSpawnerComponent(
+            TeamId teamId)
+        {
+            const string spawnerTypeName =
+                "Uraty.Features.Terrain.Spawner";
+
+            // `Type.GetType` はアセンブリ名無しだと nullになることがあるため、
+            // 全アセンブリを探索して型を見つける。
+            Type spawnerType =
+                Type.GetType(spawnerTypeName)
+                ?? ResolveTypeFromLoadedAssemblies(
+                    spawnerTypeName);
+
+            if (spawnerType == null)
+            {
+                throw new InvalidOperationException(
+                    $"{spawnerTypeName} が見つかりません。" +
+                    " Terrain 側の asmdef /参照設定を確認してください。"
+                );
+            }
+
+            Component[] spawners =
+                (Component[])FindObjectsByType(
+                    spawnerType,
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None);
+
+            if (spawners == null || spawners.Length ==0)
+            {
+                throw new InvalidOperationException(
+                    "Spawner が Scene 上に存在しません。" +
+                    " `Uraty.Features.Terrain.Spawner` を配置してください。"
+                );
+            }
+
+            PropertyInfo teamIdProperty =
+                spawnerType.GetProperty(
+                    "TeamId",
+                    BindingFlags.Instance
+                    | BindingFlags.Public);
+
+            MethodInfo tryReserveMethod =
+                spawnerType.GetMethod(
+                    "TryReserve",
+                    BindingFlags.Instance
+                    | BindingFlags.Public);
+
+            if (teamIdProperty == null || tryReserveMethod == null)
+            {
+                throw new InvalidOperationException(
+                    $"{spawnerTypeName} のメンバーが見つかりません。" +
+                    " TeamId プロパティと TryReserve メソッドが必要です。"
+                );
+            }
+
+            for (int i =0;
+                 i < spawners.Length;
+                 i++)
+            {
+                Component spawner =
+                    spawners[i];
+
+                if (spawner == null)
+                {
+                    continue;
+                }
+
+                // LayerMask が指定されている場合のみフィルタ
+                if (_spawnerLayerMask.value !=0)
+                {
+                    int spawnerLayerBit =1 << spawner.gameObject.layer;
+                    bool isTargetLayer =
+                        (_spawnerLayerMask.value & spawnerLayerBit) !=0;
+
+                    if (!isTargetLayer)
+                    {
+                        continue;
+                    }
+                }
+
+                object propertyValue =
+                    teamIdProperty.GetValue(
+                        spawner,
+                        null);
+
+                if (propertyValue
+                    is not TeamId spawnerTeamId
+                    || spawnerTeamId != teamId)
+                {
+                    continue;
+                }
+
+                bool reserved =
+                    (bool)tryReserveMethod.Invoke(
+                        spawner,
+                        null);
+
+                if (!reserved)
+                {
+                    continue;
+                }
+
+                return spawner;
+            }
+
+            throw new InvalidOperationException(
+                $"TeamId={teamId} の未使用スポナーが見つかりません。" +
+                " (数が足りない /既に使用済み / LayerMask が誤っている可能性があります)"
+            );
+        }
+
+        private static Type ResolveTypeFromLoadedAssemblies(
+            string fullName)
+        {
+            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
+
+            for (int i =0; i < assemblies.Length; i++)
+            {
+                Assembly assembly = assemblies[i];
+
+                if (assembly == null)
+                {
+                    continue;
+                }
+
+                Type type = assembly.GetType(fullName, throwOnError: false);
+
+                if (type != null)
+                {
+                    return type;
+                }
+            }
+
+            return null;
+        }
+
+        private GameObject FindCharacterPrefab(
+            RoleType roleType)
+        {
+            foreach (RoleCharacterPrefabEntry entry
+                     in _roleCharacterPrefabEntries)
             {
                 if (entry.RoleType == roleType)
                 {
@@ -653,13 +752,15 @@ namespace Uraty.Application.Battle
             }
 
             throw new InvalidOperationException(
-                $"{roleType} に対応する CharacterPrefab が登録されていません。");
+                $"{roleType} のPrefab未登録");
         }
 
-        private static T GetRequiredComponent<T>(GameObject target)
+        private static T GetRequiredComponent<T>(
+            GameObject target)
             where T : Component
         {
-            if (target.TryGetComponent(out T component))
+            if (target.TryGetComponent(
+                    out T component))
             {
                 return component;
             }
@@ -671,7 +772,88 @@ namespace Uraty.Application.Battle
         private void OnDestroy()
         {
             _disposables.Dispose();
+
             _characterRenderersByObject.Clear();
+        }
+
+        private GameObject FindNearestVisibleEnemyForBot(
+            Transform selfTransform,
+            float searchRadius)
+        {
+            if (selfTransform == null)
+            {
+                return null;
+            }
+
+            float searchRadiusSqr = Mathf.Max(0f, searchRadius);
+            searchRadiusSqr *= searchRadiusSqr;
+
+            GameObject nearest = null;
+            float nearestSqrDistance = float.MaxValue;
+
+            // BattleApplication が生成/管理しているキャラクターだけを対象にする
+            for (int i =0; i < _characterObjects.Count; i++)
+            {
+                GameObject otherObject = _characterObjects[i];
+                if (otherObject == null)
+                {
+                    continue;
+                }
+
+                if (otherObject.transform == selfTransform)
+                {
+                    continue;
+                }
+
+                if (!otherObject.activeInHierarchy)
+                {
+                    continue;
+                }
+
+                CharacterStatus otherStatus =
+                    GetRequiredComponent<CharacterStatus>(
+                        otherObject);
+
+                // Dead
+                if (otherStatus.IsDead)
+                {
+                    continue;
+                }
+
+                CharacterStatus selfStatus =
+                    GetRequiredComponent<CharacterStatus>(
+                        selfTransform.gameObject);
+
+                // Same team
+                if (otherStatus.TeamId == selfStatus.TeamId)
+                {
+                    continue;
+                }
+
+                // Bush (暫定: Bot はブッシュ内の敵を無視)
+                if (otherStatus.IsInsideBush)
+                {
+                    continue;
+                }
+
+                Vector3 diff = otherObject.transform.position - selfTransform.position;
+                diff.y =0f;
+
+                float sqrDistance = diff.sqrMagnitude;
+
+                if (sqrDistance > searchRadiusSqr)
+                {
+                    continue;
+                }
+
+                if (sqrDistance < nearestSqrDistance)
+                {
+                    nearestSqrDistance = sqrDistance;
+                    nearest = otherObject;
+                }
+            }
+
+            return nearest;
         }
 
         [Serializable]
@@ -683,8 +865,11 @@ namespace Uraty.Application.Battle
             [SerializeField]
             private GameObject _characterPrefab;
 
-            public RoleType RoleType => _roleType;
-            public GameObject CharacterPrefab => _characterPrefab;
+            public RoleType RoleType =>
+                _roleType;
+
+            public GameObject CharacterPrefab =>
+                _characterPrefab;
         }
     }
 }

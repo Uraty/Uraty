@@ -1,7 +1,9 @@
 {
-    "name": "Uraty.Features.Enemy",
-    "rootNamespace": "Uraty.Features.Enemy",
-    "references": [],
+    "name": "Uraty.Features.Bot",
+    "rootNamespace": "Uraty.Features.Bot",
+    "references": [
+        "GUID:b5c31c0c834ee7e4b980691b778889bf"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
