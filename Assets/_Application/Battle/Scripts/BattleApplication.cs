@@ -244,7 +244,24 @@ namespace Uraty.Application.Battle
                 GetRequiredComponent<CharacterStatus>(
                     characterObject);
 
-            inputInterpreter.Initialize(status);
+            // BotInputInterpreter が CharacterStatus を参照しないように、
+            // 必要最小限の情報（Transform と敵探索関数）だけを注入する。
+            inputInterpreter.Initialize(
+                characterObject.transform,
+                FindNearestVisibleEnemyForBot);
+
+            // 毎フレーム Application 側の状態を注入
+            Observable.EveryUpdate()
+                .Subscribe(_ =>
+                {
+                    if (status == null)
+                    {
+                        return;
+                    }
+
+                    inputInterpreter.SetIsDead(status.IsDead);
+                })
+                .AddTo(ref _disposables);
 
             CharacterMove characterMove =
                 GetRequiredComponent<CharacterMove>(
@@ -757,6 +774,86 @@ namespace Uraty.Application.Battle
             _disposables.Dispose();
 
             _characterRenderersByObject.Clear();
+        }
+
+        private GameObject FindNearestVisibleEnemyForBot(
+            Transform selfTransform,
+            float searchRadius)
+        {
+            if (selfTransform == null)
+            {
+                return null;
+            }
+
+            float searchRadiusSqr = Mathf.Max(0f, searchRadius);
+            searchRadiusSqr *= searchRadiusSqr;
+
+            GameObject nearest = null;
+            float nearestSqrDistance = float.MaxValue;
+
+            // BattleApplication が生成/管理しているキャラクターだけを対象にする
+            for (int i =0; i < _characterObjects.Count; i++)
+            {
+                GameObject otherObject = _characterObjects[i];
+                if (otherObject == null)
+                {
+                    continue;
+                }
+
+                if (otherObject.transform == selfTransform)
+                {
+                    continue;
+                }
+
+                if (!otherObject.activeInHierarchy)
+                {
+                    continue;
+                }
+
+                CharacterStatus otherStatus =
+                    GetRequiredComponent<CharacterStatus>(
+                        otherObject);
+
+                // Dead
+                if (otherStatus.IsDead)
+                {
+                    continue;
+                }
+
+                CharacterStatus selfStatus =
+                    GetRequiredComponent<CharacterStatus>(
+                        selfTransform.gameObject);
+
+                // Same team
+                if (otherStatus.TeamId == selfStatus.TeamId)
+                {
+                    continue;
+                }
+
+                // Bush (暫定: Bot はブッシュ内の敵を無視)
+                if (otherStatus.IsInsideBush)
+                {
+                    continue;
+                }
+
+                Vector3 diff = otherObject.transform.position - selfTransform.position;
+                diff.y =0f;
+
+                float sqrDistance = diff.sqrMagnitude;
+
+                if (sqrDistance > searchRadiusSqr)
+                {
+                    continue;
+                }
+
+                if (sqrDistance < nearestSqrDistance)
+                {
+                    nearestSqrDistance = sqrDistance;
+                    nearest = otherObject;
+                }
+            }
+
+            return nearest;
         }
 
         [Serializable]
