@@ -1,7 +1,5 @@
 using UnityEngine;
 
-using Uraty.Features.Character;
-
 namespace Uraty.Features.Bot
 {
     [DefaultExecutionOrder(-100)]
@@ -20,7 +18,15 @@ namespace Uraty.Features.Bot
         [SerializeField]
         private float _attackInterval = 1.2f;
 
-        private CharacterStatus _selfStatus;
+        private Transform _selfTransform;
+        private bool _isDead;
+
+        private GameObject _currentTarget;
+
+        /// <summary>
+        /// BattleApplication 側が管理している「見えている敵」を返す。
+        /// </summary>
+        private System.Func<Transform, float, GameObject> _findNearestEnemy;
 
         private Vector3 _moveDirectionWorld;
         private Vector3 _aimDirectionWorld;
@@ -42,10 +48,28 @@ namespace Uraty.Features.Bot
         public bool AttackReleasedThisFrame =>
             _attackReleasedThisFrame;
 
+        /// <summary>
+        /// Bot が操作するキャラクター情報を Applicationから注入する。
+        /// Character 側アセンブリへの参照を避けるため、必要最小限の情報だけを受け取る。
+        /// </summary>
         public void Initialize(
-            CharacterStatus selfStatus)
+            Transform selfTransform,
+            System.Func<Transform, float, GameObject> findNearestEnemy)
         {
-            _selfStatus = selfStatus;
+            _selfTransform = selfTransform;
+            _findNearestEnemy = findNearestEnemy;
+
+            _aimPointWorld = selfTransform != null
+                ? selfTransform.position
+                : Vector3.zero;
+        }
+
+        /// <summary>
+        /// Application 側から「死んだ/生きている」を更新する。
+        /// </summary>
+        public void SetIsDead(bool isDead)
+        {
+            _isDead = isDead;
         }
 
         private void Update()
@@ -57,28 +81,34 @@ namespace Uraty.Features.Bot
         {
             _attackReleasedThisFrame = false;
 
-            if (_selfStatus == null)
+            if (_selfTransform == null)
             {
                 return;
             }
 
-            if (_selfStatus.IsDead)
+            if (_isDead)
             {
                 ClearInputs();
                 return;
             }
 
-            GameObject target = FindNearestEnemy();
+            if (_findNearestEnemy == null)
+            {
+                ClearInputs();
+                return;
+            }
 
-            if (target == null)
+            _currentTarget = _findNearestEnemy.Invoke(_selfTransform, _searchRadius);
+
+            if (_currentTarget == null)
             {
                 ClearInputs();
                 return;
             }
 
             Vector3 diff =
-                target.transform.position
-                - _selfStatus.transform.position;
+                _currentTarget.transform.position
+                - _selfTransform.position;
 
             diff.y = 0f;
 
@@ -101,12 +131,15 @@ namespace Uraty.Features.Bot
                 direction;
 
             _aimPointWorld =
-                target.transform.position;
+                _currentTarget.transform.position;
 
             if (distance > _attackRange)
             {
                 _moveDirectionWorld =
                     direction;
+
+                // 射程外に出たら再度インターバル計測し直す
+                _attackTimer = 0f;
             }
             else
             {
@@ -125,76 +158,6 @@ namespace Uraty.Features.Bot
             }
         }
 
-        private GameObject FindNearestEnemy()
-        {
-            CharacterStatus[] allStatuses =
-                FindObjectsByType<CharacterStatus>(
-                    FindObjectsInactive.Exclude,
-                    FindObjectsSortMode.None);
-
-            GameObject nearest = null;
-
-            float nearestSqrDistance =
-                float.MaxValue;
-
-            foreach (CharacterStatus other in allStatuses)
-            {
-                if (other == null)
-                {
-                    continue;
-                }
-
-                if (other == _selfStatus)
-                {
-                    continue;
-                }
-
-                if (other.IsDead)
-                {
-                    continue;
-                }
-
-                if (other.TeamId
-                    == _selfStatus.TeamId)
-                {
-                    continue;
-                }
-
-                if (other.IsInsideBush)
-                {
-                    continue;
-                }
-
-                Vector3 diff =
-                    other.transform.position
-                    - _selfStatus.transform.position;
-
-                diff.y = 0f;
-
-                float sqrDistance =
-                    diff.sqrMagnitude;
-
-                if (sqrDistance >
-                    _searchRadius
-                    * _searchRadius)
-                {
-                    continue;
-                }
-
-                if (sqrDistance <
-                    nearestSqrDistance)
-                {
-                    nearestSqrDistance =
-                        sqrDistance;
-
-                    nearest =
-                        other.gameObject;
-                }
-            }
-
-            return nearest;
-        }
-
         private void ClearInputs()
         {
             _moveDirectionWorld =
@@ -203,10 +166,10 @@ namespace Uraty.Features.Bot
             _aimDirectionWorld =
                 Vector3.zero;
 
-            if (_selfStatus != null)
+            if (_selfTransform != null)
             {
                 _aimPointWorld =
-                    _selfStatus.transform.position;
+                    _selfTransform.position;
             }
         }
     }
