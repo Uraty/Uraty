@@ -1,11 +1,13 @@
 using UnityEngine;
-using Uraty.Systems.Input;
 using UnityEngine.SceneManagement;
+
+using Uraty.Systems.Input;
 
 namespace Uraty.Application.Matching
 {
     public sealed class MatchingSystem : MonoBehaviour
     {
+        [Header("入力管理")]
         [SerializeField] private GameInput _gameInput;
 
         [Header("遷移先Scene名")]
@@ -22,23 +24,25 @@ namespace Uraty.Application.Matching
 
         private void Awake()
         {
-            if(_gameInput == null)
+            if (_gameInput == null)
             {
                 Debug.LogError($"{nameof(MatchingSystem)}: GameInputが設定されていません。");
-                return;
             }
 
-            _gameInput.EnableUIInput();
-        }
-        private void OnEnable()
-        {
             _elapsedSeconds = 0.0f;
             _hasLoadedScene = false;
+
+            EnableUiInput();
         }
 
         private void Update()
         {
             if (_hasLoadedScene)
+            {
+                return;
+            }
+
+            if (_autoTransitionSeconds <= 0.0f)
             {
                 return;
             }
@@ -51,6 +55,17 @@ namespace Uraty.Application.Matching
             }
 
             LoadTargetScene();
+        }
+
+        private void EnableUiInput()
+        {
+            if (_gameInput == null)
+            {
+                return;
+            }
+
+            _gameInput.EnableUIInput();
+            Debug.Log($"{nameof(MatchingSystem)}: UI入力を有効化しました。");
         }
 
         private void LoadTargetScene()
