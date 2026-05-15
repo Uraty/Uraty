@@ -58,7 +58,10 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 99a60523ab74d634d8d5fe8ca2f15024, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 2888889683732267894, guid: 79bdc27fb5592b043a3226178a66fb90, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5703266029659696293}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 2681224766374519466, guid: 79bdc27fb5592b043a3226178a66fb90, type: 3}
       insertIndex: -1
@@ -81,3 +84,86 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 47f52c9e981c0f746bb26be40a67a133, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Uraty.Features.Terrain::Uraty.Features.Terrain.Fence
+--- !u!4 &7644005493571357743 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2888889683732267894, guid: 79bdc27fb5592b043a3226178a66fb90, type: 3}
+  m_PrefabInstance: {fileID: 4756807962596708185}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &5236748766208740174
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 7644005493571357743}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: a8397b4c331a1cc48a8777acc6a912e6, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: a8397b4c331a1cc48a8777acc6a912e6, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: a8397b4c331a1cc48a8777acc6a912e6, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: a8397b4c331a1cc48a8777acc6a912e6, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: a8397b4c331a1cc48a8777acc6a912e6, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.4
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: a8397b4c331a1cc48a8777acc6a912e6, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: a8397b4c331a1cc48a8777acc6a912e6, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: a8397b4c331a1cc48a8777acc6a912e6, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: a8397b4c331a1cc48a8777acc6a912e6, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: a8397b4c331a1cc48a8777acc6a912e6, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: a8397b4c331a1cc48a8777acc6a912e6, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: a8397b4c331a1cc48a8777acc6a912e6, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: a8397b4c331a1cc48a8777acc6a912e6, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 569169282116888178, guid: a8397b4c331a1cc48a8777acc6a912e6, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 89f402a5bbae0da4682e2c9a2594bf4a, type: 2}
+    - target: {fileID: 919132149155446097, guid: a8397b4c331a1cc48a8777acc6a912e6, type: 3}
+      propertyPath: m_Name
+      value: CottonCandyModel
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: a8397b4c331a1cc48a8777acc6a912e6, type: 3}
+--- !u!4 &5703266029659696293 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: a8397b4c331a1cc48a8777acc6a912e6, type: 3}
+  m_PrefabInstance: {fileID: 5236748766208740174}
+  m_PrefabAsset: {fileID: 0}
