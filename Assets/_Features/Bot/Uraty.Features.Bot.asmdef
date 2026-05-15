@@ -2,8 +2,6 @@
     "name": "Uraty.Features.Bot",
     "rootNamespace": "Uraty.Features.Bot",
     "references": [
-        "GUID:aff03c096e22e514e830c9baff70dd4f",
-        "GUID:e48439d916031bd409784c3a7ee13d3c",
         "GUID:b5c31c0c834ee7e4b980691b778889bf"
     ],
     "includePlatforms": [],
