@@ -176,51 +176,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1df32708aa9155d4d9b6e0c3e1075a22, type: 3}
---- !u!1 &482789874
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 482789876}
-  - component: {fileID: 482789875}
-  m_Layer: 0
-  m_Name: BotController
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &482789875
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 482789874}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 86e36d5d27e7a854fbf5854b687b26e8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Uraty.Features.Bot::Uraty.Features.Bot.BotController
-  _updateInterval: 0.1
---- !u!4 &482789876
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 482789874}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.19511, y: -0, z: -3.24786}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!20 &596832173 stripped
 Camera:
   m_CorrespondingSourceObject: {fileID: 1479480820250006823, guid: 98a6cc8d087559641ba4d1d2227e7878, type: 3}
@@ -302,6 +257,67 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 114efb616069e524a860a394b18b97c7, type: 3}
+--- !u!1 &727630323
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 727630326}
+  - component: {fileID: 727630325}
+  - component: {fileID: 727630324}
+  m_Layer: 0
+  m_Name: Bot4
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &727630324
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 727630323}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef153a456d427dd4b808ce7aa14f4c81, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Bot::Uraty.Features.Bot.BotInputInterpreter
+  _searchRadius: 15
+  _attackRange: 3
+  _attackInterval: 1.2
+--- !u!114 &727630325
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 727630323}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86e36d5d27e7a854fbf5854b687b26e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Bot::Uraty.Features.Bot.BotController
+  _inputInterpreter: {fileID: 727630324}
+--- !u!4 &727630326
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 727630323}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 3.83341, y: -0.5, z: 8.44612}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &746577883
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -518,6 +534,189 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Uraty.Application.Stage::Uraty.Features.Stage.StageGenerator
   navMeshSurface: {fileID: 841920550}
+--- !u!1 &917478745
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 917478748}
+  - component: {fileID: 917478747}
+  - component: {fileID: 917478746}
+  m_Layer: 0
+  m_Name: Bot2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &917478746
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 917478745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef153a456d427dd4b808ce7aa14f4c81, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Bot::Uraty.Features.Bot.BotInputInterpreter
+  _searchRadius: 15
+  _attackRange: 3
+  _attackInterval: 1.2
+--- !u!114 &917478747
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 917478745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86e36d5d27e7a854fbf5854b687b26e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Bot::Uraty.Features.Bot.BotController
+  _inputInterpreter: {fileID: 917478746}
+--- !u!4 &917478748
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 917478745}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 3.83341, y: -0.5, z: 8.44612}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1290862296
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1290862299}
+  - component: {fileID: 1290862298}
+  - component: {fileID: 1290862297}
+  m_Layer: 0
+  m_Name: Bot3
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1290862297
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1290862296}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef153a456d427dd4b808ce7aa14f4c81, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Bot::Uraty.Features.Bot.BotInputInterpreter
+  _searchRadius: 15
+  _attackRange: 3
+  _attackInterval: 1.2
+--- !u!114 &1290862298
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1290862296}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86e36d5d27e7a854fbf5854b687b26e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Bot::Uraty.Features.Bot.BotController
+  _inputInterpreter: {fileID: 1290862297}
+--- !u!4 &1290862299
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1290862296}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 3.83341, y: -0.5, z: 8.44612}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1354976953
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1354976956}
+  - component: {fileID: 1354976955}
+  - component: {fileID: 1354976954}
+  m_Layer: 0
+  m_Name: Bot1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1354976954
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1354976953}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef153a456d427dd4b808ce7aa14f4c81, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Bot::Uraty.Features.Bot.BotInputInterpreter
+  _searchRadius: 15
+  _attackRange: 3
+  _attackInterval: 1.2
+--- !u!114 &1354976955
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1354976953}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86e36d5d27e7a854fbf5854b687b26e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Bot::Uraty.Features.Bot.BotController
+  _inputInterpreter: {fileID: 1354976954}
+--- !u!4 &1354976956
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1354976953}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 3.83341, y: -0.5, z: 8.44612}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1397740527 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: -2023765428104240123, guid: 114efb616069e524a860a394b18b97c7, type: 3}
@@ -602,6 +801,67 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3046211557624033960, guid: c8f1915ba5feba64db323202136d2997, type: 3}
   m_PrefabInstance: {fileID: 2053309341}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1785831290
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1785831293}
+  - component: {fileID: 1785831292}
+  - component: {fileID: 1785831291}
+  m_Layer: 0
+  m_Name: Bot5
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1785831291
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1785831290}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef153a456d427dd4b808ce7aa14f4c81, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Bot::Uraty.Features.Bot.BotInputInterpreter
+  _searchRadius: 15
+  _attackRange: 3
+  _attackInterval: 1.2
+--- !u!114 &1785831292
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1785831290}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86e36d5d27e7a854fbf5854b687b26e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Bot::Uraty.Features.Bot.BotController
+  _inputInterpreter: {fileID: 1785831291}
+--- !u!4 &1785831293
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1785831290}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 3.83341, y: -0.5, z: 8.44612}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2048941468
 GameObject:
   m_ObjectHideFlags: 0
@@ -848,7 +1108,7 @@ PrefabInstance:
     - target: {fileID: -6035043067423633329, guid: a2178361e364e6642a09abe774603270, type: 3}
       propertyPath: _botController
       value: 
-      objectReference: {fileID: 482789875}
+      objectReference: {fileID: 0}
     - target: {fileID: -6035043067423633329, guid: a2178361e364e6642a09abe774603270, type: 3}
       propertyPath: _playerController
       value: 
@@ -856,6 +1116,38 @@ PrefabInstance:
     - target: {fileID: -6035043067423633329, guid: a2178361e364e6642a09abe774603270, type: 3}
       propertyPath: _spawnerLayerMask.m_Bits
       value: 1024
+      objectReference: {fileID: 0}
+    - target: {fileID: -6035043067423633329, guid: a2178361e364e6642a09abe774603270, type: 3}
+      propertyPath: _botControllers.Array.size
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: -6035043067423633329, guid: a2178361e364e6642a09abe774603270, type: 3}
+      propertyPath: '_botControllers.Array.data[0]'
+      value: 
+      objectReference: {fileID: 1354976955}
+    - target: {fileID: -6035043067423633329, guid: a2178361e364e6642a09abe774603270, type: 3}
+      propertyPath: '_botControllers.Array.data[1]'
+      value: 
+      objectReference: {fileID: 917478747}
+    - target: {fileID: -6035043067423633329, guid: a2178361e364e6642a09abe774603270, type: 3}
+      propertyPath: '_botControllers.Array.data[2]'
+      value: 
+      objectReference: {fileID: 1290862298}
+    - target: {fileID: -6035043067423633329, guid: a2178361e364e6642a09abe774603270, type: 3}
+      propertyPath: '_botControllers.Array.data[3]'
+      value: 
+      objectReference: {fileID: 727630325}
+    - target: {fileID: -6035043067423633329, guid: a2178361e364e6642a09abe774603270, type: 3}
+      propertyPath: '_botControllers.Array.data[4]'
+      value: 
+      objectReference: {fileID: 1785831292}
+    - target: {fileID: -6035043067423633329, guid: a2178361e364e6642a09abe774603270, type: 3}
+      propertyPath: _roleCharacterPrefabEntries.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: -6035043067423633329, guid: a2178361e364e6642a09abe774603270, type: 3}
+      propertyPath: _roleCharacterPrefabEntries.Array.data[4]._roleType
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: -6035043067423633329, guid: a2178361e364e6642a09abe774603270, type: 3}
       propertyPath: _roleCharacterPrefabEntries.Array.data[0]._characterPrefab
@@ -871,6 +1163,10 @@ PrefabInstance:
       objectReference: {fileID: 414510161762077789, guid: e3ab0d20fafe40b4e956a3adf576b039, type: 3}
     - target: {fileID: -6035043067423633329, guid: a2178361e364e6642a09abe774603270, type: 3}
       propertyPath: _roleCharacterPrefabEntries.Array.data[3]._characterPrefab
+      value: 
+      objectReference: {fileID: 7931562737157900142, guid: e4f55ec51b5d5d346a0a6a7fedc573aa, type: 3}
+    - target: {fileID: -6035043067423633329, guid: a2178361e364e6642a09abe774603270, type: 3}
+      propertyPath: _roleCharacterPrefabEntries.Array.data[4]._characterPrefab
       value: 
       objectReference: {fileID: 7931562737157900142, guid: e4f55ec51b5d5d346a0a6a7fedc573aa, type: 3}
     - target: {fileID: 483189574294234336, guid: a2178361e364e6642a09abe774603270, type: 3}
@@ -931,7 +1227,11 @@ SceneRoots:
   - {fileID: 1464470520}
   - {fileID: 124656330}
   - {fileID: 627899717}
-  - {fileID: 482789876}
+  - {fileID: 1354976956}
+  - {fileID: 917478748}
+  - {fileID: 1290862299}
+  - {fileID: 727630326}
+  - {fileID: 1785831293}
   - {fileID: 2125014309}
   - {fileID: 2053309341}
   - {fileID: 746577883}
