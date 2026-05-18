@@ -1,14 +1,22 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+using Uraty.Systems.Input;
+
 namespace Uraty.Features.Result
 {
     public class ResultButton : MonoBehaviour
     {
         [Header("シーン名設定")]
         [SerializeField] private string _lobbySceneName;
-
         [SerializeField] private string _rematchSceneName;
+
+        private GameInput input;
+
+        private void Start()
+        {
+            input.EnableUIInput();
+        }
 
         public void LoadLobbyScene()
         {
