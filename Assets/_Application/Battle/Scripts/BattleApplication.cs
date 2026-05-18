@@ -18,8 +18,32 @@ namespace Uraty.Application.Battle
 {
     public sealed class BattleApplication : MonoBehaviour
     {
+        [Header("Auto Aim (Player)")]
+        [SerializeField, Min(0f)]
+        private float _playerAutoAimSearchRadius = 12f;
+
+        [SerializeField, Range(0f, 180f)]
+        private float _playerAutoAimMaxAngleDegrees = 55f;
+
         private const int TeamMemberCount = 3;
         private const float MinDirectionSqrMagnitude = 0.0001f;
+
+        [Header("Bot Recovery")]
+        [Tooltip("Botが逃走・回復に入るHP比率(0-1)")]
+        [SerializeField, Range(0f, 1f)]
+        private float _botRecoveryEnterHpRatio = 0.5f;
+
+        [Tooltip("回復開始後、このHP比率まで回復したら通常行動へ戻る(0-1)")]
+        [SerializeField, Range(0f, 1f)]
+        private float _botRecoveryExitHpRatio = 0.7f;
+
+        [Tooltip("逃走中の自然回復量(HP/秒)")]
+        [SerializeField, Min(0f)]
+        private float _botRecoveryHealPerSecond = 8f;
+
+        [Tooltip("逃走移動の強さ(0-1)")]
+        [SerializeField, Range(0f, 1f)]
+        private float _botFleeMoveScale = 1.0f;
 
         [Header("Camera")]
         [SerializeField]
@@ -60,6 +84,9 @@ namespace Uraty.Application.Battle
             _characterRenderersByObject = new();
 
         private DisposableBag _disposables;
+
+        // Bot毎の「回復モード」状態
+        private readonly Dictionary<GameObject, bool> _isBotRecoveringByCharacterObject = new();
 
         private IEnumerator Start()
         {
@@ -250,6 +277,9 @@ namespace Uraty.Application.Battle
                 characterObject.transform,
                 FindNearestVisibleEnemyForBot);
 
+            // 初期状態
+            _isBotRecoveringByCharacterObject[characterObject] = false;
+
             // 毎フレーム Application 側の状態を注入
             Observable.EveryUpdate()
                 .Subscribe(_ =>
@@ -260,6 +290,44 @@ namespace Uraty.Application.Battle
                     }
 
                     inputInterpreter.SetIsDead(status.IsDead);
+
+                    if (status.IsDead)
+                    {
+                        _isBotRecoveringByCharacterObject[characterObject] = false;
+                        inputInterpreter.SetRecoveryMode(false, Vector3.zero, 0f);
+                        return;
+                    }
+
+                    float hpRatio = status.MaxHp > 0f
+                        ? Mathf.Clamp01(status.CurrentHp / status.MaxHp)
+                        : 0f;
+
+                    bool isRecovering = _isBotRecoveringByCharacterObject.TryGetValue(characterObject, out bool current)
+                        && current;
+
+                    if (!isRecovering && hpRatio <= _botRecoveryEnterHpRatio)
+                    {
+                        isRecovering = true;
+                    }
+                    else if (isRecovering && hpRatio >= _botRecoveryExitHpRatio)
+                    {
+                        isRecovering = false;
+                    }
+
+                    _isBotRecoveringByCharacterObject[characterObject] = isRecovering;
+
+                    if (isRecovering)
+                    {
+                        //逃げながら自然回復
+                        status.Heal(_botRecoveryHealPerSecond * Time.deltaTime);
+
+                        Vector3 fleeDirectionWorld = FindFleeDirectionWorld(characterObject.transform);
+                        inputInterpreter.SetRecoveryMode(true, fleeDirectionWorld, _botFleeMoveScale);
+                    }
+                    else
+                    {
+                        inputInterpreter.SetRecoveryMode(false, Vector3.zero, 0f);
+                    }
                 })
                 .AddTo(ref _disposables);
 
@@ -285,6 +353,9 @@ namespace Uraty.Application.Battle
 
             Vector3 latestAimDirectionWorld =
                 Vector3.forward;
+
+            Vector3 releasedAttackDirectionWorld = Vector3.forward;
+            Vector3 releasedSuperDirectionWorld = Vector3.forward;
 
             botController.MoveRequestedStream
                 .Subscribe(request =>
@@ -320,10 +391,43 @@ namespace Uraty.Application.Battle
             botController.AttackRequestedStream
                 .Subscribe(_ =>
                 {
-                    characterAttack.Attack(
-                        latestAimDirectionWorld);
+                    // BotはAimプレビュー/Completeを経由しないため、従来通り最新Aim方向で発射
+                    characterAttack.Attack(latestAimDirectionWorld);
                 })
                 .AddTo(ref _disposables);
+        }
+
+        private Vector3 FindFleeDirectionWorld(Transform selfTransform)
+        {
+            if (selfTransform == null)
+            {
+                return Vector3.zero;
+            }
+
+            GameObject nearestEnemy = FindNearestVisibleEnemyForBot(selfTransform, _playerAutoAimSearchRadius);
+            if (nearestEnemy == null)
+            {
+                // 敵が見えていないなら、いったん前方へ
+                Vector3 forward = selfTransform.forward;
+                forward.y = 0f;
+                return forward.sqrMagnitude > MinDirectionSqrMagnitude
+                    ? forward.normalized
+                    : Vector3.forward;
+            }
+
+            Vector3 away = selfTransform.position - nearestEnemy.transform.position;
+            away.y = 0f;
+
+            if (away.sqrMagnitude <= MinDirectionSqrMagnitude)
+            {
+                Vector3 fallback = selfTransform.forward;
+                fallback.y = 0f;
+                return fallback.sqrMagnitude > MinDirectionSqrMagnitude
+                    ? fallback.normalized
+                    : Vector3.forward;
+            }
+
+            return away.normalized;
         }
 
         private void SubscribePlayerController(
@@ -351,6 +455,11 @@ namespace Uraty.Application.Battle
 
             Vector3 latestAimDirectionWorld =
                 Vector3.forward;
+
+            // ボタン解放（CompleteAim）時点で確定した発射方向。
+            // Aim入力が無い場合でも CharacterAim 側の fallbackで決まるため、オートエイム復活に利用する。
+            Vector3 releasedAttackDirectionWorld = Vector3.forward;
+            Vector3 releasedSuperDirectionWorld = Vector3.forward;
 
             _playerController.MoveRequestedStream
                 .Subscribe(request =>
@@ -383,19 +492,66 @@ namespace Uraty.Application.Battle
                 })
                 .AddTo(ref _disposables);
 
+            //ここで「ボタン押下中にエイム線を出す」を復活させる
+            _playerController.AttackInputRequestedStream
+                .Subscribe(request =>
+                {
+                    if (request.PressedThisFrame)
+                    {
+                        characterAttackAim.BeginAttackAim();
+                    }
+
+                    if (request.ReleasedThisFrame)
+                    {
+                        characterAttackAim.CompleteAttackAim();
+
+                        // CompleteAimで確定した方向を取得（Aim入力が無い場合は fallback方向=オートエイム対象）
+                        releasedAttackDirectionWorld = characterAttackAim.GetTargetDirection();
+                    }
+                })
+                .AddTo(ref _disposables);
+
+            _playerController.SuperInputRequestedStream
+                .Subscribe(request =>
+                {
+                    if (request.PressedThisFrame)
+                    {
+                        characterSuperAim.BeginSuperAim();
+                    }
+
+                    if (request.ReleasedThisFrame)
+                    {
+                        characterSuperAim.CompleteSuperAim();
+
+                        // CompleteAimで確定した方向を取得
+                        releasedSuperDirectionWorld = characterSuperAim.GetTargetDirection();
+                    }
+                })
+                .AddTo(ref _disposables);
+
             _playerController.AttackRequestedStream
                 .Subscribe(_ =>
                 {
-                    characterAttack.Attack(
+                    Vector3 finalDirection = ResolvePlayerAttackDirection(
+                        playerObject,
+                        characterAttackAim,
+                        releasedAttackDirectionWorld,
                         latestAimDirectionWorld);
+
+                    characterAttack.Attack(finalDirection);
                 })
                 .AddTo(ref _disposables);
 
             _playerController.SuperRequestedStream
                 .Subscribe(_ =>
                 {
-                    characterSuper.Super(
+                    Vector3 finalDirection = ResolvePlayerSuperDirection(
+                        playerObject,
+                        characterSuperAim,
+                        releasedSuperDirectionWorld,
                         latestAimDirectionWorld);
+
+                    characterSuper.Super(finalDirection);
                 })
                 .AddTo(ref _disposables);
         }
@@ -630,7 +786,7 @@ namespace Uraty.Application.Battle
                     FindObjectsInactive.Exclude,
                     FindObjectsSortMode.None);
 
-            if (spawners == null || spawners.Length ==0)
+            if (spawners == null || spawners.Length == 0)
             {
                 throw new InvalidOperationException(
                     "Spawner が Scene 上に存在しません。" +
@@ -658,7 +814,7 @@ namespace Uraty.Application.Battle
                 );
             }
 
-            for (int i =0;
+            for (int i = 0;
                  i < spawners.Length;
                  i++)
             {
@@ -671,11 +827,11 @@ namespace Uraty.Application.Battle
                 }
 
                 // LayerMask が指定されている場合のみフィルタ
-                if (_spawnerLayerMask.value !=0)
+                if (_spawnerLayerMask.value != 0)
                 {
-                    int spawnerLayerBit =1 << spawner.gameObject.layer;
+                    int spawnerLayerBit = 1 << spawner.gameObject.layer;
                     bool isTargetLayer =
-                        (_spawnerLayerMask.value & spawnerLayerBit) !=0;
+                        (_spawnerLayerMask.value & spawnerLayerBit) != 0;
 
                     if (!isTargetLayer)
                     {
@@ -719,7 +875,7 @@ namespace Uraty.Application.Battle
         {
             Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
 
-            for (int i =0; i < assemblies.Length; i++)
+            for (int i = 0; i < assemblies.Length; i++)
             {
                 Assembly assembly = assemblies[i];
 
@@ -774,6 +930,7 @@ namespace Uraty.Application.Battle
             _disposables.Dispose();
 
             _characterRenderersByObject.Clear();
+            _isBotRecoveringByCharacterObject.Clear();
         }
 
         private GameObject FindNearestVisibleEnemyForBot(
@@ -792,7 +949,7 @@ namespace Uraty.Application.Battle
             float nearestSqrDistance = float.MaxValue;
 
             // BattleApplication が生成/管理しているキャラクターだけを対象にする
-            for (int i =0; i < _characterObjects.Count; i++)
+            for (int i = 0; i < _characterObjects.Count; i++)
             {
                 GameObject otherObject = _characterObjects[i];
                 if (otherObject == null)
@@ -837,7 +994,7 @@ namespace Uraty.Application.Battle
                 }
 
                 Vector3 diff = otherObject.transform.position - selfTransform.position;
-                diff.y =0f;
+                diff.y = 0f;
 
                 float sqrDistance = diff.sqrMagnitude;
 
@@ -850,6 +1007,185 @@ namespace Uraty.Application.Battle
                 {
                     nearestSqrDistance = sqrDistance;
                     nearest = otherObject;
+                }
+            }
+
+            return nearest;
+        }
+
+        private Vector3 ResolvePlayerAttackDirection(
+            GameObject playerObject,
+            CharacterAttackAim aim,
+            Vector3 releasedDirectionFallback,
+            Vector3 latestAimDirectionWorld)
+        {
+            if (aim != null)
+            {
+                Vector3 consumedAimPoint;
+                Vector3 consumedDirection;
+                bool canAutoAim;
+
+                if (aim.TryConsumeAttack(out consumedAimPoint, out consumedDirection, out canAutoAim))
+                {
+                    return ResolveDirectionWithAutoAim(playerObject, consumedDirection, canAutoAim);
+                }
+            }
+
+            Vector3 direction = releasedDirectionFallback.sqrMagnitude > MinDirectionSqrMagnitude
+                ? releasedDirectionFallback
+                : latestAimDirectionWorld;
+
+            return ResolveDirectionWithAutoAim(playerObject, direction, canAutoAim: false);
+        }
+
+        private Vector3 ResolvePlayerSuperDirection(
+            GameObject playerObject,
+            CharacterSuperAim aim,
+            Vector3 releasedDirectionFallback,
+            Vector3 latestAimDirectionWorld)
+        {
+            if (aim != null)
+            {
+                Vector3 consumedAimPoint;
+                Vector3 consumedDirection;
+                bool canAutoAim;
+
+                if (aim.TryConsumeSuper(out consumedAimPoint, out consumedDirection, out canAutoAim))
+                {
+                    return ResolveDirectionWithAutoAim(playerObject, consumedDirection, canAutoAim);
+                }
+            }
+
+            Vector3 direction = releasedDirectionFallback.sqrMagnitude > MinDirectionSqrMagnitude
+                ? releasedDirectionFallback
+                : latestAimDirectionWorld;
+
+            return ResolveDirectionWithAutoAim(playerObject, direction, canAutoAim: false);
+        }
+
+        private Vector3 ResolveDirectionWithAutoAim(
+            GameObject playerObject,
+            Vector3 baseDirectionWorld,
+            bool canAutoAim)
+        {
+            if (playerObject == null)
+            {
+                return baseDirectionWorld;
+            }
+
+            baseDirectionWorld.y = 0f;
+
+            // Aim入力がある場合はそのまま撃つ
+            if (!canAutoAim && baseDirectionWorld.sqrMagnitude > MinDirectionSqrMagnitude)
+            {
+                return baseDirectionWorld.normalized;
+            }
+
+            // AutoAim中は、最低でも「向いている方向」で発射する
+            Vector3 forward = playerObject.transform.forward;
+            forward.y = 0f;
+
+            if (forward.sqrMagnitude <= MinDirectionSqrMagnitude)
+            {
+                forward = Vector3.forward;
+            }
+
+            forward.Normalize();
+
+            if (!canAutoAim)
+            {
+                return forward;
+            }
+
+            // canAutoAim=true のときだけ敵へ吸い付ける（味方は除外）
+            GameObject enemy = FindNearestEnemyInCone(
+                playerObject.transform,
+                forward,
+                _playerAutoAimSearchRadius,
+                _playerAutoAimMaxAngleDegrees);
+
+            if (enemy == null)
+            {
+                return forward;
+            }
+
+            Vector3 toEnemy = enemy.transform.position - playerObject.transform.position;
+            toEnemy.y = 0f;
+
+            if (toEnemy.sqrMagnitude <= MinDirectionSqrMagnitude)
+            {
+                return forward;
+            }
+
+            return toEnemy.normalized;
+        }
+
+        private GameObject FindNearestEnemyInCone(
+            Transform selfTransform,
+            Vector3 forward,
+            float searchRadius,
+            float maxAngleDegrees)
+        {
+            if (selfTransform == null)
+            {
+                return null;
+            }
+
+            CharacterStatus selfStatus = GetRequiredComponent<CharacterStatus>(selfTransform.gameObject);
+
+            float radius = Mathf.Max(0f, searchRadius);
+            float radiusSqr = radius * radius;
+            float cosThreshold = Mathf.Cos(Mathf.Clamp(maxAngleDegrees, 0f, 180f) * Mathf.Deg2Rad);
+
+            GameObject nearest = null;
+            float nearestSqr = float.MaxValue;
+
+            for (int i = 0; i < _characterObjects.Count; i++)
+            {
+                GameObject other = _characterObjects[i];
+                if (other == null || other.transform == selfTransform || !other.activeInHierarchy)
+                {
+                    continue;
+                }
+
+                CharacterStatus otherStatus = GetRequiredComponent<CharacterStatus>(other);
+                if (otherStatus.IsDead)
+                {
+                    continue;
+                }
+
+                // 味方は対象外
+                if (otherStatus.TeamId == selfStatus.TeamId)
+                {
+                    continue;
+                }
+
+                // ブッシュ内は暫定で対象外（視認できない想定）
+                if (otherStatus.IsInsideBush)
+                {
+                    continue;
+                }
+
+                Vector3 diff = other.transform.position - selfTransform.position;
+                diff.y = 0f;
+
+                float sqr = diff.sqrMagnitude;
+                if (sqr > radiusSqr || sqr <= MinDirectionSqrMagnitude)
+                {
+                    continue;
+                }
+
+                Vector3 dir = diff.normalized;
+                float dot = Vector3.Dot(forward, dir);
+                if (dot < cosThreshold)
+                {
+                    continue;
+                }
+
+                if (sqr < nearestSqr)
+                {
+                    nearestSqr = sqr;
+                    nearest = other;
                 }
             }
 
