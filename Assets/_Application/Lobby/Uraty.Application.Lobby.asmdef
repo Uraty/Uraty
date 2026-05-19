@@ -7,7 +7,8 @@
         "Uraty.Feature.Akane_TestCharacter",
         "Uraty.Systems.Input",
         "Uraty.Features.Character",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Uraty.Features.Setting"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
