@@ -1,13 +1,15 @@
+using TMPro;
+
 using UnityEngine;
 using UnityEngine.UI;
 
-using TMPro;
+using Uraty.Feature.Setting;
 
 namespace Uraty.Application.Lobby
 {
     /// <summary>
     /// ロビーの設定画面を管理するクラス。
-    /// 感度、デッドゾーン、SE音量、BGM音量をSliderで変更し、PlayerPrefsに保存する。
+    /// Sliderの表示更新と、設定値の保存要求を担当する。
     /// </summary>
     public sealed class LobbySettingsController : MonoBehaviour
     {
@@ -15,7 +17,7 @@ namespace Uraty.Application.Lobby
         // ロビー通常画面。
         [SerializeField] private GameObject _mainPanel;
 
-        // ロビー中央のキャラ表示などを含むPanel。
+        // ロビー中央のキャラ表示などを含む画面。
         [SerializeField] private GameObject _modelPanel;
 
         // 設定画面。
@@ -35,10 +37,10 @@ namespace Uraty.Application.Lobby
         // スティック感度。
         [SerializeField] private Slider _stickSensitivitySlider;
 
-        // キーマウ用デッドゾーン。
+        // キーボード・マウス操作用デッドゾーン。
         [SerializeField] private Slider _keyMouseDeadZoneSlider;
 
-        // スティック用デッドゾーン。
+        // スティック操作用デッドゾーン。
         [SerializeField] private Slider _stickDeadZoneSlider;
 
         // 効果音音量。
@@ -54,10 +56,10 @@ namespace Uraty.Application.Lobby
         // スティック感度の現在値表示。
         [SerializeField] private TextMeshProUGUI _stickSensitivityValueText;
 
-        // キーマウ用デッドゾーンの現在値表示。
+        // キーボード・マウス操作用デッドゾーンの現在値表示。
         [SerializeField] private TextMeshProUGUI _keyMouseDeadZoneValueText;
 
-        // スティック用デッドゾーンの現在値表示。
+        // スティック操作用デッドゾーンの現在値表示。
         [SerializeField] private TextMeshProUGUI _stickDeadZoneValueText;
 
         // 効果音音量の現在値表示。
@@ -66,35 +68,77 @@ namespace Uraty.Application.Lobby
         // BGM音量の現在値表示。
         [SerializeField] private TextMeshProUGUI _bgmVolumeValueText;
 
-        // PlayerPrefsに保存するときのキー名。
-        private const string MouseSensitivityKey = "MouseSensitivity";
-        private const string StickSensitivityKey = "StickSensitivity";
-        private const string KeyMouseDeadZoneKey = "KeyMouseDeadZone";
-        private const string StickDeadZoneKey = "StickDeadZone";
-        private const string SeVolumeKey = "SeVolume";
-        private const string BgmVolumeKey = "BgmVolume";
-
-        private void Awake()
+        /// <summary>
+        /// 現在のSlider値を設定データとして取得する。
+        /// LobbyからBattleへ設定値を渡すときにも使用できる。
+        /// </summary>
+        public GameSettingsData CurrentSettings
         {
-            // 保存済み設定を読み込み、Sliderに反映する。
+            get
+            {
+                return new GameSettingsData(
+                    _mouseSensitivitySlider.value,
+                    _stickSensitivitySlider.value,
+                    _keyMouseDeadZoneSlider.value,
+                    _stickDeadZoneSlider.value,
+                    _seVolumeSlider.value,
+                    _bgmVolumeSlider.value
+                );
+            }
+        }
+
+        private void OnEnable()
+        {
+            // ボタン操作の登録。
+            _openSettingButton.onClick.AddListener(HandleOpenSettingButtonClicked);
+            _closeSettingButton.onClick.AddListener(HandleCloseSettingButtonClicked);
+
+            // Slider変更時の登録。
+            _mouseSensitivitySlider.onValueChanged.AddListener(HandleMouseSensitivityChanged);
+            _stickSensitivitySlider.onValueChanged.AddListener(HandleStickSensitivityChanged);
+            _keyMouseDeadZoneSlider.onValueChanged.AddListener(HandleKeyMouseDeadZoneChanged);
+            _stickDeadZoneSlider.onValueChanged.AddListener(HandleStickDeadZoneChanged);
+            _seVolumeSlider.onValueChanged.AddListener(HandleSeVolumeChanged);
+            _bgmVolumeSlider.onValueChanged.AddListener(HandleBgmVolumeChanged);
+        }
+
+        private void Start()
+        {
+            // 保存済み設定を読み込み、UIへ反映する。
             LoadSettings();
 
-            // Sliderの値をTextにも反映する。
-            RefreshAllTexts();
-
-            // 設定画面の開閉ボタンを登録する。
-            _openSettingButton.onClick.AddListener(OpenSettingPanel);
-            _closeSettingButton.onClick.AddListener(CloseSettingPanel);
-
-            // 各Sliderの値が変わったときに、保存と表示更新を行う。
-            _mouseSensitivitySlider.onValueChanged.AddListener(OnMouseSensitivityChanged);
-            _stickSensitivitySlider.onValueChanged.AddListener(OnStickSensitivityChanged);
-            _keyMouseDeadZoneSlider.onValueChanged.AddListener(OnKeyMouseDeadZoneChanged);
-            _stickDeadZoneSlider.onValueChanged.AddListener(OnStickDeadZoneChanged);
-            _seVolumeSlider.onValueChanged.AddListener(OnSeVolumeChanged);
-            _bgmVolumeSlider.onValueChanged.AddListener(OnBgmVolumeChanged);
-
             // 起動時は設定画面を閉じた状態にする。
+            CloseSettingPanel();
+        }
+
+        private void OnDisable()
+        {
+            // ボタン操作の登録解除。
+            _openSettingButton.onClick.RemoveListener(HandleOpenSettingButtonClicked);
+            _closeSettingButton.onClick.RemoveListener(HandleCloseSettingButtonClicked);
+
+            // Slider変更時の登録解除。
+            _mouseSensitivitySlider.onValueChanged.RemoveListener(HandleMouseSensitivityChanged);
+            _stickSensitivitySlider.onValueChanged.RemoveListener(HandleStickSensitivityChanged);
+            _keyMouseDeadZoneSlider.onValueChanged.RemoveListener(HandleKeyMouseDeadZoneChanged);
+            _stickDeadZoneSlider.onValueChanged.RemoveListener(HandleStickDeadZoneChanged);
+            _seVolumeSlider.onValueChanged.RemoveListener(HandleSeVolumeChanged);
+            _bgmVolumeSlider.onValueChanged.RemoveListener(HandleBgmVolumeChanged);
+        }
+
+        /// <summary>
+        /// 設定画面を開くボタンが押されたときの処理。
+        /// </summary>
+        private void HandleOpenSettingButtonClicked()
+        {
+            OpenSettingPanel();
+        }
+
+        /// <summary>
+        /// 設定画面を閉じるボタンが押されたときの処理。
+        /// </summary>
+        private void HandleCloseSettingButtonClicked()
+        {
             CloseSettingPanel();
         }
 
@@ -109,7 +153,7 @@ namespace Uraty.Application.Lobby
         }
 
         /// <summary>
-        /// 設定画面を閉じて、通常ロビー画面に戻る。
+        /// 設定画面を閉じて、通常のロビー画面へ戻す。
         /// </summary>
         private void CloseSettingPanel()
         {
@@ -119,101 +163,158 @@ namespace Uraty.Application.Lobby
         }
 
         /// <summary>
-        /// PlayerPrefsから保存済み設定を読み込み、Sliderに反映する。
-        /// まだ保存されていない場合は、第二引数の初期値を使う。
+        /// 保存済み設定を読み込み、Sliderと表示テキストに反映する。
         /// </summary>
         private void LoadSettings()
         {
-            _mouseSensitivitySlider.value = PlayerPrefs.GetFloat(MouseSensitivityKey, 1.0f);
-            _stickSensitivitySlider.value = PlayerPrefs.GetFloat(StickSensitivityKey, 1.0f);
-            _keyMouseDeadZoneSlider.value = PlayerPrefs.GetFloat(KeyMouseDeadZoneKey, 0.0f);
-            _stickDeadZoneSlider.value = PlayerPrefs.GetFloat(StickDeadZoneKey, 0.2f);
-            _seVolumeSlider.value = PlayerPrefs.GetFloat(SeVolumeKey, 1.0f);
-            _bgmVolumeSlider.value = PlayerPrefs.GetFloat(BgmVolumeKey, 1.0f);
+            GameSettingsData settings = GameSettingsStore.Load();
+
+            ApplySettingsToSliders(settings);
+            UpdateAllTexts();
         }
 
         /// <summary>
-        /// PlayerPrefsにfloat値を保存する。
+        /// 読み込んだ設定値をSliderへ反映する。
+        /// SetValueWithoutNotifyを使い、読み込み時に保存処理が走らないようにする。
         /// </summary>
-        private void SaveFloat(string key, float value)
+        private void ApplySettingsToSliders(GameSettingsData settings)
         {
-            PlayerPrefs.SetFloat(key, value);
+            _mouseSensitivitySlider.SetValueWithoutNotify(settings.MouseSensitivity);
+            _stickSensitivitySlider.SetValueWithoutNotify(settings.StickSensitivity);
+            _keyMouseDeadZoneSlider.SetValueWithoutNotify(settings.KeyMouseDeadZone);
+            _stickDeadZoneSlider.SetValueWithoutNotify(settings.StickDeadZone);
+            _seVolumeSlider.SetValueWithoutNotify(settings.SeVolume);
+            _bgmVolumeSlider.SetValueWithoutNotify(settings.BgmVolume);
+        }
 
-            // 明示的に保存を確定する。
-            PlayerPrefs.Save();
+        /// <summary>
+        /// 現在のSlider値を保存する。
+        /// 実際のPlayerPrefs保存処理はGameSettingsStoreに任せる。
+        /// </summary>
+        private void SaveSettings()
+        {
+            GameSettingsStore.Save(CurrentSettings);
         }
 
         /// <summary>
         /// マウス感度Sliderが変更されたときの処理。
         /// </summary>
-        private void OnMouseSensitivityChanged(float value)
+        private void HandleMouseSensitivityChanged(float value)
         {
-            SaveFloat(MouseSensitivityKey, value);
-            _mouseSensitivityValueText.text = value.ToString("0.00");
+            UpdateMouseSensitivityText(value);
+            SaveSettings();
         }
 
         /// <summary>
         /// スティック感度Sliderが変更されたときの処理。
         /// </summary>
-        private void OnStickSensitivityChanged(float value)
+        private void HandleStickSensitivityChanged(float value)
         {
-            SaveFloat(StickSensitivityKey, value);
-            _stickSensitivityValueText.text = value.ToString("0.00");
+            UpdateStickSensitivityText(value);
+            SaveSettings();
         }
 
         /// <summary>
-        /// キーマウ用デッドゾーンSliderが変更されたときの処理。
+        /// キーボード・マウス操作用デッドゾーンSliderが変更されたときの処理。
         /// </summary>
-        private void OnKeyMouseDeadZoneChanged(float value)
+        private void HandleKeyMouseDeadZoneChanged(float value)
         {
-            SaveFloat(KeyMouseDeadZoneKey, value);
-            _keyMouseDeadZoneValueText.text = value.ToString("0.00");
+            UpdateKeyMouseDeadZoneText(value);
+            SaveSettings();
         }
 
         /// <summary>
-        /// スティック用デッドゾーンSliderが変更されたときの処理。
+        /// スティック操作用デッドゾーンSliderが変更されたときの処理。
         /// </summary>
-        private void OnStickDeadZoneChanged(float value)
+        private void HandleStickDeadZoneChanged(float value)
         {
-            SaveFloat(StickDeadZoneKey, value);
-            _stickDeadZoneValueText.text = value.ToString("0.00");
+            UpdateStickDeadZoneText(value);
+            SaveSettings();
         }
 
         /// <summary>
         /// 効果音音量Sliderが変更されたときの処理。
         /// </summary>
-        private void OnSeVolumeChanged(float value)
+        private void HandleSeVolumeChanged(float value)
         {
-            SaveFloat(SeVolumeKey, value);
-            _seVolumeValueText.text = ToPercentText(value);
+            UpdateSeVolumeText(value);
+            SaveSettings();
         }
 
         /// <summary>
         /// BGM音量Sliderが変更されたときの処理。
         /// </summary>
-        private void OnBgmVolumeChanged(float value)
+        private void HandleBgmVolumeChanged(float value)
         {
-            SaveFloat(BgmVolumeKey, value);
-            _bgmVolumeValueText.text = ToPercentText(value);
+            UpdateBgmVolumeText(value);
+            SaveSettings();
         }
 
         /// <summary>
-        /// 現在のSlider値を、すべてのValueTextに反映する。
+        /// すべてのSlider値を表示テキストへ反映する。
         /// </summary>
-        private void RefreshAllTexts()
+        private void UpdateAllTexts()
         {
-            _mouseSensitivityValueText.text = _mouseSensitivitySlider.value.ToString("0.00");
-            _stickSensitivityValueText.text = _stickSensitivitySlider.value.ToString("0.00");
-            _keyMouseDeadZoneValueText.text = _keyMouseDeadZoneSlider.value.ToString("0.00");
-            _stickDeadZoneValueText.text = _stickDeadZoneSlider.value.ToString("0.00");
-            _seVolumeValueText.text = ToPercentText(_seVolumeSlider.value);
-            _bgmVolumeValueText.text = ToPercentText(_bgmVolumeSlider.value);
+            UpdateMouseSensitivityText(_mouseSensitivitySlider.value);
+            UpdateStickSensitivityText(_stickSensitivitySlider.value);
+            UpdateKeyMouseDeadZoneText(_keyMouseDeadZoneSlider.value);
+            UpdateStickDeadZoneText(_stickDeadZoneSlider.value);
+            UpdateSeVolumeText(_seVolumeSlider.value);
+            UpdateBgmVolumeText(_bgmVolumeSlider.value);
         }
 
         /// <summary>
-        /// 0.0～1.0の値を、0%～100%の文字列に変換する。
+        /// マウス感度の表示を更新する。
         /// </summary>
-        private string ToPercentText(float value)
+        private void UpdateMouseSensitivityText(float value)
+        {
+            _mouseSensitivityValueText.text = value.ToString("0.00");
+        }
+
+        /// <summary>
+        /// スティック感度の表示を更新する。
+        /// </summary>
+        private void UpdateStickSensitivityText(float value)
+        {
+            _stickSensitivityValueText.text = value.ToString("0.00");
+        }
+
+        /// <summary>
+        /// キーボード・マウス操作用デッドゾーンの表示を更新する。
+        /// </summary>
+        private void UpdateKeyMouseDeadZoneText(float value)
+        {
+            _keyMouseDeadZoneValueText.text = value.ToString("0.00");
+        }
+
+        /// <summary>
+        /// スティック操作用デッドゾーンの表示を更新する。
+        /// </summary>
+        private void UpdateStickDeadZoneText(float value)
+        {
+            _stickDeadZoneValueText.text = value.ToString("0.00");
+        }
+
+        /// <summary>
+        /// 効果音音量の表示を更新する。
+        /// </summary>
+        private void UpdateSeVolumeText(float value)
+        {
+            _seVolumeValueText.text = FormatPercentText(value);
+        }
+
+        /// <summary>
+        /// BGM音量の表示を更新する。
+        /// </summary>
+        private void UpdateBgmVolumeText(float value)
+        {
+            _bgmVolumeValueText.text = FormatPercentText(value);
+        }
+
+        /// <summary>
+        /// 0.0～1.0の値を、0%～100%の文字列へ整形する。
+        /// </summary>
+        private string FormatPercentText(float value)
         {
             return Mathf.RoundToInt(value * 100f) + "%";
         }
