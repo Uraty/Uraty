@@ -8,7 +8,7 @@
         "Uraty.Systems.Input",
         "Uraty.Features.Character",
         "Unity.InputSystem",
-        "Uraty.Features.Setting"
+        "Uraty.Shared.Setting"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

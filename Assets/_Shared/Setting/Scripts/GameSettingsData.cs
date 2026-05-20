@@ -1,4 +1,4 @@
-namespace Uraty.Feature.Setting
+namespace Uraty.Shared.Setting
 {
     /// <summary>
     /// ゲーム内で使用する設定値をまとめたデータ。
