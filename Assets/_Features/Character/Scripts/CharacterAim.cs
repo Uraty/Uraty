@@ -9,6 +9,8 @@ namespace Uraty.Features.Character
 {
     public abstract class CharacterAim : MonoBehaviour
     {
+        private const float ScreenRayMaxDistance =1000f;
+
         private enum AimPreviewType
         {
             Line,
@@ -286,6 +288,13 @@ namespace Uraty.Features.Character
 
         private Vector3 GetFallbackDirection()
         {
+            // Aim入力が無い場合でも、最後に受け取った画面座標から方向が復元できるならそれを優先する。
+            // (AutoAim相当:画面中央/照準位置へ撃つ)
+            if (TryGetDirectionFromScreenPosition(_aimScreenPosition, out Vector3 screenDirection))
+            {
+                return screenDirection;
+            }
+
             Vector3 direction = _targetDirection;
             direction.y = 0f;
 
@@ -301,6 +310,47 @@ namespace Uraty.Features.Character
             }
 
             return direction.normalized;
+        }
+
+        private bool TryGetDirectionFromScreenPosition(
+            Vector2 screenPosition,
+            out Vector3 directionWorld)
+        {
+            directionWorld = Vector3.zero;
+
+            // screenPosition が未設定のまま(0,0)のケースでは誤爆しやすいので無効扱い
+            if (screenPosition.sqrMagnitude <=0.001f)
+            {
+                return false;
+            }
+
+            Camera camera = Camera.main;
+            if (camera == null)
+            {
+                return false;
+            }
+
+            Ray ray = camera.ScreenPointToRay(new Vector3(screenPosition.x, screenPosition.y,0f));
+            Plane ground = new Plane(Vector3.up, new Vector3(0f, transform.position.y,0f));
+
+            if (!ground.Raycast(ray, out float enter))
+            {
+                return false;
+            }
+
+            float clampedEnter = Mathf.Clamp(enter,0f, ScreenRayMaxDistance);
+            Vector3 hitPoint = ray.GetPoint(clampedEnter);
+
+            Vector3 diff = hitPoint - transform.position;
+            diff.y =0f;
+
+            if (diff.sqrMagnitude <= MinDirectionSqrMagnitude)
+            {
+                return false;
+            }
+
+            directionWorld = diff.normalized;
+            return true;
         }
 
         private void ApplyPreviewMaterial()

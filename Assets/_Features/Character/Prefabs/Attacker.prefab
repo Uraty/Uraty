@@ -16,6 +16,10 @@ PrefabInstance:
       propertyPath: _attackSettings.Array.data[0]._bulletPrefab
       value: 
       objectReference: {fileID: 3889814631699899837, guid: 5265405e7bfef534bb386f823db27161, type: 3}
+    - target: {fileID: 4360882408181520500, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
+      propertyPath: _superSettings.Array.data[0]._bulletPrefab
+      value: 
+      objectReference: {fileID: 3889814631699899837, guid: 5265405e7bfef534bb386f823db27161, type: 3}
     - target: {fileID: 7179965540641218944, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
