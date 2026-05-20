@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Uraty.Feature.Setting
+namespace Uraty.Shared.Setting
 {
     /// <summary>
     /// ゲーム設定をPlayerPrefsへ保存・読み込みするクラス。

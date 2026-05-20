@@ -3,7 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-using Uraty.Feature.Setting;
+using Uraty.Shared.Setting;
 
 namespace Uraty.Application.Lobby
 {
