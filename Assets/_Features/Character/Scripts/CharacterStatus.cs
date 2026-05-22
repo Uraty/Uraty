@@ -1,7 +1,9 @@
+using R3;
+
 using UnityEngine;
 
-using Uraty.Shared.Team;
 using Uraty.Shared.Hit;
+using Uraty.Shared.Team;
 
 namespace Uraty.Features.Character
 {
@@ -41,6 +43,14 @@ namespace Uraty.Features.Character
         [SerializeField, Min(0f)]
         private float _reloadRecoveryPerSecond = 1f;
 
+        [SerializeField]
+        private float _currentReloadCount;
+
+        [SerializeField]
+        private float _currentSuperChargePercent;
+
+        private readonly Subject<CharacterStatus> _diedSubject = new();
+
         private float _currentHp;
         private bool _isDead;
         private bool _isInsideBush;
@@ -50,9 +60,6 @@ namespace Uraty.Features.Character
 
         private bool _canAttack = true;
         private float _attackDisableRemainingSeconds;
-
-        [SerializeField] private float _currentReloadCount;
-        [SerializeField] private float _currentSuperChargePercent;
 
         public TeamId TeamId => _teamId;
         public float MaxHp => _maxHp;
@@ -67,6 +74,8 @@ namespace Uraty.Features.Character
 
         public float CurrentSuperChargePercent => _currentSuperChargePercent;
         public bool IsSuperReady => _currentSuperChargePercent >= MaxSuperChargePercent;
+
+        public Observable<CharacterStatus> DiedStream => _diedSubject;
 
         public bool CanAttack =>
             !_isDead &&
@@ -110,9 +119,19 @@ namespace Uraty.Features.Character
                 Mathf.Max(0f, _reloadRecoveryPerSecond);
         }
 
+        private void OnDestroy()
+        {
+            _diedSubject.Dispose();
+        }
+
         public void Initialize(TeamId teamId)
         {
             _teamId = teamId;
+            ResetHealth();
+        }
+
+        public void Respawn()
+        {
             ResetHealth();
         }
 
@@ -165,6 +184,7 @@ namespace Uraty.Features.Character
             }
 
             float validPercent = Mathf.Max(0f, percent);
+
             if (validPercent <= 0f)
             {
                 return;
@@ -206,6 +226,7 @@ namespace Uraty.Features.Character
             }
 
             float validDamage = Mathf.Max(0f, damage);
+
             if (validDamage <= 0f)
             {
                 return;
@@ -229,6 +250,7 @@ namespace Uraty.Features.Character
             }
 
             float validAmount = Mathf.Max(0f, amount);
+
             if (validAmount <= 0f)
             {
                 return;
@@ -362,11 +384,18 @@ namespace Uraty.Features.Character
 
         private void Die()
         {
+            if (_isDead)
+            {
+                return;
+            }
+
             _isDead = true;
             _currentHp = 0f;
 
             _canAttack = false;
             _attackDisableRemainingSeconds = 0f;
+
+            _diedSubject.OnNext(this);
 
             gameObject.SetActive(false);
         }

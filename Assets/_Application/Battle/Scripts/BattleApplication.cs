@@ -18,15 +18,23 @@ namespace Uraty.Application.Battle
 {
     public sealed class BattleApplication : MonoBehaviour
     {
+        private const int TeamMemberCount = 3;
+        private const float MinDirectionSqrMagnitude = 0.0001f;
+
+        private const string SpawnerTypeName =
+            "Uraty.Features.Terrain.Spawner";
+
+        private static Type _cachedSpawnerType;
+        private static PropertyInfo _cachedSpawnerTeamIdProperty;
+        private static MethodInfo _cachedSpawnerTryReserveMethod;
+        private static bool _isSpawnerReflectionCached;
+
         [Header("Auto Aim (Player)")]
         [SerializeField, Min(0f)]
         private float _playerAutoAimSearchRadius = 12f;
 
         [SerializeField, Range(0f, 180f)]
         private float _playerAutoAimMaxAngleDegrees = 55f;
-
-        private const int TeamMemberCount = 3;
-        private const float MinDirectionSqrMagnitude = 0.0001f;
 
         [Header("Bot Recovery")]
         [Tooltip("Botが逃走・回復に入るHP比率(0-1)")]
@@ -40,6 +48,10 @@ namespace Uraty.Application.Battle
         [Tooltip("逃走移動の強さ(0-1)")]
         [SerializeField, Range(0f, 1f)]
         private float _botFleeMoveScale = 1.0f;
+
+        [Header("Respawn")]
+        [SerializeField, Min(0f)]
+        private float _respawnDelaySeconds = 3f;
 
         [Header("Camera")]
         [SerializeField]
@@ -73,16 +85,19 @@ namespace Uraty.Application.Battle
         [SerializeField]
         private LayerMask _spawnerLayerMask;
 
-        private readonly List<GameObject>
-            _characterObjects = new();
+        private readonly List<CharacterRuntimeEntry>
+            _characterEntries = new();
 
-        private readonly Dictionary<GameObject, Renderer[]>
-            _characterRenderersByObject = new();
+        private readonly Dictionary<GameObject, CharacterRuntimeEntry>
+            _characterEntryByObject = new();
+
+        private readonly Dictionary<GameObject, bool>
+            _isBotRecoveringByCharacterObject = new();
+
+        private readonly Dictionary<GameObject, Component>
+            _spawnerByCharacterObject = new();
 
         private DisposableBag _disposables;
-
-        // Bot毎の「回復モード」状態
-        private readonly Dictionary<GameObject, bool> _isBotRecoveringByCharacterObject = new();
 
         private IEnumerator Start()
         {
@@ -98,6 +113,11 @@ namespace Uraty.Application.Battle
                 Array.IndexOf(
                     roleTypes,
                     _fallbackPlayerRoleType);
+
+            if (selectedIndex < 0)
+            {
+                selectedIndex = 0;
+            }
 
             GameObject playerObject =
                 SpawnPlayerTeam(
@@ -194,9 +214,13 @@ namespace Uraty.Application.Battle
             GameObject obj =
                 Instantiate(prefab);
 
-            AssignCharacterToSpawnerPosition(
-                obj,
-                teamId);
+            Component spawner =
+                AssignCharacterToSpawnerPosition(
+                    obj,
+                    teamId);
+
+            _spawnerByCharacterObject[obj] =
+                spawner;
 
             CharacterStatus status =
                 GetRequiredComponent<CharacterStatus>(
@@ -204,11 +228,145 @@ namespace Uraty.Application.Battle
 
             status.Initialize(teamId);
 
-            _characterObjects.Add(obj);
+            CharacterRuntimeEntry entry =
+                CreateCharacterRuntimeEntry(obj);
 
-            CacheCharacterRenderers(obj);
+            _characterEntries.Add(entry);
+
+            _characterEntryByObject[obj] =
+                entry;
+
+            SubscribeCharacterDeath(entry);
 
             return obj;
+        }
+
+        private CharacterRuntimeEntry CreateCharacterRuntimeEntry(
+            GameObject characterObject)
+        {
+            return new CharacterRuntimeEntry(
+                characterObject,
+                characterObject.transform,
+                GetRequiredComponent<CharacterStatus>(
+                    characterObject),
+                GetRequiredComponent<CharacterReveal>(
+                    characterObject),
+                characterObject
+                    .GetComponentsInChildren<Renderer>(
+                        true));
+        }
+
+        private CharacterRuntimeEntry GetRequiredCharacterEntry(
+            GameObject characterObject)
+        {
+            if (characterObject != null
+                && _characterEntryByObject.TryGetValue(
+                    characterObject,
+                    out CharacterRuntimeEntry entry)
+                && entry != null)
+            {
+                return entry;
+            }
+
+            throw new InvalidOperationException(
+                $"{characterObject.name} の CharacterRuntimeEntry が存在しません。");
+        }
+
+        private void SubscribeCharacterDeath(
+            CharacterRuntimeEntry entry)
+        {
+            CharacterStatus status =
+                entry.Status;
+
+            status.DiedStream
+                .Subscribe(deadStatus =>
+                {
+                    if (deadStatus == null)
+                    {
+                        return;
+                    }
+
+                    GameObject deadObject =
+                        deadStatus.gameObject;
+
+                    _isBotRecoveringByCharacterObject.Remove(
+                        deadObject);
+
+                    SetCharacterRenderersEnabled(
+                        deadObject,
+                        false);
+
+                    Debug.Log(
+                        $"{deadObject.name} died.");
+
+                    StartCoroutine(
+                        RespawnCharacterAfterDelay(
+                            deadStatus));
+                })
+                .AddTo(ref _disposables);
+        }
+
+        private IEnumerator RespawnCharacterAfterDelay(
+            CharacterStatus status)
+        {
+            if (status == null)
+            {
+                yield break;
+            }
+
+            yield return new WaitForSeconds(
+                _respawnDelaySeconds);
+
+            if (status == null)
+            {
+                yield break;
+            }
+
+            GameObject characterObject =
+                status.gameObject;
+
+            if (characterObject == null)
+            {
+                yield break;
+            }
+
+            if (!_spawnerByCharacterObject.TryGetValue(
+                    characterObject,
+                    out Component spawner)
+                || spawner == null)
+            {
+                Debug.LogError(
+                    $"{characterObject.name} の復活用 Spawner が見つかりません。");
+
+                yield break;
+            }
+
+            Transform characterTransform =
+                characterObject.transform;
+
+            characterTransform.position =
+                spawner.transform.position;
+
+            characterTransform.rotation =
+                spawner.transform.rotation;
+
+            status.Respawn();
+
+            characterObject.SetActive(true);
+
+            CacheCharacterRenderers(
+                characterObject);
+
+            SetCharacterRenderersEnabled(
+                characterObject,
+                true);
+
+            _isBotRecoveringByCharacterObject[
+                    characterObject] =
+                false;
+
+            Debug.Log(
+                $"{characterObject.name} respawned.");
         }
 
         private void SubscribeBotControllers(
@@ -217,11 +375,14 @@ namespace Uraty.Application.Battle
             int botIndex = 0;
 
             for (int i = 0;
-                 i < _characterObjects.Count;
+                 i < _characterEntries.Count;
                  i++)
             {
+                CharacterRuntimeEntry entry =
+                    _characterEntries[i];
+
                 GameObject obj =
-                    _characterObjects[i];
+                    entry.GameObject;
 
                 if (obj == null)
                 {
@@ -249,7 +410,7 @@ namespace Uraty.Application.Battle
 
                 SubscribeBotController(
                     botController,
-                    obj);
+                    entry);
 
                 botIndex++;
             }
@@ -257,26 +418,26 @@ namespace Uraty.Application.Battle
 
         private void SubscribeBotController(
             BotController botController,
-            GameObject characterObject)
+            CharacterRuntimeEntry entry)
         {
+            GameObject characterObject =
+                entry.GameObject;
+
             BotInputInterpreter inputInterpreter =
                 botController
                     .GetComponent<BotInputInterpreter>();
 
             CharacterStatus status =
-                GetRequiredComponent<CharacterStatus>(
-                    characterObject);
+                entry.Status;
 
-            // BotInputInterpreter が CharacterStatus を参照しないように、
-            // 必要最小限の情報（Transform と敵探索関数）だけを注入する。
             inputInterpreter.Initialize(
-                characterObject.transform,
+                entry.Transform,
                 FindNearestVisibleEnemyForBot);
 
-            // 初期状態
-            _isBotRecoveringByCharacterObject[characterObject] = false;
+            _isBotRecoveringByCharacterObject[
+                    characterObject] =
+                false;
 
-            // 毎フレーム Application 側の状態を注入
             Observable.EveryUpdate()
                 .Subscribe(_ =>
                 {
@@ -285,41 +446,68 @@ namespace Uraty.Application.Battle
                         return;
                     }
 
-                    inputInterpreter.SetIsDead(status.IsDead);
+                    inputInterpreter.SetIsDead(
+                        status.IsDead);
 
                     if (status.IsDead)
                     {
-                        _isBotRecoveringByCharacterObject[characterObject] = false;
-                        inputInterpreter.SetRecoveryMode(false, Vector3.zero, 0f);
+                        _isBotRecoveringByCharacterObject[
+                                characterObject] =
+                            false;
+
+                        inputInterpreter.SetRecoveryMode(
+                            false,
+                            Vector3.zero,
+                            0f);
+
                         return;
                     }
 
-                    float hpRatio = status.MaxHp > 0f
-                        ? Mathf.Clamp01(status.CurrentHp / status.MaxHp)
-                        : 0f;
+                    float hpRatio =
+                        status.MaxHp > 0f
+                            ? Mathf.Clamp01(
+                                status.CurrentHp / status.MaxHp)
+                            : 0f;
 
-                    bool isRecovering = _isBotRecoveringByCharacterObject.TryGetValue(characterObject, out bool current)
+                    bool isRecovering =
+                        _isBotRecoveringByCharacterObject
+                            .TryGetValue(
+                                characterObject,
+                                out bool current)
                         && current;
 
-                    if (!isRecovering && hpRatio <= _botRecoveryEnterHpRatio)
+                    if (!isRecovering
+                        && hpRatio <= _botRecoveryEnterHpRatio)
                     {
                         isRecovering = true;
                     }
-                    else if (isRecovering && hpRatio >= _botRecoveryExitHpRatio)
+                    else if (isRecovering
+                             && hpRatio >= _botRecoveryExitHpRatio)
                     {
                         isRecovering = false;
                     }
 
-                    _isBotRecoveringByCharacterObject[characterObject] = isRecovering;
+                    _isBotRecoveringByCharacterObject[
+                            characterObject] =
+                        isRecovering;
 
                     if (isRecovering)
                     {
-                        Vector3 fleeDirectionWorld = FindFleeDirectionWorld(characterObject.transform);
-                        inputInterpreter.SetRecoveryMode(true, fleeDirectionWorld, _botFleeMoveScale);
+                        Vector3 fleeDirectionWorld =
+                            FindFleeDirectionWorld(
+                                entry.Transform);
+
+                        inputInterpreter.SetRecoveryMode(
+                            true,
+                            fleeDirectionWorld,
+                            _botFleeMoveScale);
                     }
                     else
                     {
-                        inputInterpreter.SetRecoveryMode(false, Vector3.zero, 0f);
+                        inputInterpreter.SetRecoveryMode(
+                            false,
+                            Vector3.zero,
+                            0f);
                     }
                 })
                 .AddTo(ref _disposables);
@@ -347,12 +535,14 @@ namespace Uraty.Application.Battle
             Vector3 latestAimDirectionWorld =
                 Vector3.forward;
 
-            Vector3 releasedAttackDirectionWorld = Vector3.forward;
-            Vector3 releasedSuperDirectionWorld = Vector3.forward;
-
             botController.MoveRequestedStream
                 .Subscribe(request =>
                 {
+                    if (status.IsDead)
+                    {
+                        return;
+                    }
+
                     characterMove.Move(
                         request.MoveDirectionWorld);
                 })
@@ -361,6 +551,11 @@ namespace Uraty.Application.Battle
             botController.AimRequestedStream
                 .Subscribe(request =>
                 {
+                    if (status.IsDead)
+                    {
+                        return;
+                    }
+
                     if (request.AimDirectionWorld
                         .sqrMagnitude >
                         MinDirectionSqrMagnitude)
@@ -384,37 +579,55 @@ namespace Uraty.Application.Battle
             botController.AttackRequestedStream
                 .Subscribe(_ =>
                 {
-                    // BotはAimプレビュー/Completeを経由しないため、従来通り最新Aim方向で発射
-                    characterAttack.Attack(latestAimDirectionWorld);
+                    if (status.IsDead)
+                    {
+                        return;
+                    }
+
+                    characterAttack.Attack(
+                        latestAimDirectionWorld);
                 })
                 .AddTo(ref _disposables);
         }
 
-        private Vector3 FindFleeDirectionWorld(Transform selfTransform)
+        private Vector3 FindFleeDirectionWorld(
+            Transform selfTransform)
         {
             if (selfTransform == null)
             {
                 return Vector3.zero;
             }
 
-            GameObject nearestEnemy = FindNearestVisibleEnemyForBot(selfTransform, _playerAutoAimSearchRadius);
+            GameObject nearestEnemy =
+                FindNearestVisibleEnemyForBot(
+                    selfTransform,
+                    _playerAutoAimSearchRadius);
+
             if (nearestEnemy == null)
             {
-                // 敵が見えていないなら、いったん前方へ
-                Vector3 forward = selfTransform.forward;
+                Vector3 forward =
+                    selfTransform.forward;
+
                 forward.y = 0f;
+
                 return forward.sqrMagnitude > MinDirectionSqrMagnitude
                     ? forward.normalized
                     : Vector3.forward;
             }
 
-            Vector3 away = selfTransform.position - nearestEnemy.transform.position;
+            Vector3 away =
+                selfTransform.position
+                - nearestEnemy.transform.position;
+
             away.y = 0f;
 
             if (away.sqrMagnitude <= MinDirectionSqrMagnitude)
             {
-                Vector3 fallback = selfTransform.forward;
+                Vector3 fallback =
+                    selfTransform.forward;
+
                 fallback.y = 0f;
+
                 return fallback.sqrMagnitude > MinDirectionSqrMagnitude
                     ? fallback.normalized
                     : Vector3.forward;
@@ -426,6 +639,13 @@ namespace Uraty.Application.Battle
         private void SubscribePlayerController(
             GameObject playerObject)
         {
+            CharacterRuntimeEntry entry =
+                GetRequiredCharacterEntry(
+                    playerObject);
+
+            CharacterStatus status =
+                entry.Status;
+
             CharacterMove characterMove =
                 GetRequiredComponent<CharacterMove>(
                     playerObject);
@@ -449,14 +669,20 @@ namespace Uraty.Application.Battle
             Vector3 latestAimDirectionWorld =
                 Vector3.forward;
 
-            // ボタン解放（CompleteAim）時点で確定した発射方向。
-            // Aim入力が無い場合でも CharacterAim 側の fallbackで決まるため、オートエイム復活に利用する。
-            Vector3 releasedAttackDirectionWorld = Vector3.forward;
-            Vector3 releasedSuperDirectionWorld = Vector3.forward;
+            Vector3 releasedAttackDirectionWorld =
+                Vector3.forward;
+
+            Vector3 releasedSuperDirectionWorld =
+                Vector3.forward;
 
             _playerController.MoveRequestedStream
                 .Subscribe(request =>
                 {
+                    if (status.IsDead)
+                    {
+                        return;
+                    }
+
                     characterMove.Move(
                         request.MoveDirectionWorld);
                 })
@@ -465,6 +691,11 @@ namespace Uraty.Application.Battle
             _playerController.AimRequestedStream
                 .Subscribe(request =>
                 {
+                    if (status.IsDead)
+                    {
+                        return;
+                    }
+
                     if (request.AimDirectionWorld
                         .sqrMagnitude >
                         MinDirectionSqrMagnitude)
@@ -485,10 +716,14 @@ namespace Uraty.Application.Battle
                 })
                 .AddTo(ref _disposables);
 
-            //ここで「ボタン押下中にエイム線を出す」を復活させる
             _playerController.AttackInputRequestedStream
                 .Subscribe(request =>
                 {
+                    if (status.IsDead)
+                    {
+                        return;
+                    }
+
                     if (request.PressedThisFrame)
                     {
                         characterAttackAim.BeginAttackAim();
@@ -498,8 +733,9 @@ namespace Uraty.Application.Battle
                     {
                         characterAttackAim.CompleteAttackAim();
 
-                        // CompleteAimで確定した方向を取得（Aim入力が無い場合は fallback方向=オートエイム対象）
-                        releasedAttackDirectionWorld = characterAttackAim.GetTargetDirection();
+                        releasedAttackDirectionWorld =
+                            characterAttackAim
+                                .GetTargetDirection();
                     }
                 })
                 .AddTo(ref _disposables);
@@ -507,6 +743,11 @@ namespace Uraty.Application.Battle
             _playerController.SuperInputRequestedStream
                 .Subscribe(request =>
                 {
+                    if (status.IsDead)
+                    {
+                        return;
+                    }
+
                     if (request.PressedThisFrame)
                     {
                         characterSuperAim.BeginSuperAim();
@@ -516,8 +757,9 @@ namespace Uraty.Application.Battle
                     {
                         characterSuperAim.CompleteSuperAim();
 
-                        // CompleteAimで確定した方向を取得
-                        releasedSuperDirectionWorld = characterSuperAim.GetTargetDirection();
+                        releasedSuperDirectionWorld =
+                            characterSuperAim
+                                .GetTargetDirection();
                     }
                 })
                 .AddTo(ref _disposables);
@@ -525,26 +767,40 @@ namespace Uraty.Application.Battle
             _playerController.AttackRequestedStream
                 .Subscribe(_ =>
                 {
-                    Vector3 finalDirection = ResolvePlayerAttackDirection(
-                        playerObject,
-                        characterAttackAim,
-                        releasedAttackDirectionWorld,
-                        latestAimDirectionWorld);
+                    if (status.IsDead)
+                    {
+                        return;
+                    }
 
-                    characterAttack.Attack(finalDirection);
+                    Vector3 finalDirection =
+                        ResolvePlayerAttackDirection(
+                            playerObject,
+                            characterAttackAim,
+                            releasedAttackDirectionWorld,
+                            latestAimDirectionWorld);
+
+                    characterAttack.Attack(
+                        finalDirection);
                 })
                 .AddTo(ref _disposables);
 
             _playerController.SuperRequestedStream
                 .Subscribe(_ =>
                 {
-                    Vector3 finalDirection = ResolvePlayerSuperDirection(
-                        playerObject,
-                        characterSuperAim,
-                        releasedSuperDirectionWorld,
-                        latestAimDirectionWorld);
+                    if (status.IsDead)
+                    {
+                        return;
+                    }
 
-                    characterSuper.Super(finalDirection);
+                    Vector3 finalDirection =
+                        ResolvePlayerSuperDirection(
+                            playerObject,
+                            characterSuperAim,
+                            releasedSuperDirectionWorld,
+                            latestAimDirectionWorld);
+
+                    characterSuper.Super(
+                        finalDirection);
                 })
                 .AddTo(ref _disposables);
         }
@@ -553,11 +809,14 @@ namespace Uraty.Application.Battle
             TeamId visibleTeamId)
         {
             for (int i = 0;
-                 i < _characterObjects.Count;
+                 i < _characterEntries.Count;
                  i++)
             {
+                CharacterRuntimeEntry entry =
+                    _characterEntries[i];
+
                 GameObject characterObject =
-                    _characterObjects[i];
+                    entry.GameObject;
 
                 if (characterObject == null)
                 {
@@ -565,21 +824,36 @@ namespace Uraty.Application.Battle
                 }
 
                 CharacterStatus characterStatus =
-                    GetRequiredComponent<CharacterStatus>(
-                        characterObject);
-
-                CharacterReveal revealSensor =
-                    GetRequiredComponent<CharacterReveal>(
-                        characterObject);
+                    entry.Status;
 
                 bool shouldRevealBush =
-                    characterStatus.TeamId
-                    == visibleTeamId
+                    characterStatus.TeamId == visibleTeamId
                     && !characterStatus.IsDead;
 
-                revealSensor.SetRevealEnabled(
+                SetRevealEnabledIfChanged(
+                    entry,
                     shouldRevealBush);
             }
+        }
+
+        private void SetRevealEnabledIfChanged(
+            CharacterRuntimeEntry entry,
+            bool isEnabled)
+        {
+            if (entry.HasRevealEnabledCache
+                && entry.LastRevealEnabled == isEnabled)
+            {
+                return;
+            }
+
+            entry.Reveal.SetRevealEnabled(
+                isEnabled);
+
+            entry.LastRevealEnabled =
+                isEnabled;
+
+            entry.HasRevealEnabledCache =
+                true;
         }
 
         private void UpdateCharacterVisibility()
@@ -588,11 +862,14 @@ namespace Uraty.Application.Battle
                 _visibleTeamId);
 
             for (int i = 0;
-                 i < _characterObjects.Count;
+                 i < _characterEntries.Count;
                  i++)
             {
+                CharacterRuntimeEntry entry =
+                    _characterEntries[i];
+
                 GameObject targetObject =
-                    _characterObjects[i];
+                    entry.GameObject;
 
                 if (targetObject == null)
                 {
@@ -606,44 +883,45 @@ namespace Uraty.Application.Battle
 
                 bool shouldRender =
                     ShouldRenderCharacter(
-                        targetObject);
+                        entry);
 
                 SetCharacterRenderersEnabled(
-                    targetObject,
+                    entry,
                     shouldRender);
             }
         }
 
         private bool ShouldRenderCharacter(
-            GameObject targetObject)
+            CharacterRuntimeEntry targetEntry)
         {
             CharacterStatus targetStatus =
-                GetRequiredComponent<CharacterStatus>(
-                    targetObject);
+                targetEntry.Status;
 
             return
-                targetStatus.TeamId
-                == _visibleTeamId
+                targetStatus.TeamId == _visibleTeamId
                 || !targetStatus.IsInsideBush
                 || IsInsideVisibleTeamRevealRange(
-                    targetObject);
+                    targetEntry);
         }
 
         private bool IsInsideVisibleTeamRevealRange(
-            GameObject targetObject)
+            CharacterRuntimeEntry targetEntry)
         {
             Vector3 targetPosition =
-                targetObject.transform.position;
+                targetEntry.Transform.position;
 
             for (int i = 0;
-                 i < _characterObjects.Count;
+                 i < _characterEntries.Count;
                  i++)
             {
+                CharacterRuntimeEntry viewerEntry =
+                    _characterEntries[i];
+
                 GameObject viewerObject =
-                    _characterObjects[i];
+                    viewerEntry.GameObject;
 
                 if (viewerObject == null
-                    || viewerObject == targetObject)
+                    || viewerObject == targetEntry.GameObject)
                 {
                     continue;
                 }
@@ -654,8 +932,7 @@ namespace Uraty.Application.Battle
                 }
 
                 CharacterStatus viewerStatus =
-                    GetRequiredComponent<CharacterStatus>(
-                        viewerObject);
+                    viewerEntry.Status;
 
                 if (viewerStatus.TeamId
                     != _visibleTeamId)
@@ -669,8 +946,7 @@ namespace Uraty.Application.Battle
                 }
 
                 CharacterReveal viewerReveal =
-                    GetRequiredComponent<CharacterReveal>(
-                        viewerObject);
+                    viewerEntry.Reveal;
 
                 if (viewerReveal.ContainsWorldPosition(
                         targetPosition))
@@ -682,7 +958,7 @@ namespace Uraty.Application.Battle
             return false;
         }
 
-        private void CacheCharacterRenderers(
+        private Renderer[] CacheCharacterRenderers(
             GameObject characterObject)
         {
             Renderer[] renderers =
@@ -690,26 +966,75 @@ namespace Uraty.Application.Battle
                     .GetComponentsInChildren<Renderer>(
                         true);
 
-            _characterRenderersByObject[
-                characterObject] =
-                renderers;
+            if (_characterEntryByObject.TryGetValue(
+                    characterObject,
+                    out CharacterRuntimeEntry entry)
+                && entry != null)
+            {
+                entry.Renderers =
+                    renderers;
+            }
+
+            return renderers;
         }
 
         private void SetCharacterRenderersEnabled(
             GameObject characterObject,
             bool isEnabled)
         {
-            if (!_characterRenderersByObject
-                    .TryGetValue(
-                        characterObject,
-                        out Renderer[] renderers))
+            if (characterObject == null)
             {
-                CacheCharacterRenderers(
-                    characterObject);
+                return;
+            }
 
+            if (_characterEntryByObject.TryGetValue(
+                    characterObject,
+                    out CharacterRuntimeEntry entry)
+                && entry != null)
+            {
+                SetCharacterRenderersEnabled(
+                    entry,
+                    isEnabled);
+
+                return;
+            }
+
+            Renderer[] renderers =
+                characterObject
+                    .GetComponentsInChildren<Renderer>(
+                        true);
+
+            SetRenderersEnabled(
+                renderers,
+                isEnabled);
+        }
+
+        private void SetCharacterRenderersEnabled(
+            CharacterRuntimeEntry entry,
+            bool isEnabled)
+        {
+            Renderer[] renderers =
+                entry.Renderers;
+
+            if (renderers == null)
+            {
                 renderers =
-                    _characterRenderersByObject[
-                        characterObject];
+                    CacheCharacterRenderers(
+                        entry.GameObject);
+            }
+
+            SetRenderersEnabled(
+                renderers,
+                isEnabled);
+        }
+
+        private static void SetRenderersEnabled(
+            Renderer[] renderers,
+            bool isEnabled)
+        {
+            if (renderers == null)
+            {
+                return;
             }
 
             for (int i = 0;
@@ -724,18 +1049,24 @@ namespace Uraty.Application.Battle
                     continue;
                 }
 
+                if (renderer.enabled == isEnabled)
+                {
+                    continue;
+                }
+
                 renderer.enabled =
                     isEnabled;
             }
         }
 
-        private void AssignCharacterToSpawnerPosition(
+        private Component AssignCharacterToSpawnerPosition(
             GameObject characterObject,
             TeamId teamId)
         {
             if (characterObject == null)
             {
-                return;
+                throw new ArgumentNullException(
+                    nameof(characterObject));
             }
 
             Component spawner =
@@ -750,81 +1081,46 @@ namespace Uraty.Application.Battle
 
             t.rotation =
                 spawner.transform.rotation;
+
+            return spawner;
         }
 
         private Component FindAndReserveSpawnerComponent(
             TeamId teamId)
         {
-            const string spawnerTypeName =
-                "Uraty.Features.Terrain.Spawner";
+            EnsureSpawnerReflectionCache();
 
-            // `Type.GetType` はアセンブリ名無しだと nullになることがあるため、
-            // 全アセンブリを探索して型を見つける。
-            Type spawnerType =
-                Type.GetType(spawnerTypeName)
-                ?? ResolveTypeFromLoadedAssemblies(
-                    spawnerTypeName);
-
-            if (spawnerType == null)
-            {
-                throw new InvalidOperationException(
-                    $"{spawnerTypeName} が見つかりません。" +
-                    " Terrain 側の asmdef /参照設定を確認してください。"
-                );
-            }
-
-            Component[] spawners =
-                (Component[])FindObjectsByType(
-                    spawnerType,
+            UnityEngine.Object[] foundObjects =
+                FindObjectsByType(
+                    _cachedSpawnerType,
                     FindObjectsInactive.Exclude,
                     FindObjectsSortMode.None);
 
-            if (spawners == null || spawners.Length == 0)
+            if (foundObjects == null
+                || foundObjects.Length == 0)
             {
                 throw new InvalidOperationException(
                     "Spawner が Scene 上に存在しません。" +
-                    " `Uraty.Features.Terrain.Spawner` を配置してください。"
-                );
-            }
-
-            PropertyInfo teamIdProperty =
-                spawnerType.GetProperty(
-                    "TeamId",
-                    BindingFlags.Instance
-                    | BindingFlags.Public);
-
-            MethodInfo tryReserveMethod =
-                spawnerType.GetMethod(
-                    "TryReserve",
-                    BindingFlags.Instance
-                    | BindingFlags.Public);
-
-            if (teamIdProperty == null || tryReserveMethod == null)
-            {
-                throw new InvalidOperationException(
-                    $"{spawnerTypeName} のメンバーが見つかりません。" +
-                    " TeamId プロパティと TryReserve メソッドが必要です。"
-                );
+                    " `Uraty.Features.Terrain.Spawner` を配置してください。");
             }
 
             for (int i = 0;
-                 i < spawners.Length;
+                 i < foundObjects.Length;
                  i++)
             {
-                Component spawner =
-                    spawners[i];
-
-                if (spawner == null)
+                if (foundObjects[i] is not Component spawner)
                 {
                     continue;
                 }
 
-                // LayerMask が指定されている場合のみフィルタ
                 if (_spawnerLayerMask.value != 0)
                 {
-                    int spawnerLayerBit = 1 << spawner.gameObject.layer;
+                    int spawnerLayerBit =
+                        1 << spawner.gameObject.layer;
+
                     bool isTargetLayer =
-                        (_spawnerLayerMask.value & spawnerLayerBit) != 0;
+                        (_spawnerLayerMask.value
+                         & spawnerLayerBit) != 0;
 
                     if (!isTargetLayer)
                     {
@@ -833,19 +1129,18 @@ namespace Uraty.Application.Battle
                 }
 
                 object propertyValue =
-                    teamIdProperty.GetValue(
+                    _cachedSpawnerTeamIdProperty.GetValue(
                         spawner,
                         null);
 
-                if (propertyValue
-                    is not TeamId spawnerTeamId
+                if (propertyValue is not TeamId spawnerTeamId
                     || spawnerTeamId != teamId)
                 {
                     continue;
                 }
 
                 bool reserved =
-                    (bool)tryReserveMethod.Invoke(
+                    (bool)_cachedSpawnerTryReserveMethod.Invoke(
                         spawner,
                         null);
 
@@ -859,25 +1154,74 @@ namespace Uraty.Application.Battle
 
             throw new InvalidOperationException(
                 $"TeamId={teamId} の未使用スポナーが見つかりません。" +
-                " (数が足りない /既に使用済み / LayerMask が誤っている可能性があります)"
-            );
+                " (数が足りない /既に使用済み / LayerMask が誤っている可能性があります)");
+        }
+
+        private static void EnsureSpawnerReflectionCache()
+        {
+            if (_isSpawnerReflectionCached)
+            {
+                return;
+            }
+
+            _cachedSpawnerType =
+                Type.GetType(SpawnerTypeName)
+                ?? ResolveTypeFromLoadedAssemblies(
+                    SpawnerTypeName);
+
+            if (_cachedSpawnerType == null)
+            {
+                throw new InvalidOperationException(
+                    $"{SpawnerTypeName} が見つかりません。" +
+                    " Terrain 側の asmdef /参照設定を確認してください。");
+            }
+
+            _cachedSpawnerTeamIdProperty =
+                _cachedSpawnerType.GetProperty(
+                    "TeamId",
+                    BindingFlags.Instance
+                    | BindingFlags.Public);
+
+            _cachedSpawnerTryReserveMethod =
+                _cachedSpawnerType.GetMethod(
+                    "TryReserve",
+                    BindingFlags.Instance
+                    | BindingFlags.Public);
+
+            if (_cachedSpawnerTeamIdProperty == null
+                || _cachedSpawnerTryReserveMethod == null)
+            {
+                throw new InvalidOperationException(
+                    $"{SpawnerTypeName} のメンバーが見つかりません。" +
+                    " TeamId プロパティと TryReserve メソッドが必要です。");
+            }
+
+            _isSpawnerReflectionCached =
+                true;
         }
 
         private static Type ResolveTypeFromLoadedAssemblies(
             string fullName)
         {
-            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            Assembly[] assemblies =
+                AppDomain.CurrentDomain.GetAssemblies();
 
-            for (int i = 0; i < assemblies.Length; i++)
+            for (int i = 0;
+                 i < assemblies.Length;
+                 i++)
             {
-                Assembly assembly = assemblies[i];
+                Assembly assembly =
+                    assemblies[i];
 
                 if (assembly == null)
                 {
                     continue;
                 }
 
-                Type type = assembly.GetType(fullName, throwOnError: false);
+                Type type =
+                    assembly.GetType(
+                        fullName,
+                        throwOnError: false);
 
                 if (type != null)
                 {
@@ -922,8 +1266,10 @@ namespace Uraty.Application.Battle
         {
             _disposables.Dispose();
 
-            _characterRenderersByObject.Clear();
+            _characterEntries.Clear();
+            _characterEntryByObject.Clear();
             _isBotRecoveringByCharacterObject.Clear();
+            _spawnerByCharacterObject.Clear();
         }
 
         private GameObject FindNearestVisibleEnemyForBot(
@@ -935,22 +1281,37 @@ namespace Uraty.Application.Battle
                 return null;
             }
 
-            float searchRadiusSqr = Mathf.Max(0f, searchRadius);
+            float searchRadiusSqr =
+                Mathf.Max(0f, searchRadius);
+
             searchRadiusSqr *= searchRadiusSqr;
 
             GameObject nearest = null;
             float nearestSqrDistance = float.MaxValue;
 
-            // BattleApplication が生成/管理しているキャラクターだけを対象にする
-            for (int i = 0; i < _characterObjects.Count; i++)
+            CharacterRuntimeEntry selfEntry =
+                GetRequiredCharacterEntry(
+                    selfTransform.gameObject);
+
+            CharacterStatus selfStatus =
+                selfEntry.Status;
+
+            for (int i = 0;
+                 i < _characterEntries.Count;
+                 i++)
             {
-                GameObject otherObject = _characterObjects[i];
+                CharacterRuntimeEntry otherEntry =
+                    _characterEntries[i];
+
+                GameObject otherObject =
+                    otherEntry.GameObject;
+
                 if (otherObject == null)
                 {
                     continue;
                 }
 
-                if (otherObject.transform == selfTransform)
+                if (otherEntry.Transform == selfTransform)
                 {
                     continue;
                 }
@@ -961,35 +1322,31 @@ namespace Uraty.Application.Battle
                 }
 
                 CharacterStatus otherStatus =
-                    GetRequiredComponent<CharacterStatus>(
-                        otherObject);
+                    otherEntry.Status;
 
-                // Dead
                 if (otherStatus.IsDead)
                 {
                     continue;
                 }
 
-                CharacterStatus selfStatus =
-                    GetRequiredComponent<CharacterStatus>(
-                        selfTransform.gameObject);
-
-                // Same team
                 if (otherStatus.TeamId == selfStatus.TeamId)
                 {
                     continue;
                 }
 
-                // Bush (暫定: Bot はブッシュ内の敵を無視)
                 if (otherStatus.IsInsideBush)
                 {
                     continue;
                 }
 
-                Vector3 diff = otherObject.transform.position - selfTransform.position;
+                Vector3 diff =
+                    otherEntry.Transform.position
+                    - selfTransform.position;
+
                 diff.y = 0f;
 
-                float sqrDistance = diff.sqrMagnitude;
+                float sqrDistance =
+                    diff.sqrMagnitude;
 
                 if (sqrDistance > searchRadiusSqr)
                 {
@@ -998,8 +1355,11 @@ namespace Uraty.Application.Battle
 
                 if (sqrDistance < nearestSqrDistance)
                 {
-                    nearestSqrDistance = sqrDistance;
-                    nearest = otherObject;
+                    nearestSqrDistance =
+                        sqrDistance;
+
+                    nearest =
+                        otherObject;
                 }
             }
 
@@ -1014,21 +1374,28 @@ namespace Uraty.Application.Battle
         {
             if (aim != null)
             {
-                Vector3 consumedAimPoint;
-                Vector3 consumedDirection;
-                bool canAutoAim;
-
-                if (aim.TryConsumeAttack(out consumedAimPoint, out consumedDirection, out canAutoAim))
+                if (aim.TryConsumeAttack(
+                        out Vector3 consumedAimPoint,
+                        out Vector3 consumedDirection,
+                        out bool canAutoAim))
                 {
-                    return ResolveDirectionWithAutoAim(playerObject, consumedDirection, canAutoAim);
+                    return ResolveDirectionWithAutoAim(
+                        playerObject,
+                        consumedDirection,
+                        canAutoAim);
                 }
             }
 
-            Vector3 direction = releasedDirectionFallback.sqrMagnitude > MinDirectionSqrMagnitude
-                ? releasedDirectionFallback
-                : latestAimDirectionWorld;
+            Vector3 direction =
+                releasedDirectionFallback.sqrMagnitude
+                > MinDirectionSqrMagnitude
+                    ? releasedDirectionFallback
+                    : latestAimDirectionWorld;
 
-            return ResolveDirectionWithAutoAim(playerObject, direction, canAutoAim: false);
+            return ResolveDirectionWithAutoAim(
+                playerObject,
+                direction,
+                canAutoAim: false);
         }
 
         private Vector3 ResolvePlayerSuperDirection(
@@ -1039,21 +1406,28 @@ namespace Uraty.Application.Battle
         {
             if (aim != null)
             {
-                Vector3 consumedAimPoint;
-                Vector3 consumedDirection;
-                bool canAutoAim;
-
-                if (aim.TryConsumeSuper(out consumedAimPoint, out consumedDirection, out canAutoAim))
+                if (aim.TryConsumeSuper(
+                        out Vector3 consumedAimPoint,
+                        out Vector3 consumedDirection,
+                        out bool canAutoAim))
                 {
-                    return ResolveDirectionWithAutoAim(playerObject, consumedDirection, canAutoAim);
+                    return ResolveDirectionWithAutoAim(
+                        playerObject,
+                        consumedDirection,
+                        canAutoAim);
                 }
             }
 
-            Vector3 direction = releasedDirectionFallback.sqrMagnitude > MinDirectionSqrMagnitude
-                ? releasedDirectionFallback
-                : latestAimDirectionWorld;
+            Vector3 direction =
+                releasedDirectionFallback.sqrMagnitude
+                > MinDirectionSqrMagnitude
+                    ? releasedDirectionFallback
+                    : latestAimDirectionWorld;
 
-            return ResolveDirectionWithAutoAim(playerObject, direction, canAutoAim: false);
+            return ResolveDirectionWithAutoAim(
+                playerObject,
+                direction,
+                canAutoAim: false);
         }
 
         private Vector3 ResolveDirectionWithAutoAim(
@@ -1068,17 +1442,20 @@ namespace Uraty.Application.Battle
 
             baseDirectionWorld.y = 0f;
 
-            // Aim入力がある場合はそのまま撃つ
-            if (!canAutoAim && baseDirectionWorld.sqrMagnitude > MinDirectionSqrMagnitude)
+            if (!canAutoAim
+                && baseDirectionWorld.sqrMagnitude
+                > MinDirectionSqrMagnitude)
             {
                 return baseDirectionWorld.normalized;
             }
 
-            // AutoAim中は、最低でも「向いている方向」で発射する
-            Vector3 forward = playerObject.transform.forward;
+            Vector3 forward =
+                playerObject.transform.forward;
+
             forward.y = 0f;
 
-            if (forward.sqrMagnitude <= MinDirectionSqrMagnitude)
+            if (forward.sqrMagnitude
+                <= MinDirectionSqrMagnitude)
             {
                 forward = Vector3.forward;
             }
@@ -1090,22 +1467,26 @@ namespace Uraty.Application.Battle
                 return forward;
             }
 
-            // canAutoAim=true のときだけ敵へ吸い付ける（味方は除外）
-            GameObject enemy = FindNearestEnemyInCone(
-                playerObject.transform,
-                forward,
-                _playerAutoAimSearchRadius,
-                _playerAutoAimMaxAngleDegrees);
+            GameObject enemy =
+                FindNearestEnemyInCone(
+                    playerObject.transform,
+                    forward,
+                    _playerAutoAimSearchRadius,
+                    _playerAutoAimMaxAngleDegrees);
 
             if (enemy == null)
             {
                 return forward;
             }
 
-            Vector3 toEnemy = enemy.transform.position - playerObject.transform.position;
+            Vector3 toEnemy =
+                enemy.transform.position
+                - playerObject.transform.position;
+
             toEnemy.y = 0f;
 
-            if (toEnemy.sqrMagnitude <= MinDirectionSqrMagnitude)
+            if (toEnemy.sqrMagnitude
+                <= MinDirectionSqrMagnitude)
             {
                 return forward;
             }
@@ -1124,52 +1505,88 @@ namespace Uraty.Application.Battle
                 return null;
             }
 
-            CharacterStatus selfStatus = GetRequiredComponent<CharacterStatus>(selfTransform.gameObject);
+            CharacterRuntimeEntry selfEntry =
+                GetRequiredCharacterEntry(
+                    selfTransform.gameObject);
 
-            float radius = Mathf.Max(0f, searchRadius);
-            float radiusSqr = radius * radius;
-            float cosThreshold = Mathf.Cos(Mathf.Clamp(maxAngleDegrees, 0f, 180f) * Mathf.Deg2Rad);
+            CharacterStatus selfStatus =
+                selfEntry.Status;
+
+            float radius =
+                Mathf.Max(0f, searchRadius);
+
+            float radiusSqr =
+                radius * radius;
+
+            float cosThreshold =
+                Mathf.Cos(
+                    Mathf.Clamp(
+                        maxAngleDegrees,
+                        0f,
+                        180f) * Mathf.Deg2Rad);
 
             GameObject nearest = null;
             float nearestSqr = float.MaxValue;
 
-            for (int i = 0; i < _characterObjects.Count; i++)
+            for (int i = 0;
+                 i < _characterEntries.Count;
+                 i++)
             {
-                GameObject other = _characterObjects[i];
-                if (other == null || other.transform == selfTransform || !other.activeInHierarchy)
+                CharacterRuntimeEntry otherEntry =
+                    _characterEntries[i];
+
+                GameObject other =
+                    otherEntry.GameObject;
+
+                if (other == null
+                    || otherEntry.Transform == selfTransform
+                    || !other.activeInHierarchy)
                 {
                     continue;
                 }
 
-                CharacterStatus otherStatus = GetRequiredComponent<CharacterStatus>(other);
+                CharacterStatus otherStatus =
+                    otherEntry.Status;
+
                 if (otherStatus.IsDead)
                 {
                     continue;
                 }
 
-                // 味方は対象外
-                if (otherStatus.TeamId == selfStatus.TeamId)
+                if (otherStatus.TeamId
+                    == selfStatus.TeamId)
                 {
                     continue;
                 }
 
-                // ブッシュ内は暫定で対象外（視認できない想定）
                 if (otherStatus.IsInsideBush)
                 {
                     continue;
                 }
 
-                Vector3 diff = other.transform.position - selfTransform.position;
+                Vector3 diff =
+                    otherEntry.Transform.position
+                    - selfTransform.position;
+
                 diff.y = 0f;
 
-                float sqr = diff.sqrMagnitude;
-                if (sqr > radiusSqr || sqr <= MinDirectionSqrMagnitude)
+                float sqr =
+                    diff.sqrMagnitude;
+
+                if (sqr > radiusSqr
+                    || sqr <= MinDirectionSqrMagnitude)
                 {
                     continue;
                 }
 
-                Vector3 dir = diff.normalized;
-                float dot = Vector3.Dot(forward, dir);
+                Vector3 dir =
+                    diff.normalized;
+
+                float dot =
+                    Vector3.Dot(
+                        forward,
+                        dir);
+
                 if (dot < cosThreshold)
                 {
                     continue;
@@ -1177,8 +1594,11 @@ namespace Uraty.Application.Battle
 
                 if (sqr < nearestSqr)
                 {
-                    nearestSqr = sqr;
-                    nearest = other;
+                    nearestSqr =
+                        sqr;
+
+                    nearest =
+                        other;
                 }
             }
 
@@ -1199,6 +1619,67 @@ namespace Uraty.Application.Battle
 
             public GameObject CharacterPrefab =>
                 _characterPrefab;
+        }
+
+        private sealed class CharacterRuntimeEntry
+        {
+            public CharacterRuntimeEntry(
+                GameObject gameObject,
+                Transform transform,
+                CharacterStatus status,
+                CharacterReveal reveal,
+                Renderer[] renderers)
+            {
+                GameObject =
+                    gameObject;
+
+                Transform =
+                    transform;
+
+                Status =
+                    status;
+
+                Reveal =
+                    reveal;
+
+                Renderers =
+                    renderers;
+            }
+
+            public GameObject GameObject
+            {
+                get;
+            }
+
+            public Transform Transform
+            {
+                get;
+            }
+
+            public CharacterStatus Status
+            {
+                get;
+            }
+
+            public CharacterReveal Reveal
+            {
+                get;
+            }
+
+            public Renderer[] Renderers
+            {
+                get; set;
+            }
+
+            public bool HasRevealEnabledCache
+            {
+                get; set;
+            }
+
+            public bool LastRevealEnabled
+            {
+                get; set;
+            }
         }
     }
 }
