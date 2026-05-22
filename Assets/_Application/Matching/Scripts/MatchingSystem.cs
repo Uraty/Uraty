@@ -35,17 +35,21 @@ namespace Uraty.Application.Matching
             if (_gameInput == null)
             {
                 Debug.LogError($"{nameof(MatchingSystem)}: GameInputが設定されていません。");
+                return;
             }
 
             if (_matchingContext == null)
             {
                 Debug.LogError($"{nameof(MatchingSystem)}: MatchingContextが設定されていません。");
+                return;
             }
 
             if (_assignableRoleIds == null || _assignableRoleIds.Length == 0)
             {
                 Debug.LogError($"{nameof(MatchingSystem)}: 役職候補が設定されていません。");
+                return;
             }
+
             _gameInput.EnableUIInput();
 
             _elapsedSeconds = 0.0f;
