@@ -36,12 +36,16 @@ namespace Uraty.Features.Character
         private float _recoveryElapsedSeconds;
         private float _nextRecoveryTimeSeconds;
 
+        private bool _canAttack = true;
+        private float _attackDisableRemainingSeconds;
+
         public TeamId TeamId => _teamId;
         public float MaxHp => _maxHp;
         public float CurrentHp => _currentHp;
         public bool IsDead => _isDead;
         public bool IsAlive => !_isDead;
         public bool IsInsideBush => _isInsideBush;
+        public bool CanAttack => !_isDead && _canAttack;
 
         private void Awake()
         {
@@ -51,6 +55,7 @@ namespace Uraty.Features.Character
         private void Update()
         {
             UpdateRecovery();
+            UpdateAttackDisable();
         }
 
         private void OnValidate()
@@ -72,9 +77,17 @@ namespace Uraty.Features.Character
             _isInsideBush = isInsideBush;
         }
 
-        public void NotifyAttackPerformed()
+        public bool TryBeginAttack(float attackDisableSeconds)
         {
+            if (!CanAttack)
+            {
+                return false;
+            }
+
             InterruptRecovery();
+            DisableAttack(attackDisableSeconds);
+
+            return true;
         }
 
         public bool ReceiveBulletHit(
@@ -93,6 +106,7 @@ namespace Uraty.Features.Character
                 return false;
             }
 
+            InterruptRecovery();
             ApplyDamage(damage);
 
             // 貫通攻撃でない場合は弾を壊す
@@ -181,12 +195,48 @@ namespace Uraty.Features.Character
             _nextRecoveryTimeSeconds = _recoveryStartDelaySeconds;
         }
 
+        private void DisableAttack(float seconds)
+        {
+            float validSeconds = Mathf.Max(0f, seconds);
+
+            if (validSeconds <= 0f)
+            {
+                _canAttack = true;
+                _attackDisableRemainingSeconds = 0f;
+                return;
+            }
+
+            _canAttack = false;
+            _attackDisableRemainingSeconds = validSeconds;
+        }
+
+        private void UpdateAttackDisable()
+        {
+            if (_canAttack)
+            {
+                return;
+            }
+
+            _attackDisableRemainingSeconds -= Time.deltaTime;
+
+            if (_attackDisableRemainingSeconds > 0f)
+            {
+                return;
+            }
+
+            _canAttack = true;
+            _attackDisableRemainingSeconds = 0f;
+        }
+
         private void ResetHealth()
         {
             _maxHp = Mathf.Max(1f, _maxHp);
             _currentHp = _maxHp;
             _isDead = false;
             _isInsideBush = false;
+
+            _canAttack = true;
+            _attackDisableRemainingSeconds = 0f;
 
             InterruptRecovery();
         }
@@ -195,6 +245,8 @@ namespace Uraty.Features.Character
         {
             _isDead = true;
             _currentHp = 0f;
+            _canAttack = false;
+            _attackDisableRemainingSeconds = 0f;
 
             gameObject.SetActive(false);
         }
