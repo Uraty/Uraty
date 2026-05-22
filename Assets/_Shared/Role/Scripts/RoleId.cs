@@ -7,5 +7,6 @@ namespace Uraty.Shared.Role
         Attacker = 2,
         Assassin = 3,
         Sniper = 4,
+        Num,
     }
 }
