@@ -288,8 +288,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Uraty.Features.Bot::Uraty.Features.Bot.BotInputInterpreter
   _searchRadius: 15
+  _exploreMoveScale: 0.75
+  _exploreDirectionUpdateIntervalSeconds: 1.25
+  _exploreStuckDistanceMeters: 0.35
+  _exploreStuckCheckIntervalSeconds: 0.5
   _attackRange: 3
   _attackInterval: 1.2
+  _strafeMoveScale: 0.75
+  _distanceAdjustMoveScale: 0.35
+  _strafeSwitchIntervalSeconds: 1
 --- !u!114 &727630325
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -442,7 +449,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 102354855b69179418e1e6dcdcaa9cca, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -565,8 +572,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Uraty.Features.Bot::Uraty.Features.Bot.BotInputInterpreter
   _searchRadius: 15
+  _exploreMoveScale: 0.75
+  _exploreDirectionUpdateIntervalSeconds: 1.25
+  _exploreStuckDistanceMeters: 0.35
+  _exploreStuckCheckIntervalSeconds: 0.5
   _attackRange: 3
   _attackInterval: 1.2
+  _strafeMoveScale: 0.75
+  _distanceAdjustMoveScale: 0.35
+  _strafeSwitchIntervalSeconds: 1
 --- !u!114 &917478747
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -626,8 +640,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Uraty.Features.Bot::Uraty.Features.Bot.BotInputInterpreter
   _searchRadius: 15
+  _exploreMoveScale: 0.75
+  _exploreDirectionUpdateIntervalSeconds: 1.25
+  _exploreStuckDistanceMeters: 0.35
+  _exploreStuckCheckIntervalSeconds: 0.5
   _attackRange: 3
   _attackInterval: 1.2
+  _strafeMoveScale: 0.75
+  _distanceAdjustMoveScale: 0.35
+  _strafeSwitchIntervalSeconds: 1
 --- !u!114 &1290862298
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -687,8 +708,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Uraty.Features.Bot::Uraty.Features.Bot.BotInputInterpreter
   _searchRadius: 15
+  _exploreMoveScale: 0.75
+  _exploreDirectionUpdateIntervalSeconds: 1.25
+  _exploreStuckDistanceMeters: 0.35
+  _exploreStuckCheckIntervalSeconds: 0.5
   _attackRange: 3
   _attackInterval: 1.2
+  _strafeMoveScale: 0.75
+  _distanceAdjustMoveScale: 0.35
+  _strafeSwitchIntervalSeconds: 1
 --- !u!114 &1354976955
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -832,8 +860,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Uraty.Features.Bot::Uraty.Features.Bot.BotInputInterpreter
   _searchRadius: 15
+  _exploreMoveScale: 0.75
+  _exploreDirectionUpdateIntervalSeconds: 1.25
+  _exploreStuckDistanceMeters: 0.35
+  _exploreStuckCheckIntervalSeconds: 0.5
   _attackRange: 3
   _attackInterval: 1.2
+  _strafeMoveScale: 0.75
+  _distanceAdjustMoveScale: 0.35
+  _strafeSwitchIntervalSeconds: 1
 --- !u!114 &1785831292
 MonoBehaviour:
   m_ObjectHideFlags: 0
