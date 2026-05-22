@@ -356,6 +356,34 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5874656262276661651, guid: d8c4b40b2fa944c458198a6610f174dc, type: 3}
+      propertyPath: _enemyTeamId
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5874656262276661651, guid: d8c4b40b2fa944c458198a6610f174dc, type: 3}
+      propertyPath: _matchingContext
+      value: 
+      objectReference: {fileID: 11400000, guid: fb5f0964f54505143ac69e341563d744, type: 2}
+    - target: {fileID: 5874656262276661651, guid: d8c4b40b2fa944c458198a6610f174dc, type: 3}
+      propertyPath: _assignableRoleIds.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 5874656262276661651, guid: d8c4b40b2fa944c458198a6610f174dc, type: 3}
+      propertyPath: '_assignableRoleIds.Array.data[0]'
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5874656262276661651, guid: d8c4b40b2fa944c458198a6610f174dc, type: 3}
+      propertyPath: '_assignableRoleIds.Array.data[1]'
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5874656262276661651, guid: d8c4b40b2fa944c458198a6610f174dc, type: 3}
+      propertyPath: '_assignableRoleIds.Array.data[2]'
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5874656262276661651, guid: d8c4b40b2fa944c458198a6610f174dc, type: 3}
+      propertyPath: '_assignableRoleIds.Array.data[3]'
+      value: 4
+      objectReference: {fileID: 0}
     - target: {fileID: 8576529281534824613, guid: d8c4b40b2fa944c458198a6610f174dc, type: 3}
       propertyPath: m_Name
       value: Matching

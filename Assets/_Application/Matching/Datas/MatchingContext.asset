@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Uraty.Application.Matching::Uraty.Application.Matching.MatchingContext
   _mouseSensitivity: 1
   _stickSensitivityKey: 1
-  _keyMouseDeadZone: 0
+  _keyMouseDeadZone: 0.2
   _stickDeadZone: 0.2
   _seVolume: 1
   _bgmVolume: 1
@@ -22,4 +22,4 @@ MonoBehaviour:
   _playerTeamId: 1
   _playerRoleId: 1
   _teamId: 0100000001000000020000000200000002000000
-  _roleId: 0300000004000000020000000400000001000000
+  _roleId: 0200000004000000040000000100000003000000

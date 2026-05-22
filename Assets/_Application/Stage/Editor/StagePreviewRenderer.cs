@@ -2,10 +2,9 @@ using System;
 using System.Collections.Generic;
 
 using UnityEditor;
-
 using UnityEngine;
 
-namespace Uraty.Application.Stage
+namespace Uraty.Application.Stage.Editor
 {
     public sealed class StagePreviewRenderer : IDisposable
     {

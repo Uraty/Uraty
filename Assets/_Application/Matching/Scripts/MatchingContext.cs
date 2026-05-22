@@ -5,6 +5,7 @@ using UnityEngine;
 using Uraty.Feature.Akane_GameMode;
 using Uraty.Shared.Role;
 using Uraty.Shared.Team;
+using Uraty.Application.Stage;
 
 namespace Uraty.Application.Matching
 {
@@ -29,6 +30,8 @@ namespace Uraty.Application.Matching
         [Header("ゲームモードデータ")]
         [SerializeField] private GameModeData _gameModeData;
 
+        [Header("ステージデータ")]
+        [SerializeField] private StageData[] _stageData;
 
         [Header("プレイヤーデータ")]
         [SerializeField, Tooltip("プレイヤー本人のチームID")] private TeamId _playerTeamId;
