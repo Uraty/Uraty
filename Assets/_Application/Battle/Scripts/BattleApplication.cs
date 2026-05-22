@@ -37,10 +37,6 @@ namespace Uraty.Application.Battle
         [SerializeField, Range(0f, 1f)]
         private float _botRecoveryExitHpRatio = 0.7f;
 
-        [Tooltip("逃走中の自然回復量(HP/秒)")]
-        [SerializeField, Min(0f)]
-        private float _botRecoveryHealPerSecond = 8f;
-
         [Tooltip("逃走移動の強さ(0-1)")]
         [SerializeField, Range(0f, 1f)]
         private float _botFleeMoveScale = 1.0f;
@@ -318,9 +314,6 @@ namespace Uraty.Application.Battle
 
                     if (isRecovering)
                     {
-                        //逃げながら自然回復
-                        status.Heal(_botRecoveryHealPerSecond * Time.deltaTime);
-
                         Vector3 fleeDirectionWorld = FindFleeDirectionWorld(characterObject.transform);
                         inputInterpreter.SetRecoveryMode(true, fleeDirectionWorld, _botFleeMoveScale);
                     }
