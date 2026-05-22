@@ -20,6 +20,7 @@ namespace Uraty.Features.Character
         private float _damage;
         private float _range;
         private float _speed;
+        private float _superChargePercent;
 
         private Vector3 _startPosition;
         private GameObject _owner;
@@ -34,7 +35,8 @@ namespace Uraty.Features.Character
             float range,
             float speed,
             TeamId teamId,
-            GameObject owner)
+            GameObject owner,
+            float superChargePercent)
         {
             direction.y = 0f;
 
@@ -47,6 +49,7 @@ namespace Uraty.Features.Character
             _damage = Mathf.Max(0f, damage);
             _range = Mathf.Max(0f, range);
             _speed = Mathf.Max(0f, speed);
+            _superChargePercent = Mathf.Max(0f, superChargePercent);
 
             _startPosition = transform.position;
             _owner = owner;
@@ -78,13 +81,94 @@ namespace Uraty.Features.Character
                 return;
             }
 
-            if (other.TryGetComponent(out IBulletHittable hittable))
+            if (!other.TryGetComponent(out IBulletHittable hittable))
             {
-                if (hittable.ReceiveBulletHit(_owner, _teamId, _damage, _isPiercing))
+                return;
+            }
+
+            CharacterStatus targetStatus = null;
+            other.TryGetComponent(out targetStatus);
+
+            if (targetStatus != null)
+            {
+                int targetInstanceId = targetStatus.GetInstanceID();
+
+                if (_hitCharacterInstanceIds.Contains(targetInstanceId))
                 {
-                    Destroy(gameObject);
+                    return;
                 }
             }
+
+            bool shouldAddSuperCharge =
+                ShouldAddSuperCharge(targetStatus);
+
+            bool shouldDestroy =
+                hittable.ReceiveBulletHit(
+                    _owner,
+                    _teamId,
+                    _damage,
+                    _isPiercing);
+
+            if (shouldAddSuperCharge)
+            {
+                if (targetStatus != null)
+                {
+                    _hitCharacterInstanceIds.Add(
+                        targetStatus.GetInstanceID());
+                }
+
+                AddSuperChargeToOwner();
+            }
+
+            if (shouldDestroy)
+            {
+                Destroy(gameObject);
+            }
+        }
+
+        private bool ShouldAddSuperCharge(CharacterStatus targetStatus)
+        {
+            if (targetStatus == null)
+            {
+                return false;
+            }
+
+            if (targetStatus.IsDead)
+            {
+                return false;
+            }
+
+            if (targetStatus.TeamId == _teamId)
+            {
+                return false;
+            }
+
+            if (_damage <= 0f)
+            {
+                return false;
+            }
+
+            if (_superChargePercent <= 0f)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private void AddSuperChargeToOwner()
+        {
+            if (_owner == null)
+            {
+                return;
+            }
+
+            if (!_owner.TryGetComponent(out CharacterStatus ownerStatus))
+            {
+                return;
+            }
+
+            ownerStatus.AddSuperCharge(_superChargePercent);
         }
 
         private float GetMovedDistance()
