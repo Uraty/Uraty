@@ -2,7 +2,7 @@ using UnityEngine;
 using Unity.AI.Navigation;
 
 
-namespace Uraty.Application.Stage
+namespace Uraty.Features.Stage
 {
     public class StageGenerator : MonoBehaviour
     {

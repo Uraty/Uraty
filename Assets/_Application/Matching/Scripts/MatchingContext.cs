@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using Uraty.Feature.Akane_GameMode;
-using Uraty.Shared.Role;
+using Uraty.Features.Character;
 using Uraty.Shared.Team;
-using Uraty.Application.Stage;
+using Uraty.Features.Stage;
 
 namespace Uraty.Application.Matching
 {
@@ -35,14 +35,14 @@ namespace Uraty.Application.Matching
 
         [Header("プレイヤーデータ")]
         [SerializeField, Tooltip("プレイヤー本人のチームID")] private TeamId _playerTeamId;
-        [SerializeField, Tooltip("プレイヤー本人の役職ID")] private RoleId _playerRoleId;
+        [SerializeField, Tooltip("プレイヤー本人の役職ID")] private RoleType _playerRoleType;
 
         //===============================
         //   マッチングシーンで登録するデータ群
         //===============================
         [Header("ボット５体の情報")]
         [SerializeField, Tooltip("ボットのチームID")] private TeamId[] _teamId = new TeamId[5];
-        [SerializeField, Tooltip("ボットの役職")] private RoleId[] _roleId = new RoleId[5];
+        [SerializeField, Tooltip("ボットの役職")] private RoleType[] _roleId = new RoleType[5];
 
         private void Reset()
         {
@@ -68,13 +68,13 @@ namespace Uraty.Application.Matching
         public void SetSeVolume(float value) => _seVolume = value;
         public void SetBgmVolume(float value) => _bgmVolume = value;
         public void SetGameModeData(GameModeData value) => _gameModeData = value;
-        public void SetPlayerData(TeamId playerTeamId, RoleId playerRoleId)
+        public void SetPlayerData(TeamId playerTeamId, RoleType playerRoleId)
         {
             _playerTeamId = playerTeamId;
-            _playerRoleId = playerRoleId;
+            _playerRoleType = playerRoleId;
         }
 
-        public void SetBotData(int index, TeamId teamId, RoleId roleId)
+        public void SetBotData(int index, TeamId teamId, RoleType roleId)
         {
             if (!IsValidBotIndex(index))
             {
@@ -102,7 +102,7 @@ namespace Uraty.Application.Matching
                 _teamId[index] = value;
             }
         }
-        public void SetRoleId(int index, RoleId value)
+        public void SetRoleId(int index, RoleType value)
         {
             if (index >= 0 && index < _roleId.Length)
             {
@@ -118,10 +118,10 @@ namespace Uraty.Application.Matching
         public float BgmVolume => _bgmVolume;
         public GameModeData GameModeData => _gameModeData;
         public TeamId PlayerTeamId => _playerTeamId;
-        public RoleId PlayerRoleId => _playerRoleId;
+        public RoleType PlayerRoleId => _playerRoleType;
 
         public IReadOnlyList<TeamId> TeamIds => _teamId;
-        public IReadOnlyList<RoleId> RoleIds => _roleId;
+        public IReadOnlyList<RoleType> RoleIds => _roleId;
 
         private bool IsValidBotIndex(int index)
         {
@@ -137,7 +137,7 @@ namespace Uraty.Application.Matching
 
             if (_roleId == null || _roleId.Length != BotCount)
             {
-                _roleId = new RoleId[BotCount];
+                _roleId = new RoleType[BotCount];
             }
         }
     }

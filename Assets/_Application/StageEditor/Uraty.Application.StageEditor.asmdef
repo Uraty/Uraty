@@ -1,8 +1,12 @@
 {
-    "name": "Uraty.Shared.Role",
-    "rootNamespace": "Uraty.Shared.Role",
-    "references": [],
-    "includePlatforms": [],
+    "name": "Uraty.Application.StageEditor",
+    "rootNamespace": "Uraty.Application.StageEditor",
+    "references": [
+        "GUID:1e77f1f85954c404ca3a2b1007d1955b"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

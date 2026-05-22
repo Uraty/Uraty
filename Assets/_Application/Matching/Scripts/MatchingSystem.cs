@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-using Uraty.Shared.Role;
+using Uraty.Features.Character;
 using Uraty.Shared.Team;
 using Uraty.Systems.Input;
 
@@ -24,7 +24,7 @@ namespace Uraty.Application.Matching
 
         [Header("役職候補")]
         [SerializeField, Tooltip("Botにランダム割り当てできる役職候補")]
-        private RoleId[] _assignableRoleIds;
+        private RoleType[] _assignableRoleIds;
 
         private float _elapsedSeconds;
         private bool _hasLoadedScene;
@@ -93,7 +93,7 @@ namespace Uraty.Application.Matching
                 return false;
             }
 
-            List<RoleId> uniqueRoleIds = CreateUniqueRoleIdList();
+            List<RoleType> uniqueRoleIds = CreateUniqueRoleIdList();
 
             if (uniqueRoleIds.Count < MatchingContext.SecondaryBotCount)
             {
@@ -101,9 +101,9 @@ namespace Uraty.Application.Matching
                 return false;
             }
 
-            RoleId playerRoleId = _matchingContext.PlayerRoleId;
+            RoleType playerRoleId = _matchingContext.PlayerRoleId;
 
-            List<RoleId> allyCandidateRoleIds = new List<RoleId>(uniqueRoleIds);
+            List<RoleType> allyCandidateRoleIds = new List<RoleType>(uniqueRoleIds);
             allyCandidateRoleIds.Remove(playerRoleId);
 
             if (allyCandidateRoleIds.Count < MatchingContext.PrimaryBotCount)
@@ -112,11 +112,11 @@ namespace Uraty.Application.Matching
                 return false;
             }
 
-            RoleId[] allyRoleIds = PickRandomRoleIds(
+            RoleType[] allyRoleIds = PickRandomRoleIds(
                 allyCandidateRoleIds,
                 MatchingContext.PrimaryBotCount);
 
-            RoleId[] enemyRoleIds = PickRandomRoleIds(
+            RoleType[] enemyRoleIds = PickRandomRoleIds(
                 uniqueRoleIds,
                 MatchingContext.SecondaryBotCount);
             ApplyBotDataToContext(allyRoleIds, enemyRoleIds);
@@ -125,16 +125,16 @@ namespace Uraty.Application.Matching
             return true;
         }
 
-        private List<RoleId> CreateUniqueRoleIdList()
+        private List<RoleType> CreateUniqueRoleIdList()
         {
-            List<RoleId> uniqueRoleIds = new List<RoleId>();
+            List<RoleType> uniqueRoleIds = new List<RoleType>();
 
             if (_assignableRoleIds == null)
             {
                 return uniqueRoleIds;
             }
 
-            foreach (RoleId roleId in _assignableRoleIds)
+            foreach (RoleType roleId in _assignableRoleIds)
             {
                 if (uniqueRoleIds.Contains(roleId))
                 {
@@ -147,25 +147,25 @@ namespace Uraty.Application.Matching
             return uniqueRoleIds;
         }
 
-        private RoleId[] PickRandomRoleIds(List<RoleId> sourceRoleIds, int pickCount)
+        private RoleType[] PickRandomRoleIds(List<RoleType> sourceRoleIds, int pickCount)
         {
             if (sourceRoleIds.Count < pickCount)
             {
-                return new RoleId[0];
+                return new RoleType[0];
             }
 
-            List<RoleId> shuffledRoleIds = new List<RoleId>(sourceRoleIds);
+            List<RoleType> shuffledRoleIds = new List<RoleType>(sourceRoleIds);
 
             for (int i = 0; i < pickCount; i++)
             {
                 int randomIndex = Random.Range(i, shuffledRoleIds.Count);
 
-                RoleId temporaryRoleId = shuffledRoleIds[i];
+                RoleType temporaryRoleId = shuffledRoleIds[i];
                 shuffledRoleIds[i] = shuffledRoleIds[randomIndex];
                 shuffledRoleIds[randomIndex] = temporaryRoleId;
             }
 
-            RoleId[] resultRoleIds = new RoleId[pickCount];
+            RoleType[] resultRoleIds = new RoleType[pickCount];
 
             for (int i = 0; i < pickCount; i++)
             {
@@ -175,7 +175,7 @@ namespace Uraty.Application.Matching
             return resultRoleIds;
         }
 
-        private void ApplyBotDataToContext(RoleId[] allyRoleIds, RoleId[] enemyRoleIds)
+        private void ApplyBotDataToContext(RoleType[] allyRoleIds, RoleType[] enemyRoleIds)
         {
             _matchingContext.ClearBotData();
 
@@ -219,7 +219,7 @@ namespace Uraty.Application.Matching
             SceneManager.LoadScene(targetSceneName);
         }
 
-        private void DebugBotData(RoleId[] allyRoleIds, RoleId[] enemyRoleIds)
+        private void DebugBotData(RoleType[] allyRoleIds, RoleType[] enemyRoleIds)
         {
             Debug.Log($"PlayerRole: {_matchingContext.PlayerRoleId}");
 
