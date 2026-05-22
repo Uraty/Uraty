@@ -21,6 +21,18 @@ namespace Uraty.Features.Character
         [SerializeField, Min(0f)]
         private float _attackDisableSeconds = 1f;
 
+        [Tooltip("このスーパーの弾が敵に命中したときに加算する必殺技チャージ率(%)")]
+        [SerializeField, Min(0f)]
+        private float _superChargePercent = 0f;
+
+        private void Awake()
+        {
+            if (_status == null)
+            {
+                TryGetComponent(out _status);
+            }
+        }
+
         public void Super(Vector3 aimDirectionWorld)
         {
             if (_status == null)
@@ -28,7 +40,7 @@ namespace Uraty.Features.Character
                 return;
             }
 
-            if (!_status.TryBeginAttack(_attackDisableSeconds))
+            if (!_status.TryBeginSuper(_attackDisableSeconds))
             {
                 return;
             }
@@ -92,7 +104,8 @@ namespace Uraty.Features.Character
                 direction,
                 setting.PositionOffsetLocal);
 
-            Quaternion spawnRotation = Quaternion.LookRotation(direction, Vector3.up);
+            Quaternion spawnRotation =
+                Quaternion.LookRotation(direction, Vector3.up);
 
             GameObject bulletObject = Instantiate(
                 setting.BulletPrefab,
@@ -107,7 +120,8 @@ namespace Uraty.Features.Character
                     setting.Range,
                     setting.Speed,
                     _status.TeamId,
-                    gameObject);
+                    gameObject,
+                    _superChargePercent);
             }
         }
 
@@ -135,7 +149,9 @@ namespace Uraty.Features.Character
             Vector3 direction,
             float angleOffsetDegrees)
         {
-            Quaternion rotation = Quaternion.AngleAxis(angleOffsetDegrees, Vector3.up);
+            Quaternion rotation =
+                Quaternion.AngleAxis(angleOffsetDegrees, Vector3.up);
+
             Vector3 rotatedDirection = rotation * direction;
             rotatedDirection.y = 0f;
 
@@ -161,7 +177,8 @@ namespace Uraty.Features.Character
 
             forward.Normalize();
 
-            Vector3 right = Vector3.Cross(Vector3.up, forward).normalized;
+            Vector3 right =
+                Vector3.Cross(Vector3.up, forward).normalized;
 
             Vector3 basePosition =
                 transform.position +
