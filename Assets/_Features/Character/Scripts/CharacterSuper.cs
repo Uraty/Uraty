@@ -18,30 +18,55 @@ namespace Uraty.Features.Character
         [SerializeField]
         private BulletSpawnSetting[] _superSettings = { new() };
 
-        public void Super(Vector3 aimDirectionWorld)
+        private void Awake()
         {
-            SpawnBullets(_superSettings, aimDirectionWorld);
+            if (_status == null)
+            {
+                TryGetComponent(out _status);
+            }
         }
 
-        private void SpawnBullets(
+        public void Super(Vector3 aimDirectionWorld)
+        {
+            if (_status == null || _status.IsDead)
+            {
+                return;
+            }
+
+            bool didSuper =
+                TrySpawnBullets(
+                    _superSettings,
+                    aimDirectionWorld);
+
+            if (didSuper)
+            {
+                _status.NotifyAttackPerformed();
+            }
+        }
+
+        private bool TrySpawnBullets(
             BulletSpawnSetting[] settings,
             Vector3 aimDirectionWorld)
         {
             if (settings == null || settings.Length == 0)
             {
-                return;
+                return false;
             }
 
             Vector3 baseDirection = ResolveDirection(aimDirectionWorld);
+
+            bool didSuper = false;
 
             for (int i = 0; i < settings.Length; i++)
             {
                 BulletSpawnSetting setting = settings[i];
 
-                if (setting == null)
+                if (!CanSpawn(setting))
                 {
                     continue;
                 }
+
+                didSuper = true;
 
                 if (setting.DelaySeconds <= 0f)
                 {
@@ -51,6 +76,8 @@ namespace Uraty.Features.Character
 
                 StartCoroutine(SpawnBulletAfterDelay(setting, baseDirection));
             }
+
+            return didSuper;
         }
 
         private IEnumerator SpawnBulletAfterDelay(
@@ -66,7 +93,7 @@ namespace Uraty.Features.Character
             BulletSpawnSetting setting,
             Vector3 baseDirection)
         {
-            if (setting == null || setting.BulletPrefab == null)
+            if (!CanSpawn(setting))
             {
                 return;
             }
@@ -96,6 +123,11 @@ namespace Uraty.Features.Character
                     _status.TeamId,
                     gameObject);
             }
+        }
+
+        private static bool CanSpawn(BulletSpawnSetting setting)
+        {
+            return setting != null && setting.BulletPrefab != null;
         }
 
         private Vector3 ResolveDirection(Vector3 aimDirectionWorld)
