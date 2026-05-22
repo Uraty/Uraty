@@ -7,6 +7,8 @@ namespace Uraty.Features.Character
 {
     public sealed class CharacterStatus : MonoBehaviour, IBulletHittable
     {
+        private const float AttackReloadCost = 1f;
+
         [Header("Team")]
         [SerializeField]
         private TeamId _teamId = TeamId.None;
@@ -29,6 +31,15 @@ namespace Uraty.Features.Character
         [SerializeField, Min(0f)]
         private float _recoveryAmountPercent = 10f;
 
+        [Header("Reload")]
+        [Tooltip("最大リロード数")]
+        [SerializeField, Min(0f)]
+        private float _maxReloadCount = 3f;
+
+        [Tooltip("毎秒回復するリロード数")]
+        [SerializeField, Min(0f)]
+        private float _reloadRecoveryPerSecond = 1f;
+
         private float _currentHp;
         private bool _isDead;
         private bool _isInsideBush;
@@ -39,13 +50,27 @@ namespace Uraty.Features.Character
         private bool _canAttack = true;
         private float _attackDisableRemainingSeconds;
 
+        private float _currentReloadCount;
+
         public TeamId TeamId => _teamId;
         public float MaxHp => _maxHp;
         public float CurrentHp => _currentHp;
         public bool IsDead => _isDead;
         public bool IsAlive => !_isDead;
         public bool IsInsideBush => _isInsideBush;
-        public bool CanAttack => !_isDead && _canAttack;
+
+        public float MaxReloadCount => _maxReloadCount;
+        public float CurrentReloadCount => _currentReloadCount;
+        public float ReloadRecoveryPerSecond => _reloadRecoveryPerSecond;
+
+        public bool CanAttack =>
+            !_isDead &&
+            _canAttack &&
+            _currentReloadCount >= AttackReloadCost;
+
+        public bool CanSuper =>
+            !_isDead &&
+            _canAttack;
 
         private void Awake()
         {
@@ -54,8 +79,9 @@ namespace Uraty.Features.Character
 
         private void Update()
         {
-            UpdateRecovery();
             UpdateAttackDisable();
+            UpdateRecovery();
+            UpdateReload();
         }
 
         private void OnValidate()
@@ -64,6 +90,9 @@ namespace Uraty.Features.Character
             _recoveryStartDelaySeconds = Mathf.Max(0f, _recoveryStartDelaySeconds);
             _recoveryIntervalSeconds = Mathf.Max(0.01f, _recoveryIntervalSeconds);
             _recoveryAmountPercent = Mathf.Max(0f, _recoveryAmountPercent);
+
+            _maxReloadCount = Mathf.Max(0f, _maxReloadCount);
+            _reloadRecoveryPerSecond = Mathf.Max(0f, _reloadRecoveryPerSecond);
         }
 
         public void Initialize(TeamId teamId)
@@ -80,6 +109,24 @@ namespace Uraty.Features.Character
         public bool TryBeginAttack(float attackDisableSeconds)
         {
             if (!CanAttack)
+            {
+                return false;
+            }
+
+            _currentReloadCount =
+                Mathf.Max(
+                    0f,
+                    _currentReloadCount - AttackReloadCost);
+
+            InterruptRecovery();
+            DisableAttack(attackDisableSeconds);
+
+            return true;
+        }
+
+        public bool TryBeginSuper(float attackDisableSeconds)
+        {
+            if (!CanSuper)
             {
                 return false;
             }
@@ -106,7 +153,6 @@ namespace Uraty.Features.Character
                 return false;
             }
 
-            InterruptRecovery();
             ApplyDamage(damage);
 
             // 貫通攻撃でない場合は弾を壊す
@@ -180,6 +226,34 @@ namespace Uraty.Features.Character
             }
         }
 
+        private void UpdateReload()
+        {
+            if (_isDead)
+            {
+                return;
+            }
+
+            if (!_canAttack)
+            {
+                return;
+            }
+
+            if (_currentReloadCount >= _maxReloadCount)
+            {
+                return;
+            }
+
+            if (_reloadRecoveryPerSecond <= 0f)
+            {
+                return;
+            }
+
+            _currentReloadCount =
+                Mathf.Min(
+                    _maxReloadCount,
+                    _currentReloadCount + _reloadRecoveryPerSecond * Time.deltaTime);
+        }
+
         private void HealByRecoveryPercent()
         {
             float healAmount =
@@ -231,7 +305,11 @@ namespace Uraty.Features.Character
         private void ResetHealth()
         {
             _maxHp = Mathf.Max(1f, _maxHp);
+            _maxReloadCount = Mathf.Max(0f, _maxReloadCount);
+
             _currentHp = _maxHp;
+            _currentReloadCount = _maxReloadCount;
+
             _isDead = false;
             _isInsideBush = false;
 
@@ -245,6 +323,7 @@ namespace Uraty.Features.Character
         {
             _isDead = true;
             _currentHp = 0f;
+
             _canAttack = false;
             _attackDisableRemainingSeconds = 0f;
 
