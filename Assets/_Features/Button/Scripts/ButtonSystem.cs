@@ -91,9 +91,8 @@ namespace Uraty.Feature.Button
             SubscribeInput();
         }
 
-        private void OnDisable()
+        private void OnDestroy()
         {
-            LogDebug("OnDisableが呼ばれました。");
             UnsubscribeInput();
         }
 
