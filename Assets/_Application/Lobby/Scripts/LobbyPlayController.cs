@@ -3,7 +3,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 using Uraty.Feature.Akane_GameMode;
-using Uraty.Feature.GameStart;
+using Uraty.Application.GameStart;
 
 namespace Uraty.Application.Lobby
 {
@@ -19,23 +19,23 @@ namespace Uraty.Application.Lobby
         // 現在選択中のモードを取得するためのController。
         [SerializeField] private LobbyModeSelectController _modeSelectController;
 
-        private void Awake()
+        [SerializeField] private GameStartDataStore _gameStartDataStore;
+
+        private void OnEnable()
         {
-            // PlayButtonが押されたらゲーム開始処理を行う。
-            _playButton.onClick.AddListener(OnClickPlay);
+            _playButton.onClick.AddListener(HandlePlayButtonClicked);
         }
 
-        private void OnDestroy()
+        private void OnDisable()
         {
-            // 登録したイベントを解除する。
-            _playButton.onClick.RemoveListener(OnClickPlay);
+            _playButton.onClick.RemoveListener(HandlePlayButtonClicked);
         }
 
         /// <summary>
         /// PlayButton押下時の処理。
         /// 選択中モードを保存して、対応するGameSceneへ遷移する。
         /// </summary>
-        private void OnClickPlay()
+        private void HandlePlayButtonClicked()
         {
             GameModeData selectedMode = _modeSelectController.SelectedMode;
 
@@ -51,12 +51,16 @@ namespace Uraty.Application.Lobby
                 return;
             }
 
-            // BattleScene側で読めるように、選択モードを一時保存する。
-            GameStartDataStore.SetSelectedMode(selectedMode);
+            if (_gameStartDataStore == null)
+            {
+                Debug.LogError("GameStartDataStore が設定されていません。");
+                return;
+            }
+
+            _gameStartDataStore.SetSelectedMode(selectedMode);
 
             Debug.Log($"シーン遷移前: 選択モード = {selectedMode.DisplayName}");
 
-            // 選択モードに設定されているSceneへ遷移する。
             SceneManager.LoadScene(selectedMode.GameSceneName);
         }
     }

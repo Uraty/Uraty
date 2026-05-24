@@ -1,4 +1,7 @@
+using System;
 using System.Collections;
+
+using R3;
 
 using TMPro;
 
@@ -16,10 +19,6 @@ namespace Uraty.Application.Lobby
     /// </summary>
     public sealed class LobbyCharacterDisplayController : MonoBehaviour
     {
-        [Header("Default")]
-        // まだキャラが選択されていない場合に表示する初期キャラ。
-        [SerializeField] private CharacterData _defaultCharacter;
-
         [Header("View")]
         // キャラPrefabを生成する位置。
         [SerializeField] private Transform _previewRoot;
@@ -39,43 +38,48 @@ namespace Uraty.Application.Lobby
         // Additiveで読み込むキャラ選択Scene名
         [SerializeField] private string _characterSelectSceneName = "LobbyCharacterSelectScene";
 
+        [Header("Store")]
+        [SerializeField] private CharacterSelectionStore _characterSelectionStore;
+
+        private IDisposable _selectedCharacterChangedSubscription;
+
         // 現在ロビーに表示しているキャラPrefabの実体。
         private GameObject _currentPreviewObject;
 
         // キャラ選択Sceneの多重読み込みを防ぐためのフラグ。
         private bool _isLoading;
 
-        private void Awake()
+        private void OnEnable()
         {
-            // キャラ表示部分を押したら、キャラ選択Sceneを開く。
             _currentCharacterButton.onClick.AddListener(OpenCharacterSelectScene);
+            SceneManager.sceneUnloaded += HandleSceneUnloaded;
 
-            // 選択キャラが変更されたら、ロビー中央の表示を更新する。
-            CharacterSelectionStore.SelectedCharacterChanged += RefreshCharacter;
-
-            // キャラ選択Sceneが閉じられたら、ロビー中央のキャラ表示を再表示する。
-            SceneManager.sceneUnloaded += OnSceneUnloaded;
-
-            // まだ選択キャラが存在しない場合、初期キャラを設定する。
-            if (CharacterSelectionStore.SelectedCharacter == null)
+            if (_characterSelectionStore != null)
             {
-                CharacterSelectionStore.SetSelectedCharacter(_defaultCharacter);
-            }
-            else
-            {
-                // すでに選択済みのキャラがある場合は、そのキャラを表示する。
-                RefreshCharacter(CharacterSelectionStore.SelectedCharacter);
+                _selectedCharacterChangedSubscription = _characterSelectionStore
+                    .SelectedCharacterChangedStream
+                    .Subscribe(RefreshCharacter);
             }
         }
 
-        private void OnDestroy()
+        private void Start()
         {
-            // 登録したイベントは破棄時に解除する。
-            _currentCharacterButton.onClick.RemoveListener(OpenCharacterSelectScene);
-            CharacterSelectionStore.SelectedCharacterChanged -= RefreshCharacter;
+            if (_characterSelectionStore == null)
+            {
+                Debug.LogError("CharacterSelectionStore が設定されていません。");
+                return;
+            }
 
-            // SceneのUnload通知も解除する。
-            SceneManager.sceneUnloaded -= OnSceneUnloaded;
+            RefreshCharacter(_characterSelectionStore.SelectedCharacter);
+        }
+
+        private void OnDisable()
+        {
+            _currentCharacterButton.onClick.RemoveListener(OpenCharacterSelectScene);
+            SceneManager.sceneUnloaded -= HandleSceneUnloaded;
+
+            _selectedCharacterChangedSubscription?.Dispose();
+            _selectedCharacterChangedSubscription = null;
         }
 
         /// <summary>
@@ -168,7 +172,7 @@ namespace Uraty.Application.Lobby
         /// SceneがUnloadされたときに呼ばれる。
         /// キャラ選択Sceneが閉じられた場合だけ、ロビー中央のキャラ表示を戻す。
         /// </summary>
-        private void OnSceneUnloaded(Scene scene)
+        private void HandleSceneUnloaded(Scene scene)
         {
             if (scene.name != _characterSelectSceneName)
             {

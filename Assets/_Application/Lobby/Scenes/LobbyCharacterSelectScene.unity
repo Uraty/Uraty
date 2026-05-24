@@ -255,9 +255,10 @@ MonoBehaviour:
   _selectedCharacterNameText: {fileID: 0}
   _decideButton: {fileID: 1057750978}
   _closeButton: {fileID: 446670391}
-  _selectedScale: 1.15
+  _selectedScale: 2
   _rayDistance: 1000
   _selectCamera: {fileID: 0}
+  _characterSelectionStore: {fileID: 11400000, guid: 6e4d667cd6baba6438ef866126af715e, type: 2}
 --- !u!1 &446670389
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,22 +1,33 @@
+using UnityEngine;
+
 using Uraty.Feature.Akane_GameMode;
 
-namespace Uraty.Feature.GameStart
+namespace Uraty.Application.GameStart
 {
-    public static class GameStartDataStore
+    /// <summary>
+    /// ロビーから次のシーンへ渡すゲーム開始情報を保持するStore。
+    /// ScriptableObjectアセットとしてシーン間で共有する。
+    /// </summary>
+    [CreateAssetMenu(
+        fileName = "GameStartDataStore",
+        menuName = "Uraty/GameStart/Game Start Data Store"
+    )]
+    public sealed class GameStartDataStore : ScriptableObject
     {
-        public static GameModeData SelectedMode
+        private GameModeData _selectedMode;
+
+        public bool HasSelectedMode => _selectedMode != null;
+
+        public GameModeData SelectedMode => _selectedMode;
+
+        public void SetSelectedMode(GameModeData mode)
         {
-            get; private set;
+            _selectedMode = mode;
         }
 
-        public static void SetSelectedMode(GameModeData mode)
+        public void Clear()
         {
-            SelectedMode = mode;
-        }
-
-        public static void Clear()
-        {
-            SelectedMode = null;
+            _selectedMode = null;
         }
     }
 }

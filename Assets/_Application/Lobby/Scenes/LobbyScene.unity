@@ -5631,6 +5631,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Uraty.Application.Lobby::Uraty.Application.Lobby.LobbyPlayController
   _playButton: {fileID: 945657386}
   _modeSelectController: {fileID: 847364621}
+  _gameStartDataStore: {fileID: 11400000, guid: 422b1a042ab3238498905003661f6d07, type: 2}
 --- !u!4 &1516936245
 Transform:
   m_ObjectHideFlags: 0
@@ -5788,12 +5789,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 782c71c92dbe9e4479f9546bfeb5ad9e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Uraty.Application.Lobby::Uraty.Application.Lobby.LobbyCharacterDisplayController
-  _defaultCharacter: {fileID: 11400000, guid: bcbb5542a9cc73e48a4fd3760878d473, type: 2}
   _previewRoot: {fileID: 352908081}
   _mainPanel: {fileID: 1227536548}
   _currentCharacterButton: {fileID: 1953833513}
   _characterNameText: {fileID: 0}
   _characterSelectSceneName: LobbyCharacterSelectScene
+  _characterSelectionStore: {fileID: 11400000, guid: 6e4d667cd6baba6438ef866126af715e, type: 2}
 --- !u!4 &1633101552
 Transform:
   m_ObjectHideFlags: 0

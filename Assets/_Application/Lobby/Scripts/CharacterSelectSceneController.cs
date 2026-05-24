@@ -44,7 +44,7 @@ namespace Uraty.Application.Lobby
 
         [Header("Selection")]
         // 選択中キャラをどれくらい大きく見せるか。
-        [SerializeField] private float _selectedScale = 1.15f;
+        [SerializeField] private float _selectedScale = 2f;
 
         // Raycastの最大距離。
         [SerializeField] private float _rayDistance = 1000f;
@@ -53,6 +53,9 @@ namespace Uraty.Application.Lobby
         // キャラ選択用のCamera。
         // 未設定の場合はCamera.mainを使う。
         [SerializeField] private Camera _selectCamera;
+
+        [Header("Store")]
+        [SerializeField] private CharacterSelectionStore _characterSelectionStore;
 
         // 生成したキャラ選択用オブジェクトを保持するリスト。
         // 選択状態の更新に使う。
@@ -63,30 +66,17 @@ namespace Uraty.Application.Lobby
 
         private void Awake()
         {
-            // 決定ボタンと閉じるボタンに処理を登録する。
+            CreateCharacterPreviews();
+        }
+
+        private void OnEnable()
+        {
             _decideButton.onClick.AddListener(Decide);
             _closeButton.onClick.AddListener(Close);
-
-            // CharacterData配列をもとに、キャラPrefabをSlotへ生成する。
-            CreateCharacterPreviews();
-
-            // すでにロビー側で選択されているキャラがあれば、それを初期選択にする。
-            CharacterData currentCharacter = CharacterSelectionStore.SelectedCharacter;
-
-            if (currentCharacter != null)
-            {
-                SelectCharacter(currentCharacter);
-            }
-            else if (_characters != null && _characters.Length > 0)
-            {
-                // まだ選択キャラがない場合は、先頭のキャラを初期選択にする。
-                SelectCharacter(_characters[0]);
-            }
         }
 
         private void Start()
         {
-            // InspectorでGameInputが設定されていない場合、Hierarchy上から探す。
             if (_gameInput == null)
             {
                 _gameInput = FindFirstObjectByType<GameInput>();
@@ -98,8 +88,9 @@ namespace Uraty.Application.Lobby
                 return;
             }
 
-            // キャラ選択画面ではUI入力を使う。
             _gameInput.EnableUIInput();
+
+            ApplyInitialSelection();
         }
 
         private void Update()
@@ -123,9 +114,8 @@ namespace Uraty.Application.Lobby
             }
         }
 
-        private void OnDestroy()
+        private void OnDisable()
         {
-            // 登録したボタン処理を解除する。
             if (_decideButton != null)
             {
                 _decideButton.onClick.RemoveListener(Decide);
@@ -134,6 +124,28 @@ namespace Uraty.Application.Lobby
             if (_closeButton != null)
             {
                 _closeButton.onClick.RemoveListener(Close);
+            }
+        }
+
+        private void ApplyInitialSelection()
+        {
+            if (_characterSelectionStore == null)
+            {
+                Debug.LogError("CharacterSelectionStore が設定されていません。");
+                return;
+            }
+
+            CharacterData currentCharacter = _characterSelectionStore.SelectedCharacter;
+
+            if (currentCharacter != null)
+            {
+                SelectCharacter(currentCharacter);
+                return;
+            }
+
+            if (_characters != null && _characters.Length > 0)
+            {
+                SelectCharacter(_characters[0]);
             }
         }
 
@@ -311,8 +323,13 @@ namespace Uraty.Application.Lobby
                 return;
             }
 
-            // Storeへ保存することで、ロビー側の表示更新を発生させる。
-            CharacterSelectionStore.SetSelectedCharacter(_selectedCharacter);
+            if (_characterSelectionStore == null)
+            {
+                Debug.LogError("CharacterSelectionStore が設定されていません。");
+                return;
+            }
+
+            _characterSelectionStore.SetSelectedCharacter(_selectedCharacter);
 
             Debug.Log($"決定したキャラ: {_selectedCharacter.DisplayName}");
 
