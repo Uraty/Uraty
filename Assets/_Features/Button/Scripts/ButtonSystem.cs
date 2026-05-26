@@ -40,8 +40,10 @@ namespace Uraty.Feature.Button
 
         private bool _isInputSubscribed;
 
-        private void Awake()
+        private void Start()
         {
+            Debug.Log($"{nameof(ButtonSystem)} が Start されました。", this);
+
             if (_gameInput == null)
             {
                 _gameInput = FindFirstObjectByType<GameInput>();
@@ -59,19 +61,12 @@ namespace Uraty.Feature.Button
                 _targetCanvas = GetComponentInParent<Canvas>();
                 LogDebug("親階層からCanvasを取得しました。");
             }
-        }
-
-        private void OnEnable()
-        {
-            LogDebug("OnEnableが呼ばれました。");
 
             if (_gameInput == null)
             {
                 Debug.LogError($"{nameof(ButtonSystem)}: Scene内にGameInputが見つかりません。");
                 return;
             }
-
-            LogDebug("GameInput.EnableUIInput() を呼び出しました。");
 
             if (!_gameInput.UI.enabled)
             {
@@ -96,9 +91,8 @@ namespace Uraty.Feature.Button
             SubscribeInput();
         }
 
-        private void OnDisable()
+        private void OnDestroy()
         {
-            LogDebug("OnDisableが呼ばれました。");
             UnsubscribeInput();
         }
 

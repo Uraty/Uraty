@@ -1,13 +1,13 @@
 using UnityEditor;
 using System.Collections.Generic;
 
-
 using UnityEngine;
+using Uraty.Features.Stage;
 
-namespace Uraty.Application.Stage
+namespace Uraty.Application.Stage.Editor
 {
     [CustomEditor(typeof(StageData))]
-    public sealed class StageDataEditor : Editor
+    public sealed class StageDataEditor : UnityEditor.Editor
     {
         private StagePreviewRenderer _previewRenderer;
 

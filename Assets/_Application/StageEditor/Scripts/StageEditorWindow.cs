@@ -1,10 +1,10 @@
 using System.Collections.Generic;
-
 using UnityEditor;
-
 using UnityEngine;
+using Uraty.Features.Stage;
 
-namespace Uraty.Application.Stage
+
+namespace Uraty.Application.Stage.Editor
 {
     public sealed class StageEditorWindow : EditorWindow
     {

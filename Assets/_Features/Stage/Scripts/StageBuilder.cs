@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-namespace Uraty.Application.Stage
+namespace Uraty.Features.Stage
 {
     [ExecuteAlways]
     [DefaultExecutionOrder(-100)]

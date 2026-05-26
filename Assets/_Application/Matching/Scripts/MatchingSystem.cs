@@ -1,37 +1,57 @@
+using System.Collections.Generic;
+
 using UnityEngine;
-using Uraty.Systems.Input;
 using UnityEngine.SceneManagement;
+
+using Uraty.Features.Character;
+using Uraty.Shared.Team;
+using Uraty.Systems.Input;
 
 namespace Uraty.Application.Matching
 {
     public sealed class MatchingSystem : MonoBehaviour
     {
+        private const float MatchingDurationSeconds = 3.0f;
+
+        [Header("入力管理")]
         [SerializeField] private GameInput _gameInput;
 
-        [Header("遷移先Scene名")]
-        [SerializeField] private string _targetSceneName = "";
+        [Header("マッチング情報")]
+        [SerializeField] private MatchingContext _matchingContext;
 
-        [Header("遷移方式")]
-        [SerializeField] private LoadSceneMode _loadSceneMode = LoadSceneMode.Single;
+        [Header("敵チーム設定")]
+        [SerializeField, Tooltip("敵Botに設定するチームID")] private TeamId _enemyTeamId;
 
-        [Header("自動遷移までの秒数")]
-        [SerializeField] private float _autoTransitionSeconds = 0.0f;
+        [Header("役職候補")]
+        [SerializeField, Tooltip("Botにランダム割り当てできる役職候補")]
+        private RoleType[] _assignableRoleIds;
 
         private float _elapsedSeconds;
         private bool _hasLoadedScene;
 
         private void Awake()
         {
-            if(_gameInput == null)
+            Debug.Log($"{nameof(MatchingSystem)}: Awake");
+            if (_gameInput == null)
             {
                 Debug.LogError($"{nameof(MatchingSystem)}: GameInputが設定されていません。");
                 return;
             }
 
+            if (_matchingContext == null)
+            {
+                Debug.LogError($"{nameof(MatchingSystem)}: MatchingContextが設定されていません。");
+                return;
+            }
+
+            if (_assignableRoleIds == null || _assignableRoleIds.Length == 0)
+            {
+                Debug.LogError($"{nameof(MatchingSystem)}: 役職候補が設定されていません。");
+                return;
+            }
+
             _gameInput.EnableUIInput();
-        }
-        private void OnEnable()
-        {
+
             _elapsedSeconds = 0.0f;
             _hasLoadedScene = false;
         }
@@ -45,31 +65,172 @@ namespace Uraty.Application.Matching
 
             _elapsedSeconds += Time.deltaTime;
 
-            if (_elapsedSeconds < _autoTransitionSeconds)
+            if (_elapsedSeconds < MatchingDurationSeconds)
             {
                 return;
             }
 
-            LoadTargetScene();
+            CompleteMatching();
         }
 
-        private void LoadTargetScene()
+        private void CompleteMatching()
         {
-            if (string.IsNullOrWhiteSpace(_targetSceneName))
-            {
-                Debug.LogError($"{nameof(MatchingSystem)}: 遷移先Scene名が設定されていません。");
-                return;
-            }
-
             _hasLoadedScene = true;
-            SceneManager.LoadScene(_targetSceneName, _loadSceneMode);
+
+            if (!TryAssignBotData())
+            {
+                Debug.LogError($"{nameof(MatchingSystem)}: Botの役職割り当てに失敗したため、BattleSceneへ遷移しません。");
+                return;
+            }
+
+            LoadBattleScene();
         }
 
-        private void OnValidate()
+        private bool TryAssignBotData()
         {
-            if (_autoTransitionSeconds < 0.0f)
+            if (_matchingContext == null)
             {
-                _autoTransitionSeconds = 0.0f;
+                return false;
+            }
+
+            List<RoleType> uniqueRoleIds = CreateUniqueRoleIdList();
+
+            if (uniqueRoleIds.Count < MatchingContext.SecondaryBotCount)
+            {
+                Debug.LogError($"{nameof(MatchingSystem)}: 敵チーム3体に重複なしで割り当てるには、役職候補が3種類以上必要です。");
+                return false;
+            }
+
+            RoleType playerRoleId = _matchingContext.PlayerRoleId;
+
+            List<RoleType> allyCandidateRoleIds = new List<RoleType>(uniqueRoleIds);
+            allyCandidateRoleIds.Remove(playerRoleId);
+
+            if (allyCandidateRoleIds.Count < MatchingContext.PrimaryBotCount)
+            {
+                Debug.LogError($"{nameof(MatchingSystem)}: 味方Bot2体に重複なしで割り当てるには、プレイヤー役職を除いて2種類以上の役職候補が必要です。");
+                return false;
+            }
+
+            RoleType[] allyRoleIds = PickRandomRoleIds(
+                allyCandidateRoleIds,
+                MatchingContext.PrimaryBotCount);
+
+            RoleType[] enemyRoleIds = PickRandomRoleIds(
+                uniqueRoleIds,
+                MatchingContext.SecondaryBotCount);
+            ApplyBotDataToContext(allyRoleIds, enemyRoleIds);
+            DebugBotData(allyRoleIds, enemyRoleIds);
+
+            return true;
+        }
+
+        private List<RoleType> CreateUniqueRoleIdList()
+        {
+            List<RoleType> uniqueRoleIds = new List<RoleType>();
+
+            if (_assignableRoleIds == null)
+            {
+                return uniqueRoleIds;
+            }
+
+            foreach (RoleType roleId in _assignableRoleIds)
+            {
+                if (uniqueRoleIds.Contains(roleId))
+                {
+                    continue;
+                }
+
+                uniqueRoleIds.Add(roleId);
+            }
+
+            return uniqueRoleIds;
+        }
+
+        private RoleType[] PickRandomRoleIds(List<RoleType> sourceRoleIds, int pickCount)
+        {
+            if (sourceRoleIds.Count < pickCount)
+            {
+                return new RoleType[0];
+            }
+
+            List<RoleType> shuffledRoleIds = new List<RoleType>(sourceRoleIds);
+
+            for (int i = 0; i < pickCount; i++)
+            {
+                int randomIndex = Random.Range(i, shuffledRoleIds.Count);
+
+                RoleType temporaryRoleId = shuffledRoleIds[i];
+                shuffledRoleIds[i] = shuffledRoleIds[randomIndex];
+                shuffledRoleIds[randomIndex] = temporaryRoleId;
+            }
+
+            RoleType[] resultRoleIds = new RoleType[pickCount];
+
+            for (int i = 0; i < pickCount; i++)
+            {
+                resultRoleIds[i] = shuffledRoleIds[i];
+            }
+
+            return resultRoleIds;
+        }
+
+        private void ApplyBotDataToContext(RoleType[] allyRoleIds, RoleType[] enemyRoleIds)
+        {
+            _matchingContext.ClearBotData();
+
+            TeamId allyTeamId = _matchingContext.PlayerTeamId;
+
+            for (int i = 0; i < MatchingContext.PrimaryBotCount; i++)
+            {
+                _matchingContext.SetBotData(
+                    i,
+                    allyTeamId,
+                    allyRoleIds[i]);
+            }
+
+            for (int i = 0; i < MatchingContext.SecondaryBotCount; i++)
+            {
+                int botIndex = MatchingContext.PrimaryBotCount + i;
+
+                _matchingContext.SetBotData(
+                    botIndex,
+                    _enemyTeamId,
+                    enemyRoleIds[i]);
+            }
+        }
+
+        private void LoadBattleScene()
+        {
+            if (_matchingContext.GameModeData == null)
+            {
+                Debug.LogError($"{nameof(MatchingSystem)}: GameModeDataが設定されていません。");
+                return;
+            }
+
+            string targetSceneName = _matchingContext.GameModeData.GameSceneName;
+
+            if (string.IsNullOrEmpty(targetSceneName))
+            {
+                Debug.LogError($"{nameof(MatchingSystem)}: GameModeDataの遷移先Scene名が空です。");
+                return;
+            }
+
+            SceneManager.LoadScene(targetSceneName);
+        }
+
+        private void DebugBotData(RoleType[] allyRoleIds, RoleType[] enemyRoleIds)
+        {
+            Debug.Log($"PlayerRole: {_matchingContext.PlayerRoleId}");
+
+            for (int i = 0; i < allyRoleIds.Length; i++)
+            {
+                Debug.Log($"AllyBot{i}: Team={_matchingContext.PlayerTeamId}, Role={allyRoleIds[i]}");
+            }
+
+            for (int i = 0; i < enemyRoleIds.Length; i++)
+            {
+                Debug.Log($"EnemyBot{i}: Team={_enemyTeamId}, Role={enemyRoleIds[i]}");
             }
         }
     }

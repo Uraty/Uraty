@@ -3,7 +3,7 @@ using UnityEngine;
 using Uraty.Shared.Hit;
 using Uraty.Shared.Team;
 
-namespace Uraty.Application.Stage
+namespace Uraty.Features.Stage
 {
     public class StageWall : MonoBehaviour, IBulletHittable
     {
