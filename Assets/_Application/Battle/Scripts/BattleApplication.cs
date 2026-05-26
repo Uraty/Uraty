@@ -156,6 +156,44 @@ namespace Uraty.Application.Battle
         private LayerMask _spawnerLayerMask;
 
         /// <summary>
+        /// 生成済み Character の数です。
+        /// </summary>
+        public int CharacterCount => _characterEntries.Count;
+
+        /// <summary>
+        /// 指定インデックスの生成済み CharacterStatus を取得します。
+        /// </summary>
+        /// <param name="index">取得する Character のインデックスです。</param>
+        /// <param name="status">取得した CharacterStatus です。</param>
+        /// <returns>取得できた場合は true です。</returns>
+        public bool TryGetCharacterStatusAt(
+            int index,
+            out CharacterStatus status)
+        {
+            status = null;
+
+            if (index < 0
+                || index >= _characterEntries.Count)
+            {
+                return false;
+            }
+
+            CharacterRuntimeEntry entry =
+                _characterEntries[index];
+
+            if (entry == null
+                || entry.Status == null)
+            {
+                return false;
+            }
+
+            status =
+                entry.Status;
+
+            return true;
+        }
+
+        /// <summary>
         /// 生成済みキャラクターの実行時情報一覧です。
         /// </summary>
         private readonly List<CharacterRuntimeEntry> _characterEntries = new();
