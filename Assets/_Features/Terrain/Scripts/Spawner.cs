@@ -4,37 +4,37 @@ using Uraty.Shared.Team;
 
 namespace Uraty.Features.Terrain
 {
- public class Spawner : MonoBehaviour
- {
- [SerializeField] private TeamId _teamId = TeamId.None;
+    public class Spawner : MonoBehaviour
+    {
+        [SerializeField] private TeamId _teamId = TeamId.None;
 
- [Header("State")]
- [SerializeField]
- private bool _isUsed;
+        [Header("State")]
+        [SerializeField]
+        private bool _isUsed;
 
- public TeamId TeamId => _teamId;
+        public TeamId TeamId => _teamId;
 
- public bool IsUsed => _isUsed;
+        public bool IsUsed => _isUsed;
 
- public bool TryReserve()
- {
- if (_isUsed)
- {
- return false;
- }
+        public bool TryReserve()
+        {
+            if (_isUsed)
+            {
+                return false;
+            }
 
- _isUsed = true;
- return true;
- }
+            _isUsed = true;
+            return true;
+        }
 
- public void Release()
- {
- _isUsed = false;
- }
+        public void Release()
+        {
+            _isUsed = false;
+        }
 
- public void MarkUsed()
- {
- _isUsed = true;
- }
- }
+        public void MarkUsed()
+        {
+            _isUsed = true;
+        }
+    }
 }
