@@ -1,20 +1,67 @@
-using System;
+using R3;
 
-namespace Uraty.Feature.Akane_TestCharacter
+using UnityEngine;
+
+using Uraty.Feature.Akane_TestCharacter;
+
+namespace Uraty.Application.Lobby
 {
-    public static class CharacterSelectionStore
+    /// <summary>
+    /// ロビー内で選択中のキャラを保持するStore。
+    /// ScriptableObjectアセットとしてシーン間で共有する。
+    /// </summary>
+    [CreateAssetMenu(
+        fileName = "CharacterSelectionStore",
+        menuName = "Uraty/Lobby/Character Selection Store"
+    )]
+    public sealed class CharacterSelectionStore : ScriptableObject
     {
-        public static event Action<CharacterData> SelectedCharacterChanged;
+        [SerializeField] private CharacterData _defaultCharacter;
 
-        public static CharacterData SelectedCharacter
+        private readonly Subject<CharacterData> _selectedCharacterChangedSubject = new();
+
+        private CharacterData _selectedCharacter;
+
+        public CharacterData SelectedCharacter
         {
-            get; private set;
+            get
+            {
+                if (_selectedCharacter != null)
+                {
+                    return _selectedCharacter;
+                }
+
+                return _defaultCharacter;
+            }
         }
 
-        public static void SetSelectedCharacter(CharacterData character)
+        public Observable<CharacterData> SelectedCharacterChangedStream =>
+            _selectedCharacterChangedSubject;
+
+        public void SetSelectedCharacter(CharacterData character)
         {
-            SelectedCharacter = character;
-            SelectedCharacterChanged?.Invoke(character);
+            if (character == null)
+            {
+                return;
+            }
+
+            _selectedCharacter = character;
+            PublishSelectedCharacterChanged(character);
+        }
+
+        public void Clear()
+        {
+            _selectedCharacter = null;
+
+            if (_defaultCharacter != null)
+            {
+                PublishSelectedCharacterChanged(_defaultCharacter);
+            }
+        }
+
+        private void PublishSelectedCharacterChanged(CharacterData character)
+        {
+            _selectedCharacterChangedSubject.OnNext(character);
         }
     }
 }

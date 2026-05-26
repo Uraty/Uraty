@@ -357,7 +357,7 @@ namespace Uraty.Systems.Input
                 {
                     ""name"": """",
                     ""id"": ""990dd38e-8879-483a-a532-a93853bd1363"",
-                    ""path"": ""<Mouse>/delta"",
+                    ""path"": ""<Mouse>/position"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
