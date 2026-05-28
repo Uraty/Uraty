@@ -9,6 +9,7 @@ namespace Uraty.Application.Reslut
         [SerializeField] public Object _role;
 
         public string PlayerName => _playerName;
+        public Object Role => _role;
         public void SetData(string playerName, Object role)
         {
             _playerName = playerName;
