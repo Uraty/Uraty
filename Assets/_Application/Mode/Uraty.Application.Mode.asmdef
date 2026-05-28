@@ -1,0 +1,18 @@
+{
+    "name": "Uraty.Application.Mode",
+    "rootNamespace": "Uraty.Application.Mode",
+    "references": [
+        "GUID:aff03c096e22e514e830c9baff70dd4f",
+        "GUID:b5c31c0c834ee7e4b980691b778889bf",
+        "GUID:251a6b1f97bff7349aead7bcd9069f8e"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

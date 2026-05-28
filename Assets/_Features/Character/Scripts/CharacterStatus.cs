@@ -50,6 +50,7 @@ namespace Uraty.Features.Character
         private float _currentSuperChargePercent;
 
         private readonly Subject<CharacterStatus> _diedSubject = new();
+        private readonly Subject<CharacterStatus> _killedSubject = new();
 
         private float _currentHp;
         private bool _isDead;
@@ -76,6 +77,7 @@ namespace Uraty.Features.Character
         public bool IsSuperReady => _currentSuperChargePercent >= MaxSuperChargePercent;
 
         public Observable<CharacterStatus> DiedStream => _diedSubject;
+        public Observable<CharacterStatus> KilledStream => _killedSubject;
 
         public bool CanAttack =>
             !_isDead &&
@@ -122,6 +124,7 @@ namespace Uraty.Features.Character
         private void OnDestroy()
         {
             _diedSubject.Dispose();
+            _killedSubject.Dispose();
         }
 
         public void Initialize(TeamId teamId)
@@ -212,13 +215,41 @@ namespace Uraty.Features.Character
                 return false;
             }
 
-            ApplyDamage(damage);
+            ApplyDamage(
+                damage,
+                owner);
 
             // 貫通攻撃でない場合は弾を壊す
             return !isPiercing;
         }
 
         public void ApplyDamage(float damage)
+        {
+            ApplyDamage(
+                damage,
+                null);
+        }
+
+        public void Heal(float amount)
+        {
+            if (_isDead)
+            {
+                return;
+            }
+
+            float validAmount = Mathf.Max(0f, amount);
+
+            if (validAmount <= 0f)
+            {
+                return;
+            }
+
+            _currentHp = Mathf.Min(_maxHp, _currentHp + validAmount);
+        }
+
+        private void ApplyDamage(
+            float damage,
+            GameObject attackerObject)
         {
             if (_isDead)
             {
@@ -238,25 +269,9 @@ namespace Uraty.Features.Character
 
             if (_currentHp <= 0f)
             {
-                Die();
+                Die(
+                    attackerObject);
             }
-        }
-
-        public void Heal(float amount)
-        {
-            if (_isDead)
-            {
-                return;
-            }
-
-            float validAmount = Mathf.Max(0f, amount);
-
-            if (validAmount <= 0f)
-            {
-                return;
-            }
-
-            _currentHp = Mathf.Min(_maxHp, _currentHp + validAmount);
         }
 
         private void UpdateRecovery()
@@ -382,7 +397,7 @@ namespace Uraty.Features.Character
             InterruptRecovery();
         }
 
-        private void Die()
+        private void Die(GameObject killerObject)
         {
             if (_isDead)
             {
@@ -395,9 +410,37 @@ namespace Uraty.Features.Character
             _canAttack = false;
             _attackDisableRemainingSeconds = 0f;
 
+            PublishKilledIfNeeded(
+                killerObject);
+
             _diedSubject.OnNext(this);
 
             gameObject.SetActive(false);
+        }
+
+        private void PublishKilledIfNeeded(GameObject killerObject)
+        {
+            if (killerObject == null)
+            {
+                return;
+            }
+
+            if (!killerObject.TryGetComponent(out CharacterStatus killerStatus))
+            {
+                return;
+            }
+
+            if (killerStatus == this)
+            {
+                return;
+            }
+
+            if (killerStatus.TeamId == _teamId)
+            {
+                return;
+            }
+
+            _killedSubject.OnNext(killerStatus);
         }
     }
 }
