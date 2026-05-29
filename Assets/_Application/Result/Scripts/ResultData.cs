@@ -1,19 +1,19 @@
 using UnityEngine;
 
-namespace Uraty.Application.Reslut
+using Uraty.Features.Character;
+
+namespace Uraty.Application.Result
 {
     [CreateAssetMenu(fileName = "ResultData", menuName = "Scriptable Objects/ResultData")]
     public class ResultData : ScriptableObject
     {
-        [SerializeField] private string _playerName;
-        [SerializeField] private Object _roleType;
+        [SerializeField] private RoleType _roleType;
 
-        public string PlayerName => _playerName;
-        public Object Role => _roleType;
-        public void SetData(string playerName, Object role)
+        public RoleType RoleType => _roleType;
+
+        public void SetRoleType(RoleType roleType)
         {
-            _playerName = playerName;
-            _roleType = role;
+            _roleType = roleType;
         }
     }
 }
