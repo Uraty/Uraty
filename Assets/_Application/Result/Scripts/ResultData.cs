@@ -6,14 +6,14 @@ namespace Uraty.Application.Reslut
     public class ResultData : ScriptableObject
     {
         [SerializeField] private string _playerName;
-        [SerializeField] public Object _role;
+        [SerializeField] private Object _roleType;
 
         public string PlayerName => _playerName;
-        public Object Role => _role;
+        public Object Role => _roleType;
         public void SetData(string playerName, Object role)
         {
             _playerName = playerName;
-            _role = role;
+            _roleType = role;
         }
     }
 }
