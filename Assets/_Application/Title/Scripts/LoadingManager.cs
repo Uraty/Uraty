@@ -11,9 +11,6 @@ namespace Uraty.Application.Title
         [SerializeField] private const string NextSceneName = "LobbyScene";
         [SerializeField] private const float MinLoadingSeconds = 4.0f;
 
-        private const string BgmVolumeKey = "BGM_Volume";
-        private const string SeVolumeKey  = "SE_Volume";
-
         private void Start()
         {
             if (_loadingBar != null)
@@ -26,8 +23,15 @@ namespace Uraty.Application.Title
 
         private IEnumerator LoadProcessRoutine()
         {
-            float bgmVolume = PlayerPrefs.GetFloat(BgmVolumeKey, 1.0f);
-            float seVolume  = PlayerPrefs.GetFloat(SeVolumeKey,  1.0f);
+            System.Type storeType = System.Type.GetType("Uraty.Shared.Setting.GameSettingsStore, Uraty.Shared.Setting");
+            if (storeType != null)
+            {
+                var loadMethod = storeType.GetMethod("Load", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                if (loadMethod != null)
+                {
+                    loadMethod.Invoke(null, null);
+                }
+            }
 
             AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(NextSceneName);
 
@@ -42,8 +46,8 @@ namespace Uraty.Application.Title
 
                 // Unity の仕様で allowSceneActivation = false の間、progress は 0.9f で止まる
                 // そのため 0.9f で割って 0～1 に正規化する
-                float loadProgress    = Mathf.Clamp01(asyncLoad.progress / 0.9f);
-                float timeProgress    = Mathf.Clamp01(elapsed / MinLoadingSeconds);
+                float loadProgress = Mathf.Clamp01(asyncLoad.progress / 0.9f);
+                float timeProgress = Mathf.Clamp01(elapsed / MinLoadingSeconds);
 
                 // ロードと最低表示時間のうち遅い方に合わせてバーを進める
                 float displayProgress = Mathf.Min(loadProgress, timeProgress);
