@@ -110,7 +110,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: HPBarDamegeReceive_0
+      name: HPBarDamegeReceiveMain
       rect:
         serializedVersion: 2
         x: 4
@@ -214,7 +214,7 @@ TextureImporter:
       HPBarDamegeReceiveCenter: -1954927422
       HPBarDamegeReceiveEdgeLeft: 694646065
       HPBarDamegeReceiveEdgeRight: 170364147
-      HPBarDamegeReceive_0: 1967747980
+      HPBarDamegeReceiveMain: 1967747980
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
