@@ -14,9 +14,6 @@ namespace Uraty.Features.Character
         [SerializeField]
         private float _moveSpeed = 10.0f;
 
-        [SerializeField]
-        private float _rotationSpeedDegrees = 720.0f;
-
         private void Reset()
         {
             _characterController = GetComponent<CharacterController>();
@@ -63,14 +60,9 @@ namespace Uraty.Features.Character
 
         private void Rotate(Vector3 moveDirectionWorld)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(
+            transform.rotation = Quaternion.LookRotation(
                 moveDirectionWorld,
                 Vector3.up);
-
-            transform.rotation = Quaternion.RotateTowards(
-                transform.rotation,
-                targetRotation,
-                _rotationSpeedDegrees * Time.deltaTime);
         }
     }
 }
