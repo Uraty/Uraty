@@ -267,10 +267,10 @@ GameObject:
   - component: {fileID: -1381102960665348235}
   - component: {fileID: -6497995452392812755}
   - component: {fileID: 3961964901468283456}
-  - component: {fileID: -1257273843268544866}
-  - component: {fileID: 4360882408181520500}
   - component: {fileID: 1490220000781514627}
+  - component: {fileID: -1257273843268544866}
   - component: {fileID: -3534891964442206321}
+  - component: {fileID: 4360882408181520500}
   - component: {fileID: 7197989968914488443}
   - component: {fileID: 33456693572925344}
   - component: {fileID: -1370823195548082760}
@@ -337,6 +337,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterStatus
   _teamId: 0
   _maxHp: 100
+  _recoveryStartDelaySeconds: 0.8
+  _recoveryIntervalSeconds: 0.8
+  _recoveryAmountPercent: 16
+  _maxReloadCount: 3
+  _reloadRecoveryPerSecond: 1
+  _currentReloadCount: 0
+  _currentSuperChargePercent: 0
 --- !u!114 &3961964901468283456
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -352,6 +359,51 @@ MonoBehaviour:
   _characterController: {fileID: -1381102960665348235}
   _moveSpeed: 10
   _rotationSpeedDegrees: 720
+--- !u!114 &1490220000781514627
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8800056277905460767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45fc7373a33a0984dba1eb4716a8706e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterAttackAim
+  _previewDefinition:
+    _type: 0
+    _line:
+      _lines:
+      - _range: 2.25
+        _width: 2
+        _offsetAngleFromAimLine: 0
+        _offsetDistanceFromAimLine: 0
+    _fan:
+      _lines:
+      - _range: 5
+        _angle: 45
+        _offsetAngleFromAimLine: 0
+    _throw:
+      _isVariableRange: 1
+      _isVariableLandingTime: 1
+      _lines:
+      - _circleRadius: 1
+        _minRange: 1
+        _maxRange: 7
+        _offsetAngleFromAimLine: 0
+        _offsetDistanceFromAimLine: 0
+        _fixedParabolaHeight: 2
+        _minParabolaHeight: 1
+        _maxParabolaHeight: 3
+        _parabolaWidth: 0.25
+      _bullets:
+      - _offsetAngleFromAimLine: 0
+        _offsetDistanceFromAimLine: 0
+  _predictionMaterial: {fileID: 0}
+  _groundOffset: 0.02
+  _throwSampleCount: 16
+  _consumeOnce: 1
 --- !u!114 &-1257273843268544866
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -373,6 +425,53 @@ MonoBehaviour:
     _angleOffsetDegrees: 0
     _positionOffsetLocal: {x: 0, y: 0, z: 0}
     _delaySeconds: 0
+  _attackDisableSeconds: 1
+  _superChargePercent: 10
+--- !u!114 &-3534891964442206321
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8800056277905460767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74fc12873072aea48a4f59766c4d111e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterSuperAim
+  _previewDefinition:
+    _type: 1
+    _line:
+      _lines:
+      - _range: 6
+        _width: 1
+        _offsetAngleFromAimLine: 0
+        _offsetDistanceFromAimLine: 0
+    _fan:
+      _lines:
+      - _range: 2.5
+        _angle: 160
+        _offsetAngleFromAimLine: 0
+    _throw:
+      _isVariableRange: 1
+      _isVariableLandingTime: 1
+      _lines:
+      - _circleRadius: 1
+        _minRange: 1
+        _maxRange: 7
+        _offsetAngleFromAimLine: 0
+        _offsetDistanceFromAimLine: 0
+        _fixedParabolaHeight: 2
+        _minParabolaHeight: 1
+        _maxParabolaHeight: 3
+        _parabolaWidth: 0.25
+      _bullets:
+      - _offsetAngleFromAimLine: 0
+        _offsetDistanceFromAimLine: 0
+  _predictionMaterial: {fileID: 0}
+  _groundOffset: 0.02
+  _throwSampleCount: 16
+  _consumeOnce: 1
 --- !u!114 &4360882408181520500
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -394,96 +493,8 @@ MonoBehaviour:
     _angleOffsetDegrees: 0
     _positionOffsetLocal: {x: 0, y: 0, z: 0}
     _delaySeconds: 0
---- !u!114 &1490220000781514627
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8800056277905460767}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 45fc7373a33a0984dba1eb4716a8706e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterAttackAim
-  _previewDefinition:
-    _type: 0
-    _line:
-      _lines:
-      - _range: 6
-        _width: 1
-        _offsetAngleFromAimLine: 0
-        _offsetDistanceFromAimLine: 0
-    _fan:
-      _lines:
-      - _range: 5
-        _angle: 45
-        _offsetAngleFromAimLine: 0
-    _throw:
-      _isVariableRange: 1
-      _isVariableLandingTime: 1
-      _lines:
-      - _circleRadius: 1
-        _minRange: 1
-        _maxRange: 7
-        _offsetAngleFromAimLine: 0
-        _offsetDistanceFromAimLine: 0
-        _fixedParabolaHeight: 2
-        _minParabolaHeight: 1
-        _maxParabolaHeight: 3
-        _parabolaWidth: 0.25
-      _bullets:
-      - _offsetAngleFromAimLine: 0
-        _offsetDistanceFromAimLine: 0
-  _predictionMaterial: {fileID: 0}
-  _groundOffset: 0.02
-  _throwSampleCount: 16
-  _consumeOnce: 1
---- !u!114 &-3534891964442206321
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8800056277905460767}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 74fc12873072aea48a4f59766c4d111e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterSuperAim
-  _previewDefinition:
-    _type: 0
-    _line:
-      _lines:
-      - _range: 6
-        _width: 1
-        _offsetAngleFromAimLine: 0
-        _offsetDistanceFromAimLine: 0
-    _fan:
-      _lines:
-      - _range: 5
-        _angle: 45
-        _offsetAngleFromAimLine: 0
-    _throw:
-      _isVariableRange: 1
-      _isVariableLandingTime: 1
-      _lines:
-      - _circleRadius: 1
-        _minRange: 1
-        _maxRange: 7
-        _offsetAngleFromAimLine: 0
-        _offsetDistanceFromAimLine: 0
-        _fixedParabolaHeight: 2
-        _minParabolaHeight: 1
-        _maxParabolaHeight: 3
-        _parabolaWidth: 0.25
-      _bullets:
-      - _offsetAngleFromAimLine: 0
-        _offsetDistanceFromAimLine: 0
-  _predictionMaterial: {fileID: 0}
-  _groundOffset: 0.02
-  _throwSampleCount: 16
-  _consumeOnce: 1
+  _attackDisableSeconds: 1
+  _superChargePercent: 0
 --- !u!114 &7197989968914488443
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -17,30 +17,29 @@ namespace Uraty.Features.Character
         private TeamId _teamId = TeamId.None;
 
         [Header("Health")]
-        [Min(1f)]
         [SerializeField]
         private float _maxHp = 100f;
 
         [Header("Recovery")]
         [Tooltip("攻撃・被弾後、回復し始めるまでの秒数")]
-        [SerializeField, Min(0f)]
+        [SerializeField]
         private float _recoveryStartDelaySeconds = 3f;
 
         [Tooltip("回復し始めたあとに何秒ごとに回復するか")]
-        [SerializeField, Min(0.01f)]
+        [SerializeField]
         private float _recoveryIntervalSeconds = 1f;
 
         [Tooltip("1回ごとの回復量。MaxHpに対する割合(%)")]
-        [SerializeField, Min(0f)]
+        [SerializeField]
         private float _recoveryAmountPercent = 10f;
 
         [Header("Reload")]
         [Tooltip("最大リロード数")]
-        [SerializeField, Min(0f)]
+        [SerializeField]
         private float _maxReloadCount = 3f;
 
         [Tooltip("毎秒回復するリロード数")]
-        [SerializeField, Min(0f)]
+        [SerializeField]
         private float _reloadRecoveryPerSecond = 1f;
 
         [SerializeField]
