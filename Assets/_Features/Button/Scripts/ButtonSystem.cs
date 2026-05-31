@@ -38,7 +38,16 @@ namespace Uraty.Feature.Button
         [SerializeField, Tooltip("押された時に実行する処理")]
         private UnityEvent _pressed = new UnityEvent();
 
+        private UnityEvent _pressedRequested = new UnityEvent();
+
         private bool _isInputSubscribed;
+
+        private bool _isPointerInside;
+
+        private bool _wasPressed;
+
+        public bool IsPressed => _wasPressed;
+        public bool IsPointerInside => _isPointerInside;
 
         private void Start()
         {
@@ -91,6 +100,15 @@ namespace Uraty.Feature.Button
             SubscribeInput();
         }
 
+        private void Update()
+        {
+            UpdatePointerInsideState();
+            if (_isPointerInside)
+            {
+                Debug.Log($"{nameof(ButtonSystem)}: ポインターは対象UIの内側にあります。", this);
+            }
+        }
+
         private void OnDestroy()
         {
             UnsubscribeInput();
@@ -111,6 +129,17 @@ namespace Uraty.Feature.Button
             LogDebug("PressedListenerを登録しました。");
         }
 
+        public void AddPressedRequestedListener(UnityAction requestedListener)
+        {
+            if (requestedListener == null)
+            {
+                Debug.LogError($"{nameof(ButtonSystem)}: 登録しようとした関数がnullです。");
+                return;
+            }
+            _pressedRequested.AddListener(requestedListener);
+            LogDebug("PressedRequestedListenerを登録しました。");
+        }
+
         /// <summary>
         /// 登録済みの関数を解除する。
         /// </summary>
@@ -123,6 +152,15 @@ namespace Uraty.Feature.Button
 
             _pressed.RemoveListener(listener);
             LogDebug("PressedListenerを解除しました。");
+        }
+        public void RemovePressedRequestedListener(UnityAction requestedListener)
+        {
+            if (requestedListener == null)
+            {
+                return;
+            }
+            _pressedRequested.RemoveListener(requestedListener);
+            LogDebug("PressedRequestedListenerを解除しました。");
         }
 
         public void UseSubmit()
@@ -226,19 +264,26 @@ namespace Uraty.Feature.Button
         }
 
         /// <summary>
-        /// Cancel入力が行われた時に、ボタン押下処理へ流す。
-        /// Cancel は「取り消し・戻る」入力を表す。
+        /// 入力が行われた時に、ボタン押下処理へ流す。
         /// </summary>
         private void HandleCancelPerformed(InputAction.CallbackContext context)
         {
             LogDebug(
-                $"Cancel入力を検知しました。Device={context.control.device.displayName}, Control={context.control.name}");
+                $"入力を検知しました。Device={context.control.device.displayName}, Control={context.control.name}");
 
             InvokePressedIfAllowed(context);
         }
 
+        public void InvokePressed()
+        {
+            LogDebug("登録済みPressedを実行します。");
+            _pressed.Invoke();
+        }
+
         private void InvokePressedIfAllowed(InputAction.CallbackContext context)
         {
+            _wasPressed = false;
+
             bool hasPointerPosition = TryGetPointerPosition(context, out Vector2 pointerPosition);
 
             LogDebug(
@@ -256,8 +301,25 @@ namespace Uraty.Feature.Button
                 return;
             }
 
-            LogDebug("Pressedを実行します。");
-            _pressed.Invoke();
+
+            LogDebug("Pressed要求を実行します。");
+            _wasPressed = true;
+            _pressedRequested.Invoke();
+        }
+
+        /// <summary>
+        /// 更新のたびに、マウスポインターが対象UIの内側にあるかどうかを判定して状態を更新する。
+        /// </summary>
+        private void UpdatePointerInsideState()
+        {
+            if (Mouse.current == null)
+            {
+                _isPointerInside = false;
+                return;
+            }
+
+            Vector2 pointerPosition = Mouse.current.position.ReadValue();
+            _isPointerInside = IsPointerInsideTarget(pointerPosition);
         }
 
         /// <summary>
@@ -323,7 +385,7 @@ namespace Uraty.Feature.Button
                 pointerPosition,
                 targetCamera);
 
-            LogDebug($"PointerPosition={pointerPosition}, IsPointerInside={isPointerInside}");
+            // LogDebug($"PointerPosition={pointerPosition}, IsPointerInside={isPointerInside}");
 
             return isPointerInside;
         }
