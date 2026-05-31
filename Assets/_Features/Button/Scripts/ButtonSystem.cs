@@ -280,7 +280,7 @@ namespace Uraty.Feature.Button
             _pressed.Invoke();
         }
 
-        private void InvokePressedIfAllowed(InputAction.CallbackContext context)
+        public void InvokePressedIfAllowed(InputAction.CallbackContext context)
         {
             _wasPressed = false;
 
