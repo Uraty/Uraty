@@ -39,6 +39,9 @@ namespace Uraty.Feature.Button
 
         private Coroutine _pressedCoroutine;
         private bool _isPressing;
+        private bool _isPadCursorInside;
+
+        public RectTransform HitboxRectTransform => _rectTransformHitbox;
 
         private void Start()
         {
@@ -60,6 +63,12 @@ namespace Uraty.Feature.Button
                 return;
             }
 
+            if (_rectTransformText == null)
+            {
+                Debug.LogError($"{nameof(ButtonScaling)}: ボタンに表示されてるテキストが設定されていません。", this);
+                return;
+            }
+
             _defaultScaleVisual = _rectTransformVisual.localScale;
             _defaultScaleText = _rectTransformText.localScale;
 
@@ -78,16 +87,18 @@ namespace Uraty.Feature.Button
 
         private void Update()
         {
-            if (_buttonSystem == null || _rectTransformVisual == null || _isPressing)
+            if (_buttonSystem == null || _rectTransformVisual == null || _rectTransformText == null || _isPressing)
             {
                 return;
             }
 
-            Vector3 targetScaleVisual = _buttonSystem.IsPointerInside
+            bool shouldHover = _buttonSystem.IsPointerInside || _isPadCursorInside;
+
+            Vector3 targetScaleVisual = shouldHover
                 ? _defaultScaleVisual * _hoverScale
                 : _defaultScaleVisual;
 
-            Vector3 targetScaleText = _buttonSystem.IsPointerInside
+            Vector3 targetScaleText = shouldHover
                 ? _defaultScaleText * _hoverScale
                 : _defaultScaleText;
 
@@ -102,6 +113,16 @@ namespace Uraty.Feature.Button
                 _rectTransformText.localScale,
                 targetScaleText,
                 rate);
+        }
+
+        public void SetPadCursorInside(bool isInside)
+        {
+            _isPadCursorInside = isInside;
+        }
+
+        public void PlayPressedByPadCursor()
+        {
+            HandlePressed();
         }
 
         private void HandlePressed()
@@ -135,6 +156,7 @@ namespace Uraty.Feature.Button
             _pressedCoroutine = null;
 
             _buttonSystem.InvokePressed();
+            _pressedAfterScaling.Invoke();
         }
 
         private IEnumerator ScalePairTo(Vector3 targetScaleVisual, Vector3 targetScaleText, float durationSeconds)
