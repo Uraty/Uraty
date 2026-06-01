@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-using Uraty.Feature.Button;
+using Uraty.Features.Button;
 
 namespace Uraty.Application.Matching
 {

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Uraty.Feature.Button
+namespace Uraty.Features.Button
 {
     public enum ButtonNavigationDirection
     {

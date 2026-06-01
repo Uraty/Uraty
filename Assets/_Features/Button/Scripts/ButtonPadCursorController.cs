@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-namespace Uraty.Feature.Button
+namespace Uraty.Features.Button
 {
     /// <summary>
     /// PadCursor自身にアタッチし、UI/Pointでカーソルを動かしてButtonScalingを判定する。

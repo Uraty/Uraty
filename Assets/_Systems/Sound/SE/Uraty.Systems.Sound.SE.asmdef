@@ -1,11 +1,7 @@
 {
-    "name": "Uraty.Application.Button",
-    "rootNamespace": "Uraty.Application.Button",
-    "references": [
-        "Uraty.Feature.Button",
-        "Uraty.Feature.Sound.SE",
-        "Uraty.Features.Sound"
-    ],
+    "name": "Uraty.Systems.Sound.SE",
+    "rootNamespace": "Uraty.Systems.Sound.SE",
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

@@ -3,7 +3,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace Uraty.Feature.Button
+namespace Uraty.Features.Button
 {
     public sealed class ButtonScaling : MonoBehaviour
     {
