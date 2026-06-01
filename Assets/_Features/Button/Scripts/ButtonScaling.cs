@@ -155,7 +155,7 @@ namespace Uraty.Feature.Button
             _isPressing = false;
             _pressedCoroutine = null;
 
-            _buttonSystem.InvokePressed();
+            _buttonSystem.NotifyPressedSequenceCompleted();
             _pressedAfterScaling.Invoke();
         }
 
@@ -186,6 +186,9 @@ namespace Uraty.Feature.Button
             _rectTransformText.localScale = targetScaleText;
         }
 
+        /// <summary>
+        /// 判定用のイメージを見た目用のイメージと同じ位置・サイズにする。
+        /// </summary>
         private void SyncHitboxToVisual()
         {
             _rectTransformHitbox.anchorMin = _rectTransformVisual.anchorMin;

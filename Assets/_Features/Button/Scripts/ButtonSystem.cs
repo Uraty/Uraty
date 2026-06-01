@@ -35,16 +35,20 @@ namespace Uraty.Feature.Button
         [SerializeField, Tooltip("挙動確認用ログを出力する")]
         private bool _outputsDebugLog = true;
 
+        [SerializeField, Tooltip("押下要求後に完了待ちする処理数。Scaling + SEなら2")]
+        private int _requiredCompleteCount = 2;
+
         [SerializeField, Tooltip("押された時に実行する処理")]
         private UnityEvent _pressed = new UnityEvent();
 
-        private UnityEvent _pressedRequested = new UnityEvent();
+        private readonly UnityEvent _pressedRequested = new UnityEvent();
 
         private bool _isInputSubscribed;
-
         private bool _isPointerInside;
-
         private bool _wasPressed;
+
+        private bool _isWaitingComplete;
+        private int _completedCount;
 
         public bool IsPressed => _wasPressed;
         public bool IsPointerInside => _isPointerInside;
@@ -83,8 +87,6 @@ namespace Uraty.Feature.Button
                 return;
             }
 
-            LogDebug("GameInput.UI は有効です。");
-
             if (_usesSubmit && _gameInput.UI.Submit == null)
             {
                 Debug.LogError($"{nameof(ButtonSystem)}: GameInput.UI.Submitが見つかりません。");
@@ -103,10 +105,6 @@ namespace Uraty.Feature.Button
         private void Update()
         {
             UpdatePointerInsideState();
-            if (_isPointerInside)
-            {
-                Debug.Log($"{nameof(ButtonSystem)}: ポインターは対象UIの内側にあります。", this);
-            }
         }
 
         private void OnDestroy()
@@ -114,9 +112,6 @@ namespace Uraty.Feature.Button
             UnsubscribeInput();
         }
 
-        /// <summary>
-        /// ボタンが押された時に実行する関数を登録する。
-        /// </summary>
         public void AddPressedListener(UnityAction listener)
         {
             if (listener == null)
@@ -126,7 +121,16 @@ namespace Uraty.Feature.Button
             }
 
             _pressed.AddListener(listener);
-            LogDebug("PressedListenerを登録しました。");
+        }
+
+        public void RemovePressedListener(UnityAction listener)
+        {
+            if (listener == null)
+            {
+                return;
+            }
+
+            _pressed.RemoveListener(listener);
         }
 
         public void AddPressedRequestedListener(UnityAction requestedListener)
@@ -136,31 +140,39 @@ namespace Uraty.Feature.Button
                 Debug.LogError($"{nameof(ButtonSystem)}: 登録しようとした関数がnullです。");
                 return;
             }
+
             _pressedRequested.AddListener(requestedListener);
-            LogDebug("PressedRequestedListenerを登録しました。");
         }
 
-        /// <summary>
-        /// 登録済みの関数を解除する。
-        /// </summary>
-        public void RemovePressedListener(UnityAction listener)
-        {
-            if (listener == null)
-            {
-                return;
-            }
-
-            _pressed.RemoveListener(listener);
-            LogDebug("PressedListenerを解除しました。");
-        }
         public void RemovePressedRequestedListener(UnityAction requestedListener)
         {
             if (requestedListener == null)
             {
                 return;
             }
+
             _pressedRequested.RemoveListener(requestedListener);
-            LogDebug("PressedRequestedListenerを解除しました。");
+        }
+
+        public void NotifyPressedSequenceCompleted()
+        {
+            if (!_isWaitingComplete)
+            {
+                return;
+            }
+
+            _completedCount++;
+            LogDebug($"押下演出完了通知: {_completedCount}/{_requiredCompleteCount}");
+
+            if (_completedCount < _requiredCompleteCount)
+            {
+                return;
+            }
+
+            _isWaitingComplete = false;
+            _completedCount = 0;
+
+            InvokePressed();
         }
 
         public void UseSubmit()
@@ -185,8 +197,6 @@ namespace Uraty.Feature.Button
 
         private void SetInputMode(bool usesSubmit, bool usesCancel)
         {
-            LogDebug($"入力モード変更開始: Submit={usesSubmit}, Cancel={usesCancel}");
-
             bool shouldResubscribe = _isInputSubscribed;
 
             if (shouldResubscribe)
@@ -201,15 +211,12 @@ namespace Uraty.Feature.Button
             {
                 SubscribeInput();
             }
-
-            LogDebug($"入力モード変更完了: Submit={_usesSubmit}, Cancel={_usesCancel}");
         }
 
         private void SubscribeInput()
         {
             if (_isInputSubscribed)
             {
-                LogDebug("すでに入力購読済みのため、SubscribeInputをスキップしました。");
                 return;
             }
 
@@ -222,17 +229,14 @@ namespace Uraty.Feature.Button
             if (_usesSubmit)
             {
                 _gameInput.UI.Submit.performed += HandleSubmitPerformed;
-                LogDebug("UI.Submit.performed を購読しました。");
             }
 
             if (_usesCancel)
             {
                 _gameInput.UI.Cancel.performed += HandleCancelPerformed;
-                LogDebug("UI.Cancel.performed を購読しました。");
             }
 
             _isInputSubscribed = _usesSubmit || _usesCancel;
-            LogDebug($"SubscribeInput完了: IsInputSubscribed={_isInputSubscribed}");
         }
 
         private void UnsubscribeInput()
@@ -243,34 +247,19 @@ namespace Uraty.Feature.Button
                 return;
             }
 
-            // モードフラグに関係なく、登録される可能性がある入力は必ず解除する。
             _gameInput.UI.Submit.performed -= HandleSubmitPerformed;
             _gameInput.UI.Cancel.performed -= HandleCancelPerformed;
 
             _isInputSubscribed = false;
-            LogDebug("Submit / Cancel の購読を解除しました。");
         }
 
-        /// <summary>
-        /// Submit入力が行われた時に、ボタン押下処理へ流す。
-        /// Submit は「決定・実行」入力を表す。
-        /// </summary>
         private void HandleSubmitPerformed(InputAction.CallbackContext context)
         {
-            LogDebug(
-                $"Submit入力を検知しました。Device={context.control.device.displayName}, Control={context.control.name}");
-
             InvokePressedIfAllowed(context);
         }
 
-        /// <summary>
-        /// 入力が行われた時に、ボタン押下処理へ流す。
-        /// </summary>
         private void HandleCancelPerformed(InputAction.CallbackContext context)
         {
-            LogDebug(
-                $"入力を検知しました。Device={context.control.device.displayName}, Control={context.control.name}");
-
             InvokePressedIfAllowed(context);
         }
 
@@ -282,34 +271,44 @@ namespace Uraty.Feature.Button
 
         public void InvokePressedIfAllowed(InputAction.CallbackContext context)
         {
+            if (_isWaitingComplete)
+            {
+                LogDebug("押下演出待機中のため、入力を無視します。");
+                return;
+            }
+
             _wasPressed = false;
 
             bool hasPointerPosition = TryGetPointerPosition(context, out Vector2 pointerPosition);
 
-            LogDebug(
-                $"押下判定開始: RequiresPointerInside={_requiresPointerInside}, HasPointerPosition={hasPointerPosition}, AllowsNonPointerInput={_allowsNonPointerInput}, PointerPosition={pointerPosition}");
-
             if (_requiresPointerInside && hasPointerPosition && !IsPointerInsideTarget(pointerPosition))
             {
-                LogDebug("対象UI外で押されたため、Pressedを実行しません。");
                 return;
             }
 
             if (_requiresPointerInside && !hasPointerPosition && !_allowsNonPointerInput)
             {
-                LogDebug("非ポインター入力が許可されていないため、Pressedを実行しません。");
                 return;
             }
 
+            _wasPressed = true;
+            BeginPressedSequence();
 
             LogDebug("Pressed要求を実行します。");
-            _wasPressed = true;
             _pressedRequested.Invoke();
         }
 
-        /// <summary>
-        /// 更新のたびに、マウスポインターが対象UIの内側にあるかどうかを判定して状態を更新する。
-        /// </summary>
+        private void BeginPressedSequence()
+        {
+            _completedCount = 0;
+            _isWaitingComplete = true;
+
+            if (_requiredCompleteCount <= 0)
+            {
+                NotifyPressedSequenceCompleted();
+            }
+        }
+
         private void UpdatePointerInsideState()
         {
             if (Mouse.current == null)
@@ -322,10 +321,6 @@ namespace Uraty.Feature.Button
             _isPointerInside = IsPointerInsideTarget(pointerPosition);
         }
 
-        /// <summary>
-        /// 入力を発生させたデバイスから、ポインター座標を取得する。
-        /// Mouse は「マウス」、Pen は「ペン」、Touchscreen は「タッチ画面」を表す。
-        /// </summary>
         private bool TryGetPointerPosition(
             InputAction.CallbackContext context,
             out Vector2 pointerPosition)
@@ -335,14 +330,12 @@ namespace Uraty.Feature.Button
             if (context.control.device is Mouse mouse)
             {
                 pointerPosition = mouse.position.ReadValue();
-                LogDebug($"Mouse座標を取得しました: {pointerPosition}");
                 return true;
             }
 
             if (context.control.device is Pen pen)
             {
                 pointerPosition = pen.position.ReadValue();
-                LogDebug($"Pen座標を取得しました: {pointerPosition}");
                 return true;
             }
 
@@ -352,16 +345,13 @@ namespace Uraty.Feature.Button
 
                 if (touchscreen == null)
                 {
-                    LogDebug("Touchscreen.current がnullです。");
                     return false;
                 }
 
                 pointerPosition = touchscreen.primaryTouch.position.ReadValue();
-                LogDebug($"Touchscreen座標を取得しました: {pointerPosition}");
                 return true;
             }
 
-            LogDebug($"ポインター座標を持たない入力です: Device={context.control.device.displayName}");
             return false;
         }
 
@@ -380,14 +370,10 @@ namespace Uraty.Feature.Button
                 targetCamera = _targetCanvas.worldCamera;
             }
 
-            bool isPointerInside = RectTransformUtility.RectangleContainsScreenPoint(
+            return RectTransformUtility.RectangleContainsScreenPoint(
                 _targetRectTransform,
                 pointerPosition,
                 targetCamera);
-
-            // LogDebug($"PointerPosition={pointerPosition}, IsPointerInside={isPointerInside}");
-
-            return isPointerInside;
         }
 
         private void LogDebug(string message)
