@@ -10,6 +10,9 @@ namespace Uraty.Feature.Button
         Right
     }
 
+    /// <summary>
+    /// 十字キーでの移動先を指定するためのノード。
+    /// </summary>
     public sealed class ButtonNavigationNode : MonoBehaviour
     {
         [SerializeField] private ButtonNavigationNode _upNode;

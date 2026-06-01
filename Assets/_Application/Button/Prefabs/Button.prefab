@@ -224,6 +224,7 @@ GameObject:
   - component: {fileID: 6740196848655160880}
   - component: {fileID: 380817129111362403}
   - component: {fileID: 6390860411164691576}
+  - component: {fileID: 2083416088721368687}
   m_Layer: 0
   m_Name: Button
   m_TagString: Untagged
@@ -262,13 +263,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Uraty.Feature.Button::Uraty.Feature.Button.ButtonSystem
   _gameInput: {fileID: 0}
-  _targetRectTransform: {fileID: 178448803383660948}
+  _targetRectTransform: {fileID: 8567482626007054613}
   _targetCanvas: {fileID: 0}
   _usesSubmit: 1
   _usesCancel: 0
   _requiresPointerInside: 1
   _allowsNonPointerInput: 0
   _outputsDebugLog: 1
+  _requiredCompleteCount: 2
   _pressed:
     m_PersistentCalls:
       m_Calls: []
@@ -311,6 +313,22 @@ MonoBehaviour:
   _downNode: {fileID: 0}
   _leftNode: {fileID: 0}
   _rightNode: {fileID: 0}
+  _editorPosition: {x: 0, y: 0}
+--- !u!114 &2083416088721368687
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7745867817232027867}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c36614dca17b1b34889b87c73db19e09, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Application.Button::Uraty.Application.Button.ButtonSoundPlayer
+  _soundManager: {fileID: 0}
+  _audioClip: {fileID: 8300000, guid: 7cc25dda452047149a77255c8d631536, type: 3}
+  _buttonController: {fileID: 6740196848655160880}
 --- !u!1 &7776244875464861203
 GameObject:
   m_ObjectHideFlags: 0
