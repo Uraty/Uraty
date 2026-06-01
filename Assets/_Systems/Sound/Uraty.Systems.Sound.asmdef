@@ -1,10 +1,7 @@
 {
-    "name": "Uraty.Feature.Button",
-    "rootNamespace": "Uraty.Feature.Button",
-    "references": [
-        "GUID:12f6bca580722de41b91f6011da4a584",
-        "GUID:75469ad4d38634e559750d17036d5f7c"
-    ],
+    "name": "Uraty.Systems.Sound",
+    "rootNamespace": "Uraty.Systems.Sound",
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

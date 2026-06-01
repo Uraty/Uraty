@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 using Uraty.Application.Matching;
-using Uraty.Feature.Button;
+using Uraty.Features.Button;
 
 public class NextSceneNishiguchi : MonoBehaviour
 {

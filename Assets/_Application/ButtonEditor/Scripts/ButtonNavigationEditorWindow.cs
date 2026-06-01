@@ -5,7 +5,7 @@ using UnityEditor;
 
 using UnityEngine;
 
-using Uraty.Feature.Button;
+using Uraty.Features.Button;
 
 namespace Uraty.Application.Button.Editor
 {

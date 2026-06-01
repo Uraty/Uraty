@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Uraty.Feature.SceneManagement
+namespace Uraty.Features.SceneManagement
 {
     /// <summary>
     /// ボタン押下でゲーム（アプリ）を終了するためのコンポーネント。

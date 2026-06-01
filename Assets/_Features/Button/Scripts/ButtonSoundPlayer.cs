@@ -2,10 +2,9 @@ using System.Collections;
 
 using UnityEngine;
 
-using Uraty.Feature.Button;
-using Uraty.Features.Sound;
+using Uraty.Systems.Sound;
 
-namespace Uraty.Application.Button
+namespace Uraty.Features.Button
 {
     public sealed class ButtonSoundPlayer : MonoBehaviour
     {

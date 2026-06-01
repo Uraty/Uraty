@@ -4,7 +4,7 @@ using UnityEngine.InputSystem;
 
 using Uraty.Systems.Input;
 
-namespace Uraty.Feature.Button
+namespace Uraty.Features.Button
 {
     /// <summary>
     /// EventSystemを使わず、GameInputだけでUIボタンの押下判定を行う。
