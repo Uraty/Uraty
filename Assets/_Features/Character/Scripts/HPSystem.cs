@@ -24,6 +24,7 @@ namespace Uraty.Features.Character
         [SerializeField] private Color _colorOutlineHeal = Color.black;
 
         ***********************************************************************/
+
         [SerializeField] private float _maxHP = 1000.0f;
         [SerializeField] private float _currentHP = 1000.0f;
         [SerializeField] private float _damageRatioDownSpeed = 0.002f;
@@ -39,7 +40,8 @@ namespace Uraty.Features.Character
             float hpRatio = Mathf.Clamp01(_currentHP / _maxHP);
 
             SetMaxHP(_maxHP);
-            SetTextCurrentHP(_maxHP);
+            _currentHP = _maxHP;
+            SetTextCurrentHP(_currentHP);
             _barCurrentHP.SetBarRatio(hpRatio);
             _barDamage.SetBarRatio(hpRatio);
         }
@@ -80,6 +82,16 @@ namespace Uraty.Features.Character
         public void SetMaxHP(float maxHP)
         {
             _maxHP = Mathf.Max(1.0f, maxHP);
+
+            float hpRatio = Mathf.Clamp01(_currentHP / _maxHP);
+
+            _barCurrentHP.SetBarRatio(hpRatio);
+            _barDamage.SetBarRatio(hpRatio);
+        }
+
+        public void SetCurrentHP(float currentHP)
+        {
+            _currentHP = Mathf.Clamp(currentHP, 0.0f, _maxHP);
 
             float hpRatio = Mathf.Clamp01(_currentHP / _maxHP);
 
