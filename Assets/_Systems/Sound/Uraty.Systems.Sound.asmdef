@@ -1,6 +1,6 @@
 {
-    "name": "Uraty.Feature.Sound.SE",
-    "rootNamespace": "Uraty.Feature.Sound.SE",
+    "name": "Uraty.Systems.Sound",
+    "rootNamespace": "Uraty.Systems.Sound",
     "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
