@@ -86,7 +86,7 @@ GameObject:
   - component: {fileID: 320245563477037922}
   - component: {fileID: 2023081633485810416}
   m_Layer: 5
-  m_Name: BarCurrentHP
+  m_Name: BarBase
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

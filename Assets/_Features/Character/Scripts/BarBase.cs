@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Uraty.Feature.Health
+namespace Uraty.Features.Character
 {
     public sealed class BarBase : MonoBehaviour
     {
