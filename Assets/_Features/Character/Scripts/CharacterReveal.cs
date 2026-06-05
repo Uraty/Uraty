@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-
 using UnityEngine;
 
 using Uraty.Shared.Visibility;
@@ -39,13 +38,39 @@ namespace Uraty.Features.Character
 
         private Collider[] _hitColliders;
 
-        private readonly HashSet<IRevealTarget> _currentTargets = new();
-        private readonly HashSet<IRevealTarget> _detectedTargets = new();
-        private readonly List<IRevealTarget> _targetsToRemove = new();
+        private readonly System.Collections.Generic.HashSet<IRevealTarget> _currentTargets = new();
+        private readonly System.Collections.Generic.HashSet<IRevealTarget> _detectedTargets = new();
+        private readonly System.Collections.Generic.List<IRevealTarget> _targetsToRemove = new();
 
         private void Awake()
         {
-            _hitColliders = new Collider[_maxHitCount];
+            EnsureHitCollidersInitialized();
+        }
+
+        public bool IsInsideBush(Vector3 worldPosition)
+        {
+            EnsureHitCollidersInitialized();
+
+            Vector3 cellCenter =
+                GetCellCenterPosition(worldPosition);
+
+            float halfCellSize =
+                _cellSize * _cellCheckScale * 0.5f;
+
+            Vector3 halfExtents = new(
+                halfCellSize,
+                _cellCheckHeight * 0.5f,
+                halfCellSize);
+
+            int hitCount = Physics.OverlapBoxNonAlloc(
+                cellCenter,
+                halfExtents,
+                _hitColliders,
+                Quaternion.identity,
+                _bushLayerMask,
+                QueryTriggerInteraction.Collide);
+
+            return hitCount > 0;
         }
 
         private void Update()
@@ -148,6 +173,8 @@ namespace Uraty.Features.Character
 
         private void DetectRevealTargetsAtCell(Vector3 cellCenter)
         {
+            EnsureHitCollidersInitialized();
+
             float halfCellSize = _cellSize * _cellCheckScale * 0.5f;
 
             Vector3 halfExtents = new(
@@ -181,6 +208,19 @@ namespace Uraty.Features.Character
 
                 _detectedTargets.Add(revealTarget);
             }
+        }
+
+        private void EnsureHitCollidersInitialized()
+        {
+            int hitCount = Mathf.Max(1, _maxHitCount);
+
+            if (_hitColliders != null
+                && _hitColliders.Length == hitCount)
+            {
+                return;
+            }
+
+            _hitColliders = new Collider[hitCount];
         }
 
         private Vector3 GetCellCenterPosition(Vector3 worldPosition)
