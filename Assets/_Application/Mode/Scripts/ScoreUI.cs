@@ -14,7 +14,7 @@ namespace Uraty.Application.Mode
     /// WantedSystem からチームスコアを取得して UI に表示するビューです。
     /// キャラクター登録が完了した後のスコアを基準（0）として差分表示します。
     /// </summary>
-    public sealed class ScoreView : MonoBehaviour
+    public sealed class ScoreUI : MonoBehaviour
     {
         [Header("System")]
         [SerializeField]
@@ -38,7 +38,7 @@ namespace Uraty.Application.Mode
             if (_wantedSystem == null)
             {
                 Debug.LogError(
-                    $"{nameof(ScoreView)} に WantedSystem が設定されていません。");
+                    $"{nameof(ScoreUI)} に WantedSystem が設定されていません。");
 
                 yield break;
             }
