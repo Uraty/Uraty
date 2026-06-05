@@ -57,6 +57,18 @@ PrefabInstance:
       value: 880
       objectReference: {fileID: 0}
     - target: {fileID: -1257273843268544866, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
+      propertyPath: _attackSettings.Array.data[0]._isPiercing
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -1257273843268544866, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
+      propertyPath: _attackSettings.Array.data[1]._isPiercing
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -1257273843268544866, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
+      propertyPath: _attackSettings.Array.data[2]._isPiercing
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -1257273843268544866, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
       propertyPath: _attackSettings.Array.data[1]._bulletPrefab
       value: 
       objectReference: {fileID: 3889814631699899837, guid: 5265405e7bfef534bb386f823db27161, type: 3}

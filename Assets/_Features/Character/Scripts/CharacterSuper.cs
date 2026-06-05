@@ -121,7 +121,8 @@ namespace Uraty.Features.Character
                     setting.Speed,
                     _status.TeamId,
                     gameObject,
-                    _superChargePercent);
+                    _superChargePercent,
+                    setting.IsPiercing);
             }
         }
 
@@ -209,6 +210,8 @@ namespace Uraty.Features.Character
 
             [SerializeField] private Vector3 _positionOffsetLocal;
 
+            [SerializeField] private bool _isPiercing;
+
             [Min(0f)]
             [SerializeField] private float _delaySeconds;
 
@@ -218,6 +221,7 @@ namespace Uraty.Features.Character
             public float Speed => _speed;
             public float AngleOffsetDegrees => _angleOffsetDegrees;
             public Vector3 PositionOffsetLocal => _positionOffsetLocal;
+            public bool IsPiercing => _isPiercing;
             public float DelaySeconds => _delaySeconds;
         }
     }

@@ -337,7 +337,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterStatus
   _teamId: 0
   _maxHp: 100
-  _recoveryStartDelaySeconds: 0.8
+  _recoveryStartDelaySeconds: 3
   _recoveryIntervalSeconds: 0.8
   _recoveryAmountPercent: 16
   _maxReloadCount: 3
@@ -424,6 +424,7 @@ MonoBehaviour:
     _speed: 16
     _angleOffsetDegrees: 0
     _positionOffsetLocal: {x: 0, y: 0, z: 0}
+    _isPiercing: 0
     _delaySeconds: 0
   _attackDisableSeconds: 1
   _superChargePercent: 10
@@ -492,6 +493,7 @@ MonoBehaviour:
     _speed: 20
     _angleOffsetDegrees: 0
     _positionOffsetLocal: {x: 0, y: 0, z: 0}
+    _isPiercing: 0
     _delaySeconds: 0
   _attackDisableSeconds: 1
   _superChargePercent: 0
