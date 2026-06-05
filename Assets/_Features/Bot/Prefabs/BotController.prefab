@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &405216351499648677
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2898341710711376415}
+  - component: {fileID: 8156091984824643367}
+  - component: {fileID: 7594861312395052958}
+  m_Layer: 0
+  m_Name: BotController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2898341710711376415
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 405216351499648677}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8156091984824643367
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 405216351499648677}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86e36d5d27e7a854fbf5854b687b26e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Bot::Uraty.Features.Bot.BotController
+  _inputInterpreter: {fileID: 7594861312395052958}
+--- !u!114 &7594861312395052958
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 405216351499648677}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef153a456d427dd4b808ce7aa14f4c81, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Bot::Uraty.Features.Bot.BotInputInterpreter
+  _searchRadius: 15
+  _exploreMoveScale: 0.75
+  _exploreDirectionUpdateIntervalSeconds: 1.25
+  _exploreStuckDistanceMeters: 0.35
+  _exploreStuckCheckIntervalSeconds: 0.5
+  _attackRange: 3
+  _attackInterval: 1.2
+  _strafeMoveScale: 0.75
+  _distanceAdjustMoveScale: 0.35
+  _strafeSwitchIntervalSeconds: 1

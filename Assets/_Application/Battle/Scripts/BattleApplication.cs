@@ -61,13 +61,13 @@ namespace Uraty.Application.Battle
         /// プレイヤーのオートエイム対象を探索する半径です。
         /// </summary>
         [Header("Auto Aim (Player)")]
-        [SerializeField, Min(0f)]
+        [SerializeField]
         private float _playerAutoAimSearchRadius = 12f;
 
         /// <summary>
         /// プレイヤーのオートエイム対象を許可する最大角度です。
         /// </summary>
-        [SerializeField, Range(0f, 180f)]
+        [SerializeField]
         private float _playerAutoAimMaxAngleDegrees = 55f;
 
         /// <summary>
@@ -75,28 +75,28 @@ namespace Uraty.Application.Battle
         /// </summary>
         [Header("Bot Recovery")]
         [Tooltip("Botが逃走・回復に入るHP比率(0-1)")]
-        [SerializeField, Range(0f, 1f)]
+        [SerializeField]
         private float _botRecoveryEnterHpRatio = 0.5f;
 
         /// <summary>
         /// Botが通常行動へ戻るHP比率です。
         /// </summary>
         [Tooltip("回復開始後、このHP比率まで回復したら通常行動へ戻る(0-1)")]
-        [SerializeField, Range(0f, 1f)]
+        [SerializeField]
         private float _botRecoveryExitHpRatio = 0.7f;
 
         /// <summary>
         /// Botの逃走移動の強さです。
         /// </summary>
         [Tooltip("逃走移動の強さ(0-1)")]
-        [SerializeField, Range(0f, 1f)]
+        [SerializeField]
         private float _botFleeMoveScale = 1.0f;
 
         /// <summary>
         /// 死亡してから復活するまでの秒数です。
         /// </summary>
         [Header("Respawn")]
-        [SerializeField, Min(0f)]
+        [SerializeField]
         private float _respawnDelaySeconds = 3f;
 
         /// <summary>
@@ -2037,6 +2037,7 @@ namespace Uraty.Application.Battle
             /// <param name="transform">キャラクターの Transform です。</param>
             /// <param name="status">キャラクターのステータスです。</param>
             /// <param name="reveal">キャラクターのReveal範囲です。</param>
+            /// <param name="hpUi">キャラクターのHP UIです。</param>
             /// <param name="renderers">キャラクター配下の Renderer 配列です。</param>
             public CharacterRuntimeEntry(
                 GameObject gameObject,
@@ -2097,6 +2098,9 @@ namespace Uraty.Application.Battle
                 get;
             }
 
+            /// <summary>
+            /// キャラクターのHP UIです。
+            /// </summary>
             public CharacterHP HpUi
             {
                 get;
@@ -2129,12 +2133,18 @@ namespace Uraty.Application.Battle
                 set;
             }
 
+            /// <summary>
+            /// HP UI表示状態の前回値を保持しているかどうかです。
+            /// </summary>
             public bool HasHpUiVisibleCache
             {
                 get;
                 set;
             }
 
+            /// <summary>
+            /// 最後に CharacterHP へ反映した表示状態です。
+            /// </summary>
             public bool LastHpUiVisible
             {
                 get;
