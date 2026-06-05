@@ -11,9 +11,6 @@ namespace Uraty.Features.Character
     {
         private const float MinDirectionSqrMagnitude = 0.0001f;
 
-        [Header("Pierce")]
-        [SerializeField] private bool _isPiercing;
-
         private readonly HashSet<int> _hitCharacterInstanceIds = new();
 
         private Vector3 _direction;
@@ -21,6 +18,7 @@ namespace Uraty.Features.Character
         private float _range;
         private float _speed;
         private float _superChargePercent;
+        private bool _isPiercing;
 
         private Vector3 _startPosition;
         private GameObject _owner;
@@ -36,7 +34,8 @@ namespace Uraty.Features.Character
             float speed,
             TeamId teamId,
             GameObject owner,
-            float superChargePercent)
+            float superChargePercent,
+            bool isPiercing)
         {
             direction.y = 0f;
 
@@ -50,6 +49,7 @@ namespace Uraty.Features.Character
             _range = Mathf.Max(0f, range);
             _speed = Mathf.Max(0f, speed);
             _superChargePercent = Mathf.Max(0f, superChargePercent);
+            _isPiercing = isPiercing;
 
             _startPosition = transform.position;
             _owner = owner;

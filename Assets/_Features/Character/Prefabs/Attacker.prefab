@@ -140,6 +140,38 @@ PrefabInstance:
       propertyPath: _attackSettings.Array.data[5]._delaySeconds
       value: 0.5
       objectReference: {fileID: 0}
+    - target: {fileID: -1257273843268544866, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
+      propertyPath: _attackSettings.Array.data[1]._angleOffsetDegrees
+      value: -3
+      objectReference: {fileID: 0}
+    - target: {fileID: -1257273843268544866, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
+      propertyPath: _attackSettings.Array.data[2]._angleOffsetDegrees
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: -1257273843268544866, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
+      propertyPath: _attackSettings.Array.data[3]._angleOffsetDegrees
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: -1257273843268544866, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
+      propertyPath: _attackSettings.Array.data[4]._angleOffsetDegrees
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -1257273843268544866, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
+      propertyPath: _attackSettings.Array.data[1]._positionOffsetLocal.x
+      value: -0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: -1257273843268544866, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
+      propertyPath: _attackSettings.Array.data[2]._positionOffsetLocal.x
+      value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: -1257273843268544866, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
+      propertyPath: _attackSettings.Array.data[3]._positionOffsetLocal.x
+      value: -0.1
+      objectReference: {fileID: 0}
+    - target: {fileID: -1257273843268544866, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
+      propertyPath: _attackSettings.Array.data[4]._positionOffsetLocal.x
+      value: 0.1
+      objectReference: {fileID: 0}
     - target: {fileID: 1490220000781514627, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
       propertyPath: _previewDefinition._type
       value: 1
