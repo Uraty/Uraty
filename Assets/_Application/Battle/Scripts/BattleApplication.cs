@@ -1686,6 +1686,12 @@ namespace Uraty.Application.Battle
                     continue;
                 }
 
+                // Bot は草むら内の敵を探知しない
+                if (otherStatus.IsInsideBush)
+                {
+                    continue;
+                }
+
                 if (!CanCharacterBeSeen(selfEntry, otherEntry))
                 {
                     continue;

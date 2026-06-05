@@ -28,6 +28,31 @@ namespace Uraty.Features.Bot
         [SerializeField, Min(0.05f)]
         private float _exploreStuckCheckIntervalSeconds = 0.5f;
 
+        [Header("Recovery (Flee)")]
+        [Tooltip("逃走中、前方に障害物があるかを判定する距離(メートル)")]
+        [SerializeField, Min(0f)]
+        private float _recoveryObstacleCheckDistanceMeters = 1.25f;
+
+        [Tooltip("障害物判定のRay開始高さ(メートル)")]
+        [SerializeField, Min(0f)]
+        private float _recoveryObstacleRayOriginHeightMeters = 0.5f;
+
+        [Tooltip("この距離以上動けていない場合にスタックと見なして逃走方向をずらす")]
+        [SerializeField, Min(0f)]
+        private float _recoveryStuckDistanceMeters = 0.25f;
+
+        [Tooltip("スタック判定のチェック間隔(秒)")]
+        [SerializeField, Min(0.05f)]
+        private float _recoveryStuckCheckIntervalSeconds = 0.35f;
+
+        [Tooltip("スタック/障害物回避で方向を変更した場合に、その方向を維持する秒数")]
+        [SerializeField, Min(0f)]
+        private float _recoveryAvoidDirectionHoldSeconds = 0.75f;
+
+        [Tooltip("スタック/障害物回避で横にずらす角度(度)")]
+        [SerializeField, Range(0f, 180f)]
+        private float _recoveryAvoidAngleDegrees = 75f;
+
         [Header("Combat")]
         [SerializeField]
         private float _attackRange = 3f;
@@ -77,6 +102,12 @@ namespace Uraty.Features.Bot
         private bool _isRecoveryMode;
         private Vector3 _recoveryMoveDirectionWorld;
         private float _recoveryMoveScale;
+
+        private Vector3 _lastRecoveryCheckPosition;
+        private float _recoveryStuckCheckTimer;
+
+        private Vector3 _recoveryOverrideDirectionWorld;
+        private float _recoveryOverrideTimer;
 
         // Combat movement state
         private float _strafeTimer;
@@ -131,11 +162,30 @@ namespace Uraty.Features.Bot
             Vector3 moveDirectionWorld,
             float moveScale)
         {
+            bool wasRecoveryMode = _isRecoveryMode;
             _isRecoveryMode = isRecoveryMode;
 
             moveDirectionWorld.y = 0f;
             _recoveryMoveDirectionWorld = moveDirectionWorld;
             _recoveryMoveScale = Mathf.Clamp01(moveScale);
+
+            if (!wasRecoveryMode && _isRecoveryMode)
+            {
+                if (_selfTransform != null)
+                {
+                    _lastRecoveryCheckPosition = _selfTransform.position;
+                }
+
+                _recoveryStuckCheckTimer = 0f;
+                _recoveryOverrideTimer = 0f;
+                _recoveryOverrideDirectionWorld = Vector3.zero;
+            }
+            else if (wasRecoveryMode && !_isRecoveryMode)
+            {
+                _recoveryStuckCheckTimer = 0f;
+                _recoveryOverrideTimer = 0f;
+                _recoveryOverrideDirectionWorld = Vector3.zero;
+            }
         }
 
         private void Update()
@@ -274,9 +324,173 @@ namespace Uraty.Features.Bot
 
             move.Normalize();
 
+            move = ApplyRecoveryOverrideIfNeeded(move);
+            move = ApplyRecoveryStuckAvoidanceIfNeeded(move);
+            move = ApplyRecoveryObstacleAvoidanceIfNeeded(move);
+
+            if (move.sqrMagnitude <= MinDirectionSqrMagnitude)
+            {
+                move = Vector3.forward;
+            }
+
+            move.Normalize();
+
             _moveDirectionWorld = move * Mathf.Clamp01(_recoveryMoveScale);
             _aimDirectionWorld = move;
             _aimPointWorld = _selfTransform.position + move;
+        }
+
+        private Vector3 ApplyRecoveryOverrideIfNeeded(Vector3 desiredMove)
+        {
+            if (_recoveryOverrideTimer <= 0f)
+            {
+                return desiredMove;
+            }
+
+            _recoveryOverrideTimer -= Time.deltaTime;
+
+            if (_recoveryOverrideTimer <= 0f
+                || _recoveryOverrideDirectionWorld.sqrMagnitude <= MinDirectionSqrMagnitude)
+            {
+                _recoveryOverrideTimer = 0f;
+                _recoveryOverrideDirectionWorld = Vector3.zero;
+                return desiredMove;
+            }
+
+            // 逃走中に別の敵が近づくなどして方向が大きく変わった場合は上書きしない
+            float dot = Vector3.Dot(
+                desiredMove.normalized,
+                _recoveryOverrideDirectionWorld.normalized);
+
+            if (dot < 0.25f)
+            {
+                _recoveryOverrideTimer = 0f;
+                _recoveryOverrideDirectionWorld = Vector3.zero;
+                return desiredMove;
+            }
+
+            return _recoveryOverrideDirectionWorld.normalized;
+        }
+
+        private Vector3 ApplyRecoveryStuckAvoidanceIfNeeded(Vector3 desiredMove)
+        {
+            if (_selfTransform == null)
+            {
+                return desiredMove;
+            }
+
+            _recoveryStuckCheckTimer += Time.deltaTime;
+            if (_recoveryStuckCheckTimer < _recoveryStuckCheckIntervalSeconds)
+            {
+                return desiredMove;
+            }
+
+            _recoveryStuckCheckTimer = 0f;
+
+            Vector3 current = _selfTransform.position;
+            Vector3 delta = current - _lastRecoveryCheckPosition;
+            delta.y = 0f;
+
+            _lastRecoveryCheckPosition = current;
+
+            if (delta.magnitude >= _recoveryStuckDistanceMeters)
+            {
+                return desiredMove;
+            }
+
+            float sign = Random.value < 0.5f ? -1f : 1f;
+            Vector3 diverted = Quaternion.AngleAxis(
+                sign * Mathf.Clamp(_recoveryAvoidAngleDegrees, 0f, 180f),
+                Vector3.up) * desiredMove;
+
+            diverted.y = 0f;
+
+            if (diverted.sqrMagnitude <= MinDirectionSqrMagnitude)
+            {
+                return desiredMove;
+            }
+
+            _recoveryOverrideDirectionWorld = diverted.normalized;
+            _recoveryOverrideTimer = Mathf.Max(0f, _recoveryAvoidDirectionHoldSeconds);
+            return _recoveryOverrideDirectionWorld;
+        }
+
+        private Vector3 ApplyRecoveryObstacleAvoidanceIfNeeded(Vector3 desiredMove)
+        {
+            if (_selfTransform == null)
+            {
+                return desiredMove;
+            }
+
+            float distance = Mathf.Max(0f, _recoveryObstacleCheckDistanceMeters);
+            if (distance <= 0f)
+            {
+                return desiredMove;
+            }
+
+            Vector3 origin = _selfTransform.position
+                + Vector3.up * Mathf.Max(0f, _recoveryObstacleRayOriginHeightMeters);
+
+            Vector3 dir = desiredMove;
+            dir.y = 0f;
+
+            if (dir.sqrMagnitude <= MinDirectionSqrMagnitude)
+            {
+                return desiredMove;
+            }
+
+            dir.Normalize();
+
+            if (!Physics.Raycast(
+                    origin,
+                    dir,
+                    distance,
+                    ~0,
+                    QueryTriggerInteraction.Ignore))
+            {
+                return dir;
+            }
+
+            // 前方が塞がっている場合は左右へずらして再チェック
+            float[] angles =
+            {
+                Mathf.Clamp(_recoveryAvoidAngleDegrees, 0f, 180f),
+                -Mathf.Clamp(_recoveryAvoidAngleDegrees, 0f, 180f),
+                45f,
+                -45f,
+                90f,
+                -90f,
+                135f,
+                -135f,
+                180f,
+            };
+
+            for (int i = 0; i < angles.Length; i++)
+            {
+                Vector3 candidate = Quaternion.AngleAxis(angles[i], Vector3.up) * dir;
+                candidate.y = 0f;
+
+                if (candidate.sqrMagnitude <= MinDirectionSqrMagnitude)
+                {
+                    continue;
+                }
+
+                candidate.Normalize();
+
+                if (!Physics.Raycast(
+                        origin,
+                        candidate,
+                        distance,
+                        ~0,
+                        QueryTriggerInteraction.Ignore))
+                {
+                    _recoveryOverrideDirectionWorld = candidate;
+                    _recoveryOverrideTimer = Mathf.Max(0f, _recoveryAvoidDirectionHoldSeconds);
+                    return candidate;
+                }
+            }
+
+            return dir;
         }
 
         private void ThinkExplore()
@@ -381,6 +595,15 @@ namespace Uraty.Features.Bot
             _isRecoveryMode = false;
             _recoveryMoveDirectionWorld = Vector3.zero;
             _recoveryMoveScale = 0f;
+
+            if (_selfTransform != null)
+            {
+                _lastRecoveryCheckPosition = _selfTransform.position;
+            }
+
+            _recoveryStuckCheckTimer = 0f;
+            _recoveryOverrideDirectionWorld = Vector3.zero;
+            _recoveryOverrideTimer = 0f;
         }
 
         private void ResetCombatMovementState()
