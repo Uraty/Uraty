@@ -405,6 +405,9 @@ namespace Uraty.Application.Battle
                 GetRequiredComponent<CharacterReveal>(
                     characterObject),
                 characterObject
+                    .GetComponentInChildren<CharacterHP>(
+                        true),
+                characterObject
                     .GetComponentsInChildren<Renderer>(
                         true));
         }
@@ -1084,6 +1087,9 @@ namespace Uraty.Application.Battle
                     continue;
                 }
 
+                UpdateCharacterInsideBushState(
+                    entry);
+
                 bool shouldRender =
                     ShouldRenderCharacter(
                         entry);
@@ -1091,7 +1097,64 @@ namespace Uraty.Application.Battle
                 SetCharacterRenderersEnabled(
                     entry,
                     shouldRender);
+
+                SetCharacterHpUiVisibleIfChanged(
+                    entry,
+                    shouldRender);
             }
+        }
+
+        private static void SetCharacterHpUiVisibleIfChanged(
+            CharacterRuntimeEntry entry,
+            bool isVisible)
+        {
+            if (entry == null
+                || entry.HpUi == null)
+            {
+                return;
+            }
+
+            if (entry.HasHpUiVisibleCache
+                && entry.LastHpUiVisible == isVisible)
+            {
+                return;
+            }
+
+            entry.HpUi.SetUiVisible(
+                isVisible);
+
+            entry.LastHpUiVisible =
+                isVisible;
+
+            entry.HasHpUiVisibleCache =
+                true;
+        }
+
+        /// <summary>
+        /// キャラクターが草むら内にいるかを更新します。
+        /// </summary>
+        private static void UpdateCharacterInsideBushState(
+            CharacterRuntimeEntry entry)
+        {
+            if (entry == null
+                || entry.Status == null
+                || entry.Reveal == null
+                || entry.Transform == null)
+            {
+                return;
+            }
+
+            bool isInsideBush =
+                entry.Reveal.IsInsideBush(
+                    entry.Transform.position);
+
+            if (entry.Status.IsInsideBush == isInsideBush)
+            {
+                return;
+            }
+
+            entry.Status.SetInsideBush(
+                isInsideBush);
         }
 
         /// <summary>
@@ -1495,6 +1558,54 @@ namespace Uraty.Application.Battle
         }
 
         /// <summary>
+        /// viewer から target が視認可能か判定します。
+        /// </summary>
+        private bool CanCharacterBeSeen(
+            CharacterRuntimeEntry viewerEntry,
+            CharacterRuntimeEntry targetEntry)
+        {
+            if (viewerEntry == null
+                || targetEntry == null)
+            {
+                return false;
+            }
+
+            CharacterStatus viewerStatus =
+                viewerEntry.Status;
+
+            CharacterStatus targetStatus =
+                targetEntry.Status;
+
+            if (viewerStatus == null
+                || targetStatus == null)
+            {
+                return false;
+            }
+
+            if (targetStatus.IsDead)
+            {
+                return false;
+            }
+
+            // 草外なら常に見える
+            if (!targetStatus.IsInsideBush)
+            {
+                return true;
+            }
+
+            // 同チームは見える
+            if (viewerStatus.TeamId
+                == targetStatus.TeamId)
+            {
+                return true;
+            }
+
+            // 草内なら Reveal 範囲内のみ見える
+            return viewerEntry.Reveal.ContainsWorldPosition(
+                targetEntry.Transform.position);
+        }
+
+        /// <summary>
         /// R3購読と実行時キャッシュを破棄します。
         /// </summary>
         private void OnDestroy()
@@ -1575,7 +1686,7 @@ namespace Uraty.Application.Battle
                     continue;
                 }
 
-                if (otherStatus.IsInsideBush)
+                if (!CanCharacterBeSeen(selfEntry, otherEntry))
                 {
                     continue;
                 }
@@ -1926,6 +2037,7 @@ namespace Uraty.Application.Battle
                 Transform transform,
                 CharacterStatus status,
                 CharacterReveal reveal,
+                CharacterHP hpUi,
                 Renderer[] renderers)
             {
                 GameObject =
@@ -1939,6 +2051,9 @@ namespace Uraty.Application.Battle
 
                 Reveal =
                     reveal;
+
+                HpUi =
+                    hpUi;
 
                 Renderers =
                     renderers;
@@ -1976,6 +2091,11 @@ namespace Uraty.Application.Battle
                 get;
             }
 
+            public CharacterHP HpUi
+            {
+                get;
+            }
+
             /// <summary>
             /// キャラクター配下の Renderer 配列です。
             /// </summary>
@@ -1998,6 +2118,18 @@ namespace Uraty.Application.Battle
             /// 最後に CharacterReveal へ反映した有効状態です。
             /// </summary>
             public bool LastRevealEnabled
+            {
+                get;
+                set;
+            }
+
+            public bool HasHpUiVisibleCache
+            {
+                get;
+                set;
+            }
+
+            public bool LastHpUiVisible
             {
                 get;
                 set;

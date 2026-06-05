@@ -14,6 +14,22 @@ namespace Uraty.Features.Character
 
         private float _lastHp = -1f;
 
+        public void SetUiVisible(bool isVisible)
+        {
+            if (_canvas == null)
+            {
+                return;
+            }
+
+            if (_canvas.enabled == isVisible)
+            {
+                return;
+            }
+
+            _canvas.enabled =
+                isVisible;
+        }
+
         private void Awake()
         {
             _mainCamera = Camera.main;
@@ -51,6 +67,11 @@ namespace Uraty.Features.Character
         private void BillboardToMainCamera()
         {
             if (_canvas == null)
+            {
+                return;
+            }
+
+            if (!_canvas.enabled)
             {
                 return;
             }
