@@ -216,7 +216,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: afc9394f07c847228fb601deb80d941d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Uraty.Application.Battle::Uraty.Application.Battle.ScoreView
+  m_EditorClassIdentifier: Uraty.Application.Mode::Uraty.Application.Mode.ScoreView
   _wantedSystem: {fileID: 51100003}
   _primaryScoreText: {fileID: 51300004}
   _secondaryScoreText: {fileID: 51400004}
