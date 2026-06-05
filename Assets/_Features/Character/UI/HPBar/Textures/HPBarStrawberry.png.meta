@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 008f155f5293b4645829df7d82c98b73
+guid: 1c9ee08c3de6cc1429b46fc27048ca23
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -110,12 +110,12 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: HPBarMatchaMain
+      name: HPBarStrawberryHalfLeft
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 700
+        width: 350
         height: 70
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
@@ -125,74 +125,30 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: f4cf408107b66d24c9919aec4ad78da6
-      internalID: 880120299
+      spriteID: 610bcf98dc9d78543ba253973ad10638
+      internalID: 1862059287
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: HPBarMatchaEdgeRight
+      name: HPBarStrawberryHalfRight
       rect:
         serializedVersion: 2
-        x: 668
+        x: 350
         y: 0
-        width: 32
+        width: 350
         height: 70
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: e63b38f7618b32d4d96d19e8c00ab38f
-      internalID: -1449630219
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: HPBarMatchaEdgeLeft
-      rect:
-        serializedVersion: 2
-        x: 0
-        y: 0
-        width: 32
-        height: 70
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 5025f00d965a8d24c803f5d0b2ce9c19
-      internalID: 705802783
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: HPBarMatchaCenter
-      rect:
-        serializedVersion: 2
-        x: 32
-        y: 0
-        width: 636
-        height: 70
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: c1856d9fd593e7a42a4bc4135cfcd578
-      internalID: -1381472362
+      spriteID: 5ace6a9782c5d004abc06fa5964ac875
+      internalID: 138909994
       vertices: []
       indices: 
       edges: []
@@ -201,7 +157,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 80e4e36b62bbfbd478f46a7d06c089fd
+    spriteID: bf4912dcdf4233b4091eab612d38b33d
     internalID: 0
     vertices: []
     indices: 
@@ -211,10 +167,11 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      HPBarMatchaCenter: -1381472362
-      HPBarMatchaEdgeLeft: 705802783
-      HPBarMatchaEdgeRight: -1449630219
-      HPBarMatchaMain: 880120299
+      HPBarStrawberryCenter: -1894588559
+      HPBarStrawberryEdgeRight: 463375783
+      HPBarStrawberryHalfLeft: 1862059287
+      HPBarStrawberryHalfRight: 138909994
+      HPBarStrawberryMain: 166704456
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

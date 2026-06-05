@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: bd9145640f46e3944bdbbed840744dca
+guid: d81227249faeef140818edeea243e01b
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -110,13 +110,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: HPBarBackGroundMain
+      name: HPBarMatchaHalfRight
       rect:
         serializedVersion: 2
-        x: 32
-        y: 44
-        width: 1983
-        height: 190
+        x: 350
+        y: 0
+        width: 350
+        height: 70
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -125,8 +125,30 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 26d82d9762756614d9decebfac4b6ba6
-      internalID: 981872567
+      spriteID: e63b38f7618b32d4d96d19e8c00ab38f
+      internalID: -1449630219
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: HPBarMatchaHalfLeft
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 350
+        height: 70
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5025f00d965a8d24c803f5d0b2ce9c19
+      internalID: 705802783
       vertices: []
       indices: 
       edges: []
@@ -135,7 +157,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 11de1e257136b67418dce08f4cd242bb
+    spriteID: 80e4e36b62bbfbd478f46a7d06c089fd
     internalID: 0
     vertices: []
     indices: 
@@ -145,7 +167,10 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      HPBarBackGroundMain: 981872567
+      HPBarMatchaCenter: -1381472362
+      HPBarMatchaHalfLeft: 705802783
+      HPBarMatchaHalfRight: -1449630219
+      HPBarMatchaMain: 880120299
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

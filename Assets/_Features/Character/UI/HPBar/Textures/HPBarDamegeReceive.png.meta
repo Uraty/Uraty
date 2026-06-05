@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: f2fbafb73b2d0da4db19feb268163c0d
+guid: aa0360c537df5354986fcf8efddcc39e
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -110,78 +110,12 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: HPBarStrawberryMain
+      name: HPBarDamegeReceiveHalfLeft
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 700
-        height: 70
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 2a77137af50c1824db4fcb85424c364f
-      internalID: 166704456
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: HPBarStrawberryEdgeRight
-      rect:
-        serializedVersion: 2
-        x: 668
-        y: 0
-        width: 32
-        height: 70
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 0ab7512d9d2009646bebf03005102b0c
-      internalID: 463375783
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: HPBarStrawberryEdgeLeft
-      rect:
-        serializedVersion: 2
-        x: 0
-        y: 0
-        width: 32
-        height: 70
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 610bcf98dc9d78543ba253973ad10638
-      internalID: 1862059287
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: HPBarStrawberryCenter
-      rect:
-        serializedVersion: 2
-        x: 32
-        y: 0
-        width: 636
+        width: 350
         height: 70
       alignment: 0
       pivot: {x: 0, y: 0}
@@ -191,8 +125,30 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: f4c5a49e44db09e459d7fb1a7c4fc676
-      internalID: -1894588559
+      spriteID: 5516b18b77c619342b82f3aace09d0ac
+      internalID: 723142336
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: HPBarDamegeReceiveHalfRight
+      rect:
+        serializedVersion: 2
+        x: 350
+        y: 0
+        width: 350
+        height: 70
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1136f32a699a8c5478d1525bd8ed0bbc
+      internalID: 1024228389
       vertices: []
       indices: 
       edges: []
@@ -201,7 +157,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: bf4912dcdf4233b4091eab612d38b33d
+    spriteID: 87425dc109346ca4d9c6bb710959085a
     internalID: 0
     vertices: []
     indices: 
@@ -211,10 +167,8 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      HPBarStrawberryCenter: -1894588559
-      HPBarStrawberryEdgeLeft: 1862059287
-      HPBarStrawberryEdgeRight: 463375783
-      HPBarStrawberryMain: 166704456
+      HPBarDamegeReceiveHalfLeft: 723142336
+      HPBarDamegeReceiveHalfRight: 1024228389
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

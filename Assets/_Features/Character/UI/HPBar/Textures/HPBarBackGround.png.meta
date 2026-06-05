@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 947540f15b1ca9740b448021023974ea
+guid: 3ee65506ec2d8eb42b7d74cb5296cc1b
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -110,89 +110,23 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: HPBarDamageCauseMain
+      name: HPBarBackGround
       rect:
         serializedVersion: 2
-        x: 34
-        y: 45
-        width: 1980
-        height: 187
+        x: 32
+        y: 43
+        width: 1983
+        height: 191
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 85bd3a55b8d1d3c4c8c47f20fa376ced
-      internalID: -668530512
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: HPBarDamageCauseEdgeRight
-      rect:
-        serializedVersion: 2
-        x: 1918
-        y: 45
-        width: 96
-        height: 187
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: ffe37379d0808fb47a11e87c0f50bb82
-      internalID: -1458432579
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: HPBarDamageCauseEdgeLeft
-      rect:
-        serializedVersion: 2
-        x: 34
-        y: 45
-        width: 101
-        height: 187
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 276c09ad61bedd6419b3613cc13cdbd0
-      internalID: 215670021
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: HPBarDamageCauseCenter
-      rect:
-        serializedVersion: 2
-        x: 135
-        y: 45
-        width: 1783
-        height: 187
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: e276f3617a4fb49419a56ac167bc740d
-      internalID: 1687261770
+      spriteID: 30d88d30c60aee54babedf926ee6cb03
+      internalID: 1044639218
       vertices: []
       indices: 
       edges: []
@@ -201,7 +135,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 8240f368247456849b94734e577f7a46
+    spriteID: a94b02528176ead48857e0eecc1bbed8
     internalID: 0
     vertices: []
     indices: 
@@ -211,10 +145,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      HPBarDamageCauseCenter: 1687261770
-      HPBarDamageCauseEdgeLeft: 215670021
-      HPBarDamageCauseEdgeRight: -1458432579
-      HPBarDamageCauseMain: -668530512
+      HPBarBackGround: 1044639218
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 9ef1bb2195de2fd4b83a152179c63f2f
+guid: cdab7d13bb6262b4fb171d77d4492f71
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -110,13 +110,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: HPBarStrawberryLowMain
+      name: HPBarDamageCauseHalfRight
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 700
-        height: 70
+        x: 1024
+        y: 45
+        width: 990
+        height: 187
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -125,20 +125,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 37441e59ebf52a74683db5502f9f8b0d
-      internalID: 1374812613
+      spriteID: ffe37379d0808fb47a11e87c0f50bb82
+      internalID: -1458432579
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: HPBarStrawberryLowEdgeRight
+      name: HPBarDamageCauseHalfLeft
       rect:
         serializedVersion: 2
-        x: 668
-        y: 0
-        width: 32
-        height: 70
+        x: 34
+        y: 45
+        width: 990
+        height: 187
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -147,52 +147,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 34c9c7cba124065478ef3e9b6d6617d7
-      internalID: 1043616144
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: HPBarStrawberryLowEdgeLeft
-      rect:
-        serializedVersion: 2
-        x: 0
-        y: 0
-        width: 31
-        height: 70
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: fb98a3cd27aae764bb05bab8bcd8aad6
-      internalID: 1271112757
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: HPBarStrawberryLowCenter
-      rect:
-        serializedVersion: 2
-        x: 31
-        y: 0
-        width: 637
-        height: 70
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 85469dccf41f67449a6d525897caf788
-      internalID: 1945233923
+      spriteID: 276c09ad61bedd6419b3613cc13cdbd0
+      internalID: 215670021
       vertices: []
       indices: 
       edges: []
@@ -201,7 +157,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: e0473c736462d024d8cca8b1f6137c09
+    spriteID: 8240f368247456849b94734e577f7a46
     internalID: 0
     vertices: []
     indices: 
@@ -211,11 +167,10 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      HPBarStrawberryLowCenter: 1945233923
-      HPBarStrawberryLowEdgeLeft: 1271112757
-      HPBarStrawberryLowEdgeRight: 1043616144
-      HPBarStrawberryLowMain: 1374812613
-      HPbar_strawberrylowMain: 1374812613
+      HPBarDamageCauseCenter: 1687261770
+      HPBarDamageCauseHalfLeft: 215670021
+      HPBarDamageCauseHalfRight: -1458432579
+      HPBarDamageCauseMain: -668530512
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
