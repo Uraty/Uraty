@@ -2,66 +2,43 @@ using R3;
 
 using UnityEngine;
 
-using Uraty.Feature.Akane_TestCharacter;
-
-namespace Uraty.Application.Lobby
+namespace Uraty.Feature.Akane_TestCharacter
 {
-    /// <summary>
-    /// ロビー内で選択中のキャラを保持するStore。
-    /// ScriptableObjectアセットとしてシーン間で共有する。
-    /// </summary>
     [CreateAssetMenu(
         fileName = "CharacterSelectionStore",
-        menuName = "Uraty/Lobby/Character Selection Store"
-    )]
+        menuName = "Uraty/Character/Character Selection Store")]
     public sealed class CharacterSelectionStore : ScriptableObject
     {
-        [SerializeField] private CharacterData _defaultCharacter;
+        [Header("Default")]
+        [SerializeField] private GameObject _defaultCharacterPrefab;
 
-        private readonly Subject<CharacterData> _selectedCharacterChangedSubject = new();
+        [Header("Current")]
+        [SerializeField] private GameObject _selectedCharacterPrefab;
 
-        private CharacterData _selectedCharacter;
+        private readonly Subject<GameObject> _selectedCharacterPrefabChangedSubject = new();
 
-        public CharacterData SelectedCharacter
+        public GameObject SelectedCharacterPrefab =>
+            _selectedCharacterPrefab != null
+                ? _selectedCharacterPrefab
+                : _defaultCharacterPrefab;
+
+        public Observable<GameObject> SelectedCharacterPrefabChangedStream =>
+            _selectedCharacterPrefabChangedSubject;
+
+        public void SetSelectedCharacterPrefab(GameObject characterPrefab)
         {
-            get
-            {
-                if (_selectedCharacter != null)
-                {
-                    return _selectedCharacter;
-                }
-
-                return _defaultCharacter;
-            }
-        }
-
-        public Observable<CharacterData> SelectedCharacterChangedStream =>
-            _selectedCharacterChangedSubject;
-
-        public void SetSelectedCharacter(CharacterData character)
-        {
-            if (character == null)
+            if (_selectedCharacterPrefab == characterPrefab)
             {
                 return;
             }
 
-            _selectedCharacter = character;
-            PublishSelectedCharacterChanged(character);
+            _selectedCharacterPrefab = characterPrefab;
+            _selectedCharacterPrefabChangedSubject.OnNext(SelectedCharacterPrefab);
         }
 
-        public void Clear()
+        private void OnDestroy()
         {
-            _selectedCharacter = null;
-
-            if (_defaultCharacter != null)
-            {
-                PublishSelectedCharacterChanged(_defaultCharacter);
-            }
-        }
-
-        private void PublishSelectedCharacterChanged(CharacterData character)
-        {
-            _selectedCharacterChangedSubject.OnNext(character);
+            _selectedCharacterPrefabChangedSubject.Dispose();
         }
     }
 }

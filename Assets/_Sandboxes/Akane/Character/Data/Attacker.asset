@@ -15,3 +15,4 @@ MonoBehaviour:
   _characterId: 
   _displayName: Attacker
   _previewPrefab: {fileID: 414510161762077789, guid: e3ab0d20fafe40b4e956a3adf576b039, type: 3}
+  _description: "\u30A2\u30BF\u30C3\u30AB\u30FC"

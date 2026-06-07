@@ -15,3 +15,4 @@ MonoBehaviour:
   _characterId: 
   _displayName: Fighter
   _previewPrefab: {fileID: 9095663280809155271, guid: 76225e6227f412541bdd9faa383d1b72, type: 3}
+  _description: "\u30D5\u30A1\u30A4\u30BF\u30FC"

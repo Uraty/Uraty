@@ -25,6 +25,42 @@ namespace Uraty.Features.Character
         [SerializeField, Min(0f)]
         private float _superChargePercent = 10f;
 
+        public CharacterSkillPreviewInfo PreviewInfo => CreatePreviewInfo();
+
+        private CharacterSkillPreviewInfo CreatePreviewInfo()
+        {
+            if (_attackSettings == null || _attackSettings.Length == 0)
+            {
+                return default;
+            }
+
+            int bulletCount = 0;
+            float totalDamage = 0f;
+            float maxRange = 0f;
+            float maxSpeed = 0f;
+
+            for (int i = 0; i < _attackSettings.Length; i++)
+            {
+                BulletSpawnSetting setting = _attackSettings[i];
+
+                if (setting == null || setting.BulletPrefab == null)
+                {
+                    continue;
+                }
+
+                bulletCount++;
+                totalDamage += setting.Damage;
+                maxRange = Mathf.Max(maxRange, setting.Range);
+                maxSpeed = Mathf.Max(maxSpeed, setting.Speed);
+            }
+
+            return new CharacterSkillPreviewInfo(
+                bulletCount,
+                totalDamage,
+                maxRange,
+                maxSpeed);
+        }
+
         private void Awake()
         {
             if (_status == null)

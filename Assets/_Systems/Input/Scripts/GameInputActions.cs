@@ -296,6 +296,15 @@ namespace Uraty.Systems.Input
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Navigate"",
+                    ""type"": ""Value"",
+                    ""id"": ""d0622520-b226-4d00-8485-3f9799394a81"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
                 }
             ],
             ""bindings"": [
@@ -346,7 +355,7 @@ namespace Uraty.Systems.Input
                 {
                     ""name"": """",
                     ""id"": ""1802afe6-8c96-436f-b411-e4a1fcb96835"",
-                    ""path"": ""<Gamepad>/rightStick"",
+                    ""path"": ""<Gamepad>/leftStick"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
@@ -362,6 +371,17 @@ namespace Uraty.Systems.Input
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""Point"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""bb8cdc4d-78aa-458b-9435-482056daac52"",
+                    ""path"": ""<Gamepad>/dpad"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Navigate"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -381,6 +401,7 @@ namespace Uraty.Systems.Input
             m_UI_Cancel = m_UI.FindAction("Cancel", throwIfNotFound: true);
             m_UI_Submit = m_UI.FindAction("Submit", throwIfNotFound: true);
             m_UI_Point = m_UI.FindAction("Point", throwIfNotFound: true);
+            m_UI_Navigate = m_UI.FindAction("Navigate", throwIfNotFound: true);
         }
 
         ~@GameInputActions()
@@ -594,6 +615,7 @@ namespace Uraty.Systems.Input
         private readonly InputAction m_UI_Cancel;
         private readonly InputAction m_UI_Submit;
         private readonly InputAction m_UI_Point;
+        private readonly InputAction m_UI_Navigate;
         /// <summary>
         /// Provides access to input actions defined in input action map "UI".
         /// </summary>
@@ -617,6 +639,10 @@ namespace Uraty.Systems.Input
             /// Provides access to the underlying input action "UI/Point".
             /// </summary>
             public InputAction @Point => m_Wrapper.m_UI_Point;
+            /// <summary>
+            /// Provides access to the underlying input action "UI/Navigate".
+            /// </summary>
+            public InputAction @Navigate => m_Wrapper.m_UI_Navigate;
             /// <summary>
             /// Provides access to the underlying input action map instance.
             /// </summary>
@@ -652,6 +678,9 @@ namespace Uraty.Systems.Input
                 @Point.started += instance.OnPoint;
                 @Point.performed += instance.OnPoint;
                 @Point.canceled += instance.OnPoint;
+                @Navigate.started += instance.OnNavigate;
+                @Navigate.performed += instance.OnNavigate;
+                @Navigate.canceled += instance.OnNavigate;
             }
 
             /// <summary>
@@ -672,6 +701,9 @@ namespace Uraty.Systems.Input
                 @Point.started -= instance.OnPoint;
                 @Point.performed -= instance.OnPoint;
                 @Point.canceled -= instance.OnPoint;
+                @Navigate.started -= instance.OnNavigate;
+                @Navigate.performed -= instance.OnNavigate;
+                @Navigate.canceled -= instance.OnNavigate;
             }
 
             /// <summary>
@@ -769,6 +801,13 @@ namespace Uraty.Systems.Input
             /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
             /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
             void OnPoint(InputAction.CallbackContext context);
+            /// <summary>
+            /// Method invoked when associated input action "Navigate" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+            /// </summary>
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+            /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+            void OnNavigate(InputAction.CallbackContext context);
         }
     }
 }

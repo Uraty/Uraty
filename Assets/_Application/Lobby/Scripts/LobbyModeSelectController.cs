@@ -1,6 +1,10 @@
+using System.Collections.Generic;
+
 using TMPro;
 
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 using Uraty.Feature.Akane_GameMode;
@@ -45,6 +49,14 @@ namespace Uraty.Application.Lobby
         // 表示するモードデータ一覧。
         [SerializeField] private GameModeData[] _modes;
 
+        [Header("Default Selection")]
+        [SerializeField] private Selectable _firstMainSelectable;
+
+        [Header("Input")]
+        [SerializeField] private InputActionReference _cancelActionReference;
+
+        private readonly List<ModeButtonView> _modeButtonViews = new();
+
         /// <summary>
         /// 現在選択中のモード。
         /// PlayButtonを押したときに、この値を使ってシーン遷移する。
@@ -75,6 +87,27 @@ namespace Uraty.Application.Lobby
             CloseModePanel();
         }
 
+        private void OnEnable()
+        {
+            if (_cancelActionReference != null)
+            {
+                _cancelActionReference.action.performed += HandleCancelPerformed;
+
+                if (!_cancelActionReference.action.enabled)
+                {
+                    _cancelActionReference.action.Enable();
+                }
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (_cancelActionReference != null)
+            {
+                _cancelActionReference.action.performed -= HandleCancelPerformed;
+            }
+        }
+
         /// <summary>
         /// _modes配列の内容に応じて、モード選択ボタンを生成する。
         /// </summary>
@@ -99,6 +132,7 @@ namespace Uraty.Application.Lobby
 
                 // ボタンにモード情報とクリック時処理を渡す。
                 buttonView.Initialize(mode, OnModeButtonClicked);
+                _modeButtonViews.Add(buttonView);
             }
         }
 
@@ -137,6 +171,8 @@ namespace Uraty.Application.Lobby
 
             // UIの手前に表示する。
             _modePanel.transform.SetAsLastSibling();
+
+            SelectUi(GetFirstModeSelectable());
         }
 
         /// <summary>
@@ -148,6 +184,8 @@ namespace Uraty.Application.Lobby
 
             _mainPanel.SetActive(true);
             _modelPanel.SetActive(true);
+
+            SelectUi(_firstMainSelectable);
         }
 
         /// <summary>
@@ -167,6 +205,42 @@ namespace Uraty.Application.Lobby
             }
 
             _selectedModeText.text = SelectedMode.DisplayName;
+        }
+
+        private Selectable GetFirstModeSelectable()
+        {
+            if (_modeButtonViews.Count <= 0)
+            {
+                return _closeButton;
+            }
+
+            return _modeButtonViews[0].Selectable;
+        }
+
+        private void SelectUi(Selectable selectable)
+        {
+            if (selectable == null)
+            {
+                return;
+            }
+
+            if (EventSystem.current == null)
+            {
+                return;
+            }
+
+            EventSystem.current.SetSelectedGameObject(null);
+            EventSystem.current.SetSelectedGameObject(selectable.gameObject);
+        }
+
+        private void HandleCancelPerformed(InputAction.CallbackContext context)
+        {
+            if (_modePanel == null || !_modePanel.activeSelf)
+            {
+                return;
+            }
+
+            CloseModePanel();
         }
     }
 }

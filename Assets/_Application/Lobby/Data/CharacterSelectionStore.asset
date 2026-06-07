@@ -12,4 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d0402f7281958c7479dee426818c8617, type: 3}
   m_Name: CharacterSelectionStore
   m_EditorClassIdentifier: Uraty.Feature.Akane_TestCharacter::Uraty.Application.Lobby.CharacterSelectionStore
-  _defaultCharacter: {fileID: 11400000, guid: bcbb5542a9cc73e48a4fd3760878d473, type: 2}
+  _defaultCharacterPrefab: {fileID: 7931562737157900142, guid: e4f55ec51b5d5d346a0a6a7fedc573aa, type: 3}
+  _selectedCharacterPrefab: {fileID: 0}
