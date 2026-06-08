@@ -395,6 +395,7 @@ RectTransform:
   m_Children:
   - {fileID: 4938146627045981498}
   - {fileID: 5493591298954926749}
+  - {fileID: 5456812457996820588}
   - {fileID: 1957077857842115181}
   m_Father: {fileID: 3018669647638827013}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -660,7 +661,7 @@ MonoBehaviour:
   _requiresPointerInside: 1
   _allowsNonPointerInput: 0
   _outputsDebugLog: 1
-  _requiredCompleteCount: 2
+  _requiredCompleteCount: 1
   _pressed:
     m_PersistentCalls:
       m_Calls: []
@@ -841,6 +842,111 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b546f254b14d3454997253228f5ed0cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Uraty.System.Input::Uraty.System.Input.GameInput
+--- !u!1 &8093861794443544599
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5456812457996820588}
+  - component: {fileID: 975865953140289599}
+  - component: {fileID: 7278164235679971267}
+  - component: {fileID: 5062003165214919487}
+  m_Layer: 5
+  m_Name: NowLoading
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &5456812457996820588
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8093861794443544599}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 3.9166248, y: 3.9166248, z: 3.9166248}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6144888394249673935}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &975865953140289599
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8093861794443544599}
+  m_CullTransparentMesh: 1
+--- !u!114 &7278164235679971267
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8093861794443544599}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!114 &5062003165214919487
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8093861794443544599}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba063d982e1f3384fb3406d65c817e7b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Application.Matching::Uraty.Application.Matching.NowLoadingAnimation
+  _targetImage: {fileID: 0}
+  _frames:
+  - {fileID: -621019050, guid: 1d692e2b92ff6274fa9e53b7ec316f2a, type: 3}
+  - {fileID: 504450355, guid: f56d904f5d4063a4b92560f9a6c7d9e8, type: 3}
+  - {fileID: 1796905610, guid: 1aeee7f5b8b6ae14cb8fe9a4c765cde1, type: 3}
+  - {fileID: -1017598788, guid: 2e808e904d465734a9be8946dab0a780, type: 3}
+  - {fileID: 868050135, guid: 2b96f91d6576a564a8d8e6e728969caa, type: 3}
+  - {fileID: -1191870635, guid: 0e735ff6ac9d7134197dce9d735e13b4, type: 3}
+  - {fileID: -1808998829, guid: b95e170256a517e4c9d925a5af58bd12, type: 3}
+  - {fileID: -1829939225, guid: 2d0a6168d1d5ddd46aa44acef71491da, type: 3}
+  - {fileID: -94396039, guid: aee50b356dafa2840a4321b55f92c06c, type: 3}
+  - {fileID: -1638370685, guid: 3e2fb8e968df07e48b70099a893d65e4, type: 3}
+  - {fileID: 1048646838, guid: 6c51a998eac1f3c4daf98874d538269b, type: 3}
+  - {fileID: -1974362887, guid: ae752ae71a09e184fa65ea4ea950f8d7, type: 3}
+  _frameRate: 4
+  _playOnStart: 1
+  _loop: 1
 --- !u!1 &8576529281534824613
 GameObject:
   m_ObjectHideFlags: 0
