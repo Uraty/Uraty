@@ -15,3 +15,4 @@ MonoBehaviour:
   _characterId: 
   _displayName: Sniper
   _previewPrefab: {fileID: 64248493349735629, guid: bc73278e7d937af409cf4ea00c555844, type: 3}
+  _description: "\u30B9\u30CA\u30A4\u30D1\u30FC"

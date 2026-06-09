@@ -14,11 +14,14 @@ namespace Uraty.Application.Lobby
     public sealed class LobbyPlayController : MonoBehaviour
     {
         // MainPanelにあるプレイ開始ボタン。
+        [Header("Button")]
         [SerializeField] private Button _playButton;
 
         // 現在選択中のモードを取得するためのController。
+        [Header("Controllers")]
         [SerializeField] private LobbyModeSelectController _modeSelectController;
 
+        [Header("Store")]
         [SerializeField] private GameStartDataStore _gameStartDataStore;
 
         private void OnEnable()

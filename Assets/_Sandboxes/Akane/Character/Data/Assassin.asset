@@ -15,3 +15,4 @@ MonoBehaviour:
   _characterId: 
   _displayName: Assassin
   _previewPrefab: {fileID: 7931562737157900142, guid: e4f55ec51b5d5d346a0a6a7fedc573aa, type: 3}
+  _description: "\u30A2\u30B5\u30B7\u30F3"

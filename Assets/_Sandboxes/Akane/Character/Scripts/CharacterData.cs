@@ -12,8 +12,12 @@ namespace Uraty.Feature.Akane_TestCharacter
         [SerializeField] private string _displayName;
         [SerializeField] private GameObject _previewPrefab;
 
+        [SerializeField, TextArea]
+        private string _description;
+
         public string CharacterId => _characterId;
         public string DisplayName => _displayName;
         public GameObject PreviewPrefab => _previewPrefab;
+        public string Description => _description;
     }
 }

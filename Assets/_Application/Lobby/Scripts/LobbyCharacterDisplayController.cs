@@ -6,6 +6,7 @@ using R3;
 using TMPro;
 
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -15,7 +16,7 @@ namespace Uraty.Application.Lobby
 {
     /// <summary>
     /// ロビー画面中央に、現在選択中のキャラPrefabを表示するクラス。
-    /// キャラを押したら、キャラ選択用Additive Sceneを開く。
+    /// キャラ表示部分を押したら、キャラ選択用Additive Sceneを開く。
     /// </summary>
     public sealed class LobbyCharacterDisplayController : MonoBehaviour
     {
@@ -28,18 +29,21 @@ namespace Uraty.Application.Lobby
         [SerializeField] private GameObject _mainPanel;
 
         // 現在表示中のキャラを押すためのボタン。
-        // 透明ボタンとしてキャラ表示部分に重ねる想定
+        // 透明ボタンとしてキャラ表示部分に重ねる想定。
         [SerializeField] private Button _currentCharacterButton;
 
         // 現在選択中のキャラ名を表示するText。
         [SerializeField] private TextMeshProUGUI _characterNameText;
 
         [Header("Scene")]
-        // Additiveで読み込むキャラ選択Scene名
+        // Additiveで読み込むキャラ選択Scene名。
         [SerializeField] private string _characterSelectSceneName = "LobbyCharacterSelectScene";
 
         [Header("Store")]
         [SerializeField] private CharacterSelectionStore _characterSelectionStore;
+
+        [Header("Default Selection")]
+        [SerializeField] private Selectable _returnSelectable;
 
         private IDisposable _selectedCharacterChangedSubscription;
 
@@ -51,13 +55,17 @@ namespace Uraty.Application.Lobby
 
         private void OnEnable()
         {
-            _currentCharacterButton.onClick.AddListener(OpenCharacterSelectScene);
+            if (_currentCharacterButton != null)
+            {
+                _currentCharacterButton.onClick.AddListener(OpenCharacterSelectScene);
+            }
+
             SceneManager.sceneUnloaded += HandleSceneUnloaded;
 
             if (_characterSelectionStore != null)
             {
                 _selectedCharacterChangedSubscription = _characterSelectionStore
-                    .SelectedCharacterChangedStream
+                    .SelectedCharacterPrefabChangedStream
                     .Subscribe(RefreshCharacter);
             }
         }
@@ -70,12 +78,16 @@ namespace Uraty.Application.Lobby
                 return;
             }
 
-            RefreshCharacter(_characterSelectionStore.SelectedCharacter);
+            RefreshCharacter(_characterSelectionStore.SelectedCharacterPrefab);
         }
 
         private void OnDisable()
         {
-            _currentCharacterButton.onClick.RemoveListener(OpenCharacterSelectScene);
+            if (_currentCharacterButton != null)
+            {
+                _currentCharacterButton.onClick.RemoveListener(OpenCharacterSelectScene);
+            }
+
             SceneManager.sceneUnloaded -= HandleSceneUnloaded;
 
             _selectedCharacterChangedSubscription?.Dispose();
@@ -111,6 +123,8 @@ namespace Uraty.Application.Lobby
         {
             _isLoading = true;
 
+            ClearUiSelection();
+
             // キャラ選択画面を開いている間は、
             // ロビー中央の現在選択中キャラとメインUIを非表示にする。
             SetPreviewRootVisible(false);
@@ -127,16 +141,11 @@ namespace Uraty.Application.Lobby
         /// <summary>
         /// 選択中キャラが変わったとき、ロビー中央のキャラ表示を差し替える。
         /// </summary>
-        private void RefreshCharacter(CharacterData character)
+        private void RefreshCharacter(GameObject characterPrefab)
         {
-            // 古い表示用Prefabがあれば削除する。
-            if (_currentPreviewObject != null)
-            {
-                Destroy(_currentPreviewObject);
-                _currentPreviewObject = null;
-            }
+            DestroyCurrentPreview();
 
-            if (character == null)
+            if (characterPrefab == null)
             {
                 if (_characterNameText != null)
                 {
@@ -146,26 +155,36 @@ namespace Uraty.Application.Lobby
                 return;
             }
 
-            // キャラ名を表示する。
             if (_characterNameText != null)
             {
-                _characterNameText.text = character.DisplayName;
+                _characterNameText.text = characterPrefab.name;
             }
 
-            // 表示用Prefabが設定されていない場合は警告を出す。
-            if (character.PreviewPrefab == null)
+            if (_previewRoot == null)
             {
-                Debug.LogWarning($"{character.DisplayName} に PreviewPrefab が設定されていません。");
+                Debug.LogError("PreviewRoot が設定されていません。");
                 return;
             }
 
-            // 選択されたキャラの表示用Prefabをロビー中央に生成する。
             _currentPreviewObject = Instantiate(
-                character.PreviewPrefab,
-                _previewRoot.position,
-                _previewRoot.rotation,
+                characterPrefab,
                 _previewRoot
             );
+
+            _currentPreviewObject.transform.localPosition = Vector3.zero;
+            _currentPreviewObject.transform.localRotation = Quaternion.identity;
+            _currentPreviewObject.transform.localScale = Vector3.one;
+        }
+
+        private void DestroyCurrentPreview()
+        {
+            if (_currentPreviewObject == null)
+            {
+                return;
+            }
+
+            Destroy(_currentPreviewObject);
+            _currentPreviewObject = null;
         }
 
         /// <summary>
@@ -183,6 +202,8 @@ namespace Uraty.Application.Lobby
             // ロビー中央の現在選択中キャラとメインUIを再表示する。
             SetPreviewRootVisible(true);
             SetMainPanelVisible(true);
+
+            StartCoroutine(SelectReturnUiNextFrame());
         }
 
         /// <summary>
@@ -209,6 +230,44 @@ namespace Uraty.Application.Lobby
             }
 
             _mainPanel.SetActive(visible);
+        }
+
+        private IEnumerator SelectReturnUiNextFrame()
+        {
+            yield return null;
+
+            SelectUi(_returnSelectable);
+        }
+
+        private void SelectUi(Selectable selectable)
+        {
+            if (selectable == null)
+            {
+                return;
+            }
+
+            if (EventSystem.current == null)
+            {
+                return;
+            }
+
+            if (!selectable.gameObject.activeInHierarchy)
+            {
+                return;
+            }
+
+            EventSystem.current.SetSelectedGameObject(null);
+            EventSystem.current.SetSelectedGameObject(selectable.gameObject);
+        }
+
+        private void ClearUiSelection()
+        {
+            if (EventSystem.current == null)
+            {
+                return;
+            }
+
+            EventSystem.current.SetSelectedGameObject(null);
         }
     }
 }

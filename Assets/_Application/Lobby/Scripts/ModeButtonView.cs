@@ -34,6 +34,8 @@ namespace Uraty.Application.Lobby
         // 親のLobbyModeSelectControllerから渡される。
         private Action<GameModeData> _onClicked;
 
+        public Selectable Selectable => _button;
+
         /// <summary>
         /// モードボタンの初期化。
         /// 表示内容を更新し、クリック時の通知先を登録する。

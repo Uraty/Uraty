@@ -1,6 +1,8 @@
 using TMPro;
 
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 using Uraty.Shared.Setting;
@@ -68,6 +70,13 @@ namespace Uraty.Application.Lobby
         // BGM音量の現在値表示。
         [SerializeField] private TextMeshProUGUI _bgmVolumeValueText;
 
+        [Header("Default Selection")]
+        [SerializeField] private Selectable _firstMainSelectable;
+        [SerializeField] private Selectable _firstSettingSelectable;
+
+        [Header("Input")]
+        [SerializeField] private InputActionReference _cancelActionReference;
+
         /// <summary>
         /// 現在のSlider値を設定データとして取得する。
         /// LobbyからBattleへ設定値を渡すときにも使用できる。
@@ -100,6 +109,16 @@ namespace Uraty.Application.Lobby
             _stickDeadZoneSlider.onValueChanged.AddListener(HandleStickDeadZoneChanged);
             _seVolumeSlider.onValueChanged.AddListener(HandleSeVolumeChanged);
             _bgmVolumeSlider.onValueChanged.AddListener(HandleBgmVolumeChanged);
+
+            if (_cancelActionReference != null)
+            {
+                _cancelActionReference.action.performed += HandleCancelPerformed;
+
+                if (!_cancelActionReference.action.enabled)
+                {
+                    _cancelActionReference.action.Enable();
+                }
+            }
         }
 
         private void Start()
@@ -124,6 +143,11 @@ namespace Uraty.Application.Lobby
             _stickDeadZoneSlider.onValueChanged.RemoveListener(HandleStickDeadZoneChanged);
             _seVolumeSlider.onValueChanged.RemoveListener(HandleSeVolumeChanged);
             _bgmVolumeSlider.onValueChanged.RemoveListener(HandleBgmVolumeChanged);
+
+            if (_cancelActionReference != null)
+            {
+                _cancelActionReference.action.performed -= HandleCancelPerformed;
+            }
         }
 
         /// <summary>
@@ -150,6 +174,8 @@ namespace Uraty.Application.Lobby
             _mainPanel.SetActive(false);
             _modelPanel.SetActive(false);
             _settingPanel.SetActive(true);
+
+            SelectUi(_firstSettingSelectable);
         }
 
         /// <summary>
@@ -160,6 +186,24 @@ namespace Uraty.Application.Lobby
             _settingPanel.SetActive(false);
             _mainPanel.SetActive(true);
             _modelPanel.SetActive(true);
+
+            SelectUi(_firstMainSelectable);
+        }
+
+        private void SelectUi(Selectable selectable)
+        {
+            if (selectable == null)
+            {
+                return;
+            }
+
+            if (EventSystem.current == null)
+            {
+                return;
+            }
+
+            EventSystem.current.SetSelectedGameObject(null);
+            EventSystem.current.SetSelectedGameObject(selectable.gameObject);
         }
 
         /// <summary>
@@ -194,6 +238,57 @@ namespace Uraty.Application.Lobby
         private void SaveSettings()
         {
             GameSettingsStore.Save(CurrentSettings);
+        }
+
+        private void HandleCancelPerformed(InputAction.CallbackContext context)
+        {
+            if (_settingPanel == null || !_settingPanel.activeSelf)
+            {
+                return;
+            }
+
+            ConfirmableSlider selectedSlider = GetSelectedConfirmableSlider();
+
+            if (selectedSlider != null && selectedSlider.IsEditing)
+            {
+                return;
+            }
+
+            CloseSettingPanel();
+        }
+
+        private ConfirmableSlider GetSelectedConfirmableSlider()
+        {
+            if (EventSystem.current == null)
+            {
+                return null;
+            }
+
+            GameObject selectedGameObject = EventSystem.current.currentSelectedGameObject;
+
+            if (selectedGameObject == null)
+            {
+                return null;
+            }
+
+            return selectedGameObject.GetComponentInParent<ConfirmableSlider>();
+        }
+
+        private bool IsSliderSelected()
+        {
+            if (EventSystem.current == null)
+            {
+                return false;
+            }
+
+            GameObject selectedGameObject = EventSystem.current.currentSelectedGameObject;
+
+            if (selectedGameObject == null)
+            {
+                return false;
+            }
+
+            return selectedGameObject.GetComponentInParent<Slider>() != null;
         }
 
         /// <summary>
