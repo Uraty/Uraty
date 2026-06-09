@@ -265,11 +265,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae873cdd9bbee6e43aa355265a9c291b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Uraty.Feature.Health::Uraty.Feature.Health.HPSystem
+  _characterStatus: {fileID: 0}
   _barCurrentHP: {fileID: 7796063552011174445}
   _barDamage: {fileID: 492348160368766062}
   _textCurrentHP: {fileID: 4492107980408655511}
-  _maxHP: 500
-  _currentHP: 500
+  _isBillboardEnabled: 1
+  _isYawOnlyBillboard: 0
   _damageRatioDownSpeed: 0.002
 --- !u!222 &6218178204694074882
 CanvasRenderer:

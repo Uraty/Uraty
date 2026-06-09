@@ -184,7 +184,7 @@ namespace Uraty.Features.Character
         }
 
         /// <summary>
-        /// HP表示用CanvasをMainCameraに向ける。
+        /// HP表示用CanvasをMainCameraに対してビルボードさせる。
         /// </summary>
         private void UpdateBillboard()
         {
@@ -205,21 +205,26 @@ namespace Uraty.Features.Character
 
             Transform cameraTransform = _mainCamera.transform;
 
-            Vector3 direction = transform.position - cameraTransform.position;
-
             if (_isYawOnlyBillboard)
             {
-                direction.y = 0.0f;
-            }
+                Vector3 forward = cameraTransform.forward;
+                forward.y = 0.0f;
 
-            if (direction.sqrMagnitude <= MinBillboardDirectionSqrMagnitude)
-            {
+                if (forward.sqrMagnitude <= MinBillboardDirectionSqrMagnitude)
+                {
+                    return;
+                }
+
+                transform.rotation = Quaternion.LookRotation(
+                    forward.normalized,
+                    Vector3.up);
+
                 return;
             }
 
-            Vector3 up = _isYawOnlyBillboard ? Vector3.up : cameraTransform.up;
-
-            transform.rotation = Quaternion.LookRotation(direction.normalized, up);
+            transform.rotation = Quaternion.LookRotation(
+                cameraTransform.forward,
+                cameraTransform.up);
         }
 
         /// <summary>
