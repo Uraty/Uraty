@@ -932,19 +932,31 @@ MonoBehaviour:
   m_EditorClassIdentifier: Uraty.Application.Matching::Uraty.Application.Matching.NowLoadingAnimation
   _targetImage: {fileID: 0}
   _frames:
-  - {fileID: -621019050, guid: 1d692e2b92ff6274fa9e53b7ec316f2a, type: 3}
-  - {fileID: 504450355, guid: f56d904f5d4063a4b92560f9a6c7d9e8, type: 3}
-  - {fileID: 1796905610, guid: 1aeee7f5b8b6ae14cb8fe9a4c765cde1, type: 3}
-  - {fileID: -1017598788, guid: 2e808e904d465734a9be8946dab0a780, type: 3}
-  - {fileID: 868050135, guid: 2b96f91d6576a564a8d8e6e728969caa, type: 3}
-  - {fileID: -1191870635, guid: 0e735ff6ac9d7134197dce9d735e13b4, type: 3}
-  - {fileID: -1808998829, guid: b95e170256a517e4c9d925a5af58bd12, type: 3}
-  - {fileID: -1829939225, guid: 2d0a6168d1d5ddd46aa44acef71491da, type: 3}
-  - {fileID: -94396039, guid: aee50b356dafa2840a4321b55f92c06c, type: 3}
-  - {fileID: -1638370685, guid: 3e2fb8e968df07e48b70099a893d65e4, type: 3}
-  - {fileID: 1048646838, guid: 6c51a998eac1f3c4daf98874d538269b, type: 3}
-  - {fileID: -1974362887, guid: ae752ae71a09e184fa65ea4ea950f8d7, type: 3}
-  _frameRate: 4
+  - {fileID: -202285485, guid: 3e5955e431de7e245bb11f6bfb19a321, type: 3}
+  - {fileID: 830074541, guid: da820759b35d1fb42b57be9a30437604, type: 3}
+  - {fileID: -267477818, guid: 0aa354a3f4f471444b3ba7973b0b42fe, type: 3}
+  - {fileID: 1441604767, guid: f8bf3f4c61caa4343b569dee40126ccb, type: 3}
+  - {fileID: -1344825781, guid: 69ee66672f796e143825cab9873304ac, type: 3}
+  - {fileID: -269901788, guid: a476cbb16cbf459499ac1246c420e8c2, type: 3}
+  - {fileID: -107312409, guid: 874d1a50a0b821943b044a539f424acd, type: 3}
+  - {fileID: -323813266, guid: 056e78727f05fce4489fd54d3298c7b5, type: 3}
+  - {fileID: 247946612, guid: b185bd035d3142549904863d8ffc0905, type: 3}
+  - {fileID: -2108961292, guid: 0182a67887ea07442a04aaf8463439e4, type: 3}
+  - {fileID: 31060122, guid: 1bf8a2487ffe2a14f89ecd37cbcf612f, type: 3}
+  - {fileID: 2062769649, guid: c879dddf5da1fa34ab1b7fd87a2c0116, type: 3}
+  - {fileID: 645136567, guid: 61ec6dd70f19acf4fa398d2292f2ea8b, type: 3}
+  - {fileID: -2144442845, guid: 06a3d8e395f434040bf38116a554bfe1, type: 3}
+  - {fileID: -1313151441, guid: c697082163a01c94db30ea6d01ea832e, type: 3}
+  - {fileID: 890184118, guid: 18d09027650bea34db593792d4372482, type: 3}
+  - {fileID: -1916006175, guid: dbedc93753da1d440b3b86f06203f513, type: 3}
+  - {fileID: -169046862, guid: 2201f8f73a2b71744b0f9e4976b984e4, type: 3}
+  - {fileID: 32715435, guid: 6efbaf7b1c16cb44aa18a1b5ddcc1676, type: 3}
+  - {fileID: 401120440, guid: 55333a7d766742e4fba2e684a1868522, type: 3}
+  - {fileID: -1772560529, guid: becd3ad8a5d87bb4498fd72be13d575a, type: 3}
+  - {fileID: 1421074750, guid: e330b5340186ff742b3ed61d2115900b, type: 3}
+  - {fileID: -1640514645, guid: 0d37fe7015456a84bad9057b9472ee74, type: 3}
+  - {fileID: 1939467155, guid: 37d34ca66b09d3c4caf04757b3e791d6, type: 3}
+  _frameRate: 8
   _playOnStart: 1
   _loop: 1
 --- !u!1 &8576529281534824613
