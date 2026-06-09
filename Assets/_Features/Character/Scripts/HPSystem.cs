@@ -5,48 +5,227 @@ namespace Uraty.Features.Character
 {
     public sealed class HPSystem : MonoBehaviour
     {
+        private const float MinBillboardDirectionSqrMagnitude = 0.0001f;
+
+        [SerializeField] private CharacterStatus _characterStatus;
+
+        [Header("HP Bar")]
         [SerializeField] private BarBase _barCurrentHP;
         [SerializeField] private BarBase _barDamage;
         [SerializeField] private TextMeshProUGUI _textCurrentHP;
 
-        /**********************************************************************
-        　　　　　　　　        2026/6/4 午前11:45分
-                           被弾＆回復の演出が現在未実装
-                     そのため定義と関連関数はコメントアウトしています。
+        [Header("Billboard")]
+        [SerializeField] private bool _isBillboardEnabled = true;
+        [SerializeField] private bool _isYawOnlyBillboard;
 
-        [SerializeField] private TMP_FontAsset _fontAsset;
-        [Header("ダメージ用テキスト")]
-        [SerializeField] private Color _colorTextDamage = Color.white;
-        [SerializeField] private Color _colorOutlineDamage = Color.black;
-
-        [Header("回復用テキスト")]
-        [SerializeField] private Color _colorTextHeal = Color.white;
-        [SerializeField] private Color _colorOutlineHeal = Color.black;
-
-        ***********************************************************************/
-
-        [SerializeField] private float _maxHP = 1000.0f;
-        [SerializeField] private float _currentHP = 1000.0f;
+        [Header("Damage Animation")]
         [SerializeField] private float _damageRatioDownSpeed = 0.002f;
 
-        private bool _isDamage = false;
+        private Camera _mainCamera;
 
-        public float MaxHP => _maxHP;
-        public float CurrentHP => _currentHP;
+        private float _lastMaxHP;
+        private float _lastCurrentHP;
+
+        private bool _isDamage;
+        private bool _isInitialized;
+
         public bool IsDamage => _isDamage;
+
+        private void Awake()
+        {
+            CacheCharacterStatus();
+            CacheMainCamera();
+        }
 
         private void Start()
         {
-            float hpRatio = Mathf.Clamp01(_currentHP / _maxHP);
-
-            SetMaxHP(_maxHP);
-            _currentHP = _maxHP;
-            SetTextCurrentHP(_currentHP);
-            _barCurrentHP.SetBarRatio(hpRatio);
-            _barDamage.SetBarRatio(hpRatio);
+            ForceRefreshHPView();
         }
 
         private void Update()
+        {
+            SyncHPView();
+            UpdateDamageBar();
+        }
+
+        private void LateUpdate()
+        {
+            UpdateBillboard();
+        }
+
+        private void OnValidate()
+        {
+            if (_characterStatus == null)
+            {
+                _characterStatus = GetComponentInParent<CharacterStatus>();
+            }
+        }
+
+        /// <summary>
+        /// CharacterStatusをキャッシュする。
+        /// </summary>
+        private void CacheCharacterStatus()
+        {
+            if (_characterStatus != null)
+            {
+                return;
+            }
+
+            _characterStatus = GetComponentInParent<CharacterStatus>();
+        }
+
+        /// <summary>
+        /// MainCameraタグが付いているカメラをキャッシュする。
+        /// </summary>
+        private void CacheMainCamera()
+        {
+            if (_mainCamera != null)
+            {
+                return;
+            }
+
+            _mainCamera = Camera.main;
+        }
+
+        /// <summary>
+        /// HP表示をCharacterStatusの値で強制的に更新する。
+        /// </summary>
+        private void ForceRefreshHPView()
+        {
+            if (!CanUpdateHPView())
+            {
+                return;
+            }
+
+            float maxHP = Mathf.Max(1.0f, _characterStatus.MaxHp);
+            float currentHP = Mathf.Clamp(
+                _characterStatus.CurrentHp,
+                0.0f,
+                maxHP);
+
+            float hpRatio = Mathf.Clamp01(currentHP / maxHP);
+
+            _barCurrentHP.SetBarRatio(hpRatio);
+            _barDamage.SetBarRatio(hpRatio);
+            SetTextCurrentHP(currentHP);
+
+            _lastMaxHP = maxHP;
+            _lastCurrentHP = currentHP;
+
+            _isDamage = false;
+            _isInitialized = true;
+        }
+
+        /// <summary>
+        /// CharacterStatusのHP変更を表示へ反映する。
+        /// </summary>
+        private void SyncHPView()
+        {
+            if (!CanUpdateHPView())
+            {
+                return;
+            }
+
+            if (!_isInitialized)
+            {
+                ForceRefreshHPView();
+                return;
+            }
+
+            float maxHP = Mathf.Max(1.0f, _characterStatus.MaxHp);
+            float currentHP = Mathf.Clamp(
+                _characterStatus.CurrentHp,
+                0.0f,
+                maxHP);
+
+            bool isMaxHPChanged = !Mathf.Approximately(maxHP, _lastMaxHP);
+            bool isCurrentHPChanged = !Mathf.Approximately(currentHP, _lastCurrentHP);
+
+            if (!isMaxHPChanged && !isCurrentHPChanged)
+            {
+                return;
+            }
+
+            float hpRatio = Mathf.Clamp01(currentHP / maxHP);
+
+            _barCurrentHP.SetBarRatio(hpRatio);
+            SetTextCurrentHP(currentHP);
+
+            if (isMaxHPChanged)
+            {
+                _barDamage.SetBarRatio(hpRatio);
+                _isDamage = false;
+            }
+            else if (currentHP < _lastCurrentHP)
+            {
+                _isDamage = true;
+            }
+            else
+            {
+                _barDamage.SetBarRatio(hpRatio);
+                _isDamage = false;
+            }
+
+            _lastMaxHP = maxHP;
+            _lastCurrentHP = currentHP;
+        }
+
+        /// <summary>
+        /// HP表示に必要な参照が設定されているか確認する。
+        /// </summary>
+        /// <returns>HP表示を更新できる場合はtrue。</returns>
+        private bool CanUpdateHPView()
+        {
+            return
+                _characterStatus != null &&
+                _barCurrentHP != null &&
+                _barDamage != null &&
+                _textCurrentHP != null;
+        }
+
+        /// <summary>
+        /// HP表示用CanvasをMainCameraに向ける。
+        /// </summary>
+        private void UpdateBillboard()
+        {
+            if (!_isBillboardEnabled)
+            {
+                return;
+            }
+
+            if (_mainCamera == null)
+            {
+                CacheMainCamera();
+
+                if (_mainCamera == null)
+                {
+                    return;
+                }
+            }
+
+            Transform cameraTransform = _mainCamera.transform;
+
+            Vector3 direction = transform.position - cameraTransform.position;
+
+            if (_isYawOnlyBillboard)
+            {
+                direction.y = 0.0f;
+            }
+
+            if (direction.sqrMagnitude <= MinBillboardDirectionSqrMagnitude)
+            {
+                return;
+            }
+
+            Vector3 up = _isYawOnlyBillboard ? Vector3.up : cameraTransform.up;
+
+            transform.rotation = Quaternion.LookRotation(direction.normalized, up);
+        }
+
+        /// <summary>
+        /// ダメージ用の遅延バーを現在HPバーへ近づける。
+        /// </summary>
+        private void UpdateDamageBar()
         {
             if (!_isDamage)
             {
@@ -59,8 +238,7 @@ namespace Uraty.Features.Character
             damageRatio = Mathf.MoveTowards(
                 damageRatio,
                 currentRatio,
-                _damageRatioDownSpeed
-            );
+                _damageRatioDownSpeed);
 
             _barDamage.SetBarRatio(damageRatio);
 
@@ -70,99 +248,13 @@ namespace Uraty.Features.Character
             }
         }
 
+        /// <summary>
+        /// 現在HPテキストを更新する。
+        /// </summary>
+        /// <param name="currentHP">現在HP。</param>
         private void SetTextCurrentHP(float currentHP)
         {
-            _textCurrentHP.text = currentHP.ToString();
+            _textCurrentHP.text = Mathf.CeilToInt(currentHP).ToString();
         }
-
-        /// <summary>
-        /// キャラクターのHPの最大値をセット
-        /// </summary>
-        /// <param name="maxHP"></param>
-        public void SetMaxHP(float maxHP)
-        {
-            _maxHP = Mathf.Max(1.0f, maxHP);
-
-            float hpRatio = Mathf.Clamp01(_currentHP / _maxHP);
-
-            _barCurrentHP.SetBarRatio(hpRatio);
-            _barDamage.SetBarRatio(hpRatio);
-        }
-
-        public void SetCurrentHP(float currentHP)
-        {
-            _currentHP = Mathf.Clamp(currentHP, 0.0f, _maxHP);
-
-            float hpRatio = Mathf.Clamp01(_currentHP / _maxHP);
-
-            _barCurrentHP.SetBarRatio(hpRatio);
-            _barDamage.SetBarRatio(hpRatio);
-        }
-
-        /// <summary>
-        /// 回復量を割合に変換してHPバーに反映
-        /// </summary>
-        /// <param name="healValue"></param>
-        public void HealHP(float healValue)
-        {
-            _currentHP = Mathf.Clamp(_currentHP + healValue, 0.0f, _maxHP);
-            SetTextCurrentHP(_currentHP);
-
-            //
-            //ShowTextHeal(healValue);
-            //
-
-            float hpRatio = Mathf.Clamp01(_currentHP / _maxHP);
-
-            _barCurrentHP.SetBarRatio(hpRatio);
-            _barDamage.SetBarRatio(hpRatio);
-
-            _isDamage = false;
-        }
-
-        /// <summary>
-        /// ダメージを割合に変換してHPバーに反映する
-        /// </summary>
-        /// <param name="damageValue"></param>
-        public void DamageHP(float damageValue)
-        {
-            _currentHP = Mathf.Clamp(_currentHP - damageValue, 0.0f, _maxHP);
-            SetTextCurrentHP(_currentHP);
-
-            //
-            //ShowTextDamage(damageValue);
-            //
-
-            if(_currentHP == 0.0f)
-            {
-                _barCurrentHP.SetBarRatio(0.0f);
-                _barDamage.SetBarRatio(0.0f);
-                return;
-            }
-            float hpRatio = Mathf.Clamp01(_currentHP / _maxHP);
-            _barCurrentHP.SetBarRatio(hpRatio);
-
-            _isDamage = true;
-        }
-
-        /*************************************************************
-         * 
-        private void ShowTextDamage(float damageValue)
-        {
-            _textDamageAndHeal.font = _fontAsset;
-            _textDamageAndHeal.color = _colorTextDamage;
-            _textDamageAndHeal.outlineColor = _colorOutlineDamage;
-            _textDamageAndHeal.text = damageValue.ToString();
-        }
-
-        private void ShowTextHeal(float healValue)
-        {
-            _textDamageAndHeal.font = _fontAsset;
-            _textDamageAndHeal.color = _colorTextHeal;
-            _textDamageAndHeal.outlineColor = _colorOutlineHeal;
-            _textDamageAndHeal.text = healValue.ToString();
-        }
-
-        **************************************************************/
     }
 }
