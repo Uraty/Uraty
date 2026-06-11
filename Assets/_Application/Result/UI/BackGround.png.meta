@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: a453e4c4f1727564693a4b1f174fe380
+guid: 750646374d114a84f9ca237eb877bea0
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -110,13 +110,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Cancel
+      name: BackGround
       rect:
         serializedVersion: 2
-        x: 153
-        y: 335
-        width: 1270
-        height: 391
+        x: 147
+        y: 34
+        width: 482
+        height: 283
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -125,8 +125,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 32f54f1c904253e48b7254a6cf97f11e
-      internalID: -952934646
+      spriteID: a2d7dc69b63c8514ea48a70249318e27
+      internalID: -1258116661
       vertices: []
       indices: 
       edges: []
@@ -135,7 +135,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 4b158660710c6564089b8188910b2738
+    spriteID: a643bf428bed77746be162f4cd50df2c
     internalID: 0
     vertices: []
     indices: 
@@ -145,7 +145,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Cancel: -952934646
+      BackGround: -1258116661
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
