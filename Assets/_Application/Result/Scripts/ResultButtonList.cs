@@ -15,7 +15,7 @@ namespace Uraty.Application.Matching
         [SerializeField] private string _retrySceneName = "MatchingScene";
 
         [Header("ロビーボタン")]
-        [SerializeField]　private ButtonSystem _lobbyButton;
+        [SerializeField] private ButtonSystem _lobbyButton;
 
         [Header("シーン遷移先")]
         [SerializeField] private string _lobbySceneName = "LobbyScene";

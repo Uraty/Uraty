@@ -73,7 +73,23 @@ namespace Uraty.Application.Result
                 canvas.gameObject.SetActive(false);
             }
 
-            _playerObjects[playerIndex].layer = LayerMask.NameToLayer("ResultFrontObj");
+            int resultFrontLayer = LayerMask.NameToLayer("ResultFrontObj");
+            if (resultFrontLayer == -1)
+            {
+                return;
+            }
+
+            SetLayerRecursively(_playerObjects[playerIndex], resultFrontLayer);
+        }
+
+        private void SetLayerRecursively(GameObject target, int layer)
+        {
+            target.layer = layer;
+
+            foreach (Transform child in target.transform)
+            {
+                SetLayerRecursively(child.gameObject, layer);
+            }
         }
     }
 }
