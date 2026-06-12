@@ -14,6 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Uraty.Feature.GameMode::Uraty.Feature.GameMode.GameModeData
   _modeId: wanted
   _displayName: wanted
-  _description: Description
+  _description: "\u30B0\u30DF\u3092\u596A\u3063\u3066\u3001\u6575\u3092\u5012\u305B\uFF01"
   _icon: {fileID: 0}
-  _gameSceneName: BattleScene
+  _gameSceneName: MatchingScene
