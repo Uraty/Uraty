@@ -6,10 +6,12 @@ using System.Reflection;
 using R3;
 
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 using Uraty.Features.Bot;
 using Uraty.Features.Character;
 using Uraty.Features.Player;
+using Uraty.Features.Timer;
 using Uraty.Shared.Team;
 using Uraty.Systems.Camera;
 using Uraty.Systems.Input;
@@ -17,7 +19,7 @@ using Uraty.Systems.Input;
 namespace Uraty.Application.Battle
 {
     /// <summary>
-    /// バトルシーン全体の生成、入力接続、Bot制御、可視性制御、復活処理を管理するアプリケーション層のコンポーネントです。
+    /// バトルシーン全体の生成、入力接続、Bot制御、可視性制御、復活処理、バトル時間を管理するアプリケーション層のコンポーネントです。
     /// </summary>
     public sealed class BattleApplication : MonoBehaviour
     {
@@ -37,135 +39,85 @@ namespace Uraty.Application.Battle
         private const string SpawnerTypeName =
             "Uraty.Features.Terrain.Spawner";
 
-        /// <summary>
-        /// Reflection で解決した Spawner 型のキャッシュです。
-        /// </summary>
         private static Type _cachedSpawnerType;
-
-        /// <summary>
-        /// Spawner.TeamId プロパティ情報のキャッシュです。
-        /// </summary>
         private static PropertyInfo _cachedSpawnerTeamIdProperty;
-
-        /// <summary>
-        /// Spawner.TryReserve メソッド情報のキャッシュです。
-        /// </summary>
         private static MethodInfo _cachedSpawnerTryReserveMethod;
-
-        /// <summary>
-        /// Spawner の Reflection 情報をキャッシュ済みかどうかです。
-        /// </summary>
         private static bool _isSpawnerReflectionCached;
 
-        /// <summary>
-        /// プレイヤーのオートエイム対象を探索する半径です。
-        /// </summary>
+        [Header("Battle Timer")]
+        [SerializeField]
+        private float _battleDurationSeconds = 180f;
+
+        [SerializeField]
+        private CountDown _countDown;
+
         [Header("Auto Aim (Player)")]
         [SerializeField]
         private float _playerAutoAimSearchRadius = 12f;
 
-        /// <summary>
-        /// プレイヤーのオートエイム対象を許可する最大角度です。
-        /// </summary>
         [SerializeField]
         private float _playerAutoAimMaxAngleDegrees = 55f;
 
-        /// <summary>
-        /// Botが逃走・回復に入るHP比率です。
-        /// </summary>
         [Header("Bot Recovery")]
         [Tooltip("Botが逃走・回復に入るHP比率(0-1)")]
         [SerializeField]
         private float _botRecoveryEnterHpRatio = 0.5f;
 
-        /// <summary>
-        /// Botが通常行動へ戻るHP比率です。
-        /// </summary>
         [Tooltip("回復開始後、このHP比率まで回復したら通常行動へ戻る(0-1)")]
         [SerializeField]
         private float _botRecoveryExitHpRatio = 0.7f;
 
-        /// <summary>
-        /// Botの逃走移動の強さです。
-        /// </summary>
         [Tooltip("逃走移動の強さ(0-1)")]
         [SerializeField]
         private float _botFleeMoveScale = 1.0f;
 
-        /// <summary>
-        /// 死亡してから復活するまでの秒数です。
-        /// </summary>
         [Header("Respawn")]
         [SerializeField]
         private float _respawnDelaySeconds = 3f;
 
-        /// <summary>
-        /// プレイヤーを追従するカメラです。
-        /// </summary>
         [Header("Camera")]
         [SerializeField]
         private Camera _playerCamera;
 
-        /// <summary>
-        /// プレイヤー入力を扱う Input System のラッパーです。
-        /// </summary>
         [Header("Input")]
         [SerializeField]
         private GameInput _input;
 
-        /// <summary>
-        /// プレイヤー入力イベントを公開するコントローラーです。
-        /// </summary>
         [SerializeField]
         private PlayerController _playerController;
 
-        /// <summary>
-        /// Bot入力イベントを公開するコントローラー群です。
-        /// </summary>
         [Header("Bot")]
         [SerializeField]
         private BotController[] _botControllers;
 
-        /// <summary>
-        /// このクライアントから可視とみなすチームIDです。
-        /// </summary>
         [Header("Visibility")]
         [SerializeField]
         private TeamId _visibleTeamId = TeamId.Primary;
 
-        /// <summary>
-        /// 選択ロールが不正な場合に使用するプレイヤーのフォールバックロールです。
-        /// </summary>
         [Header("Fallback")]
         [SerializeField]
         private RoleType _fallbackPlayerRoleType = RoleType.Attacker;
 
-        /// <summary>
-        /// ロールとキャラクターPrefabの対応表です。
-        /// </summary>
         [Header("Character Prefabs")]
         [SerializeField]
         private RoleCharacterPrefabEntry[] _roleCharacterPrefabEntries;
 
-        /// <summary>
-        /// スポナー検索対象を制限するレイヤーマスクです。0の場合はレイヤー制限を行いません。
-        /// </summary>
         [Header("Spawn")]
         [Tooltip("スポナーを検索する対象レイヤー")]
         [SerializeField]
         private LayerMask _spawnerLayerMask;
 
-        /// <summary>
-        /// 生成済み Character の数です。
-        /// </summary>
+        private bool _hasRequestedResultScene;
+
+        private float _remainingBattleSeconds;
+        private bool _isBattleTimerRunning;
+
         public int CharacterCount => _characterEntries.Count;
 
-        /// <summary>
-        /// 指定インデックスの生成済み CharacterStatus を取得します。
-        /// </summary>
-        /// <param name="index">取得する Character のインデックスです。</param>
-        /// <param name="status">取得した CharacterStatus です。</param>
-        /// <returns>取得できた場合は true です。</returns>
+        public bool IsBattleTimerRunning => _isBattleTimerRunning;
+
+        public float RemainingBattleSeconds => _remainingBattleSeconds;
+
         public bool TryGetCharacterStatusAt(
             int index,
             out CharacterStatus status)
@@ -193,42 +145,38 @@ namespace Uraty.Application.Battle
             return true;
         }
 
-        /// <summary>
-        /// 生成済みキャラクターの実行時情報一覧です。
-        /// </summary>
         private readonly List<CharacterRuntimeEntry> _characterEntries = new();
 
-        /// <summary>
-        /// GameObject から実行時情報を高速に取得するための辞書です。
-        /// </summary>
         private readonly Dictionary<GameObject, CharacterRuntimeEntry>
             _characterEntryByObject = new();
 
-        /// <summary>
-        /// Botキャラクターが現在回復行動中かどうかを管理する辞書です。
-        /// </summary>
         private readonly Dictionary<GameObject, bool>
             _isBotRecoveringByCharacterObject = new();
 
-        /// <summary>
-        /// キャラクターが最後に使用したスポナーを保持する辞書です。
-        /// 復活位置の決定に使用します。
-        /// </summary>
         private readonly Dictionary<GameObject, Component>
             _spawnerByCharacterObject = new();
 
-        /// <summary>
-        /// R3購読の破棄に使用する DisposableBag です。
-        /// </summary>
         private DisposableBag _disposables;
 
-        /// <summary>
-        /// バトル開始時にキャラクター生成、カメラ設定、入力購読を初期化します。
-        /// </summary>
-        /// <returns>初期化を1フレーム遅延するためのコルーチンです。</returns>
+        private void Awake()
+        {
+            _remainingBattleSeconds =
+                Mathf.Max(
+                    0f,
+                    _battleDurationSeconds);
+
+            _isBattleTimerRunning =
+                false;
+
+            _hasRequestedResultScene =
+                false;
+        }
+
         private IEnumerator Start()
         {
             yield return null;
+
+            ResetBattleTimer();
 
             _input.Player.Enable();
 
@@ -270,23 +218,105 @@ namespace Uraty.Application.Battle
 
             SubscribeBotControllers(
                 playerObject);
+
+            StartBattleTimer();
         }
 
-        /// <summary>
-        /// 毎フレーム、キャラクターの草むらRevealと描画可否を更新します。
-        /// </summary>
         private void Update()
         {
+            UpdateBattleTimer(
+                Time.deltaTime);
+
             UpdateCharacterVisibility();
         }
 
-        /// <summary>
-        /// プレイヤーチームのキャラクターを生成します。
-        /// </summary>
-        /// <param name="roleTypes">生成候補となるロール配列です。</param>
-        /// <param name="selectedIndex">先頭プレイヤーに使用するロールのインデックスです。</param>
-        /// <returns>操作対象となる先頭プレイヤーの GameObject です。</returns>
-        /// <exception cref="InvalidOperationException">操作対象が生成されなかった場合に送出されます。</exception>
+        public void StartBattleTimer()
+        {
+            _isBattleTimerRunning =
+                true;
+
+            UpdateBattleTimerDisplay();
+        }
+
+        public void StopBattleTimer()
+        {
+            _isBattleTimerRunning =
+                false;
+        }
+
+        public void ResetBattleTimer()
+        {
+            _remainingBattleSeconds =
+                Mathf.Max(
+                    0f,
+                    _battleDurationSeconds);
+
+            UpdateBattleTimerDisplay();
+        }
+
+        private void UpdateBattleTimer(
+            float deltaTime)
+        {
+            if (!_isBattleTimerRunning)
+            {
+                return;
+            }
+
+            if (_remainingBattleSeconds > 0f)
+            {
+                _remainingBattleSeconds =
+                    Mathf.Max(
+                        0f,
+                        _remainingBattleSeconds - deltaTime);
+
+                UpdateBattleTimerDisplay();
+
+                if (_remainingBattleSeconds > 0f)
+                {
+                    return;
+                }
+            }
+
+            _isBattleTimerRunning =
+                false;
+
+            HandleBattleTimerCompleted();
+        }
+
+        private void UpdateBattleTimerDisplay()
+        {
+            if (_countDown == null)
+            {
+                return;
+            }
+
+            _countDown.SetRemainingSeconds(
+                _remainingBattleSeconds);
+        }
+
+        private void HandleBattleTimerCompleted()
+        {
+            if (_hasRequestedResultScene)
+            {
+                return;
+            }
+
+            _hasRequestedResultScene =
+                true;
+
+            StopBattleTimer();
+
+            if (_input != null)
+            {
+                _input.Player.Disable();
+            }
+
+            Debug.Log(
+                "Battle timer completed. Change scene to Result.");
+
+            SceneManager.LoadScene("ResultScene");
+        }
+
         private GameObject SpawnPlayerTeam(
             RoleType[] roleTypes,
             int selectedIndex)
@@ -323,11 +353,6 @@ namespace Uraty.Application.Battle
             return playerObject;
         }
 
-        /// <summary>
-        /// 敵チームのキャラクターを生成します。
-        /// </summary>
-        /// <param name="roleTypes">生成候補となるロール配列です。</param>
-        /// <param name="selectedIndex">プレイヤー側ロール選択の基準インデックスです。</param>
         private void SpawnEnemyTeam(
             RoleType[] roleTypes,
             int selectedIndex)
@@ -349,12 +374,6 @@ namespace Uraty.Application.Battle
             }
         }
 
-        /// <summary>
-        /// 指定ロールとチームでキャラクターを生成し、スポナー配置、ステータス初期化、死亡購読を行います。
-        /// </summary>
-        /// <param name="roleType">生成するキャラクターのロールです。</param>
-        /// <param name="teamId">所属チームです。</param>
-        /// <returns>生成されたキャラクターの GameObject です。</returns>
         private GameObject SpawnCharacter(
             RoleType roleType,
             TeamId teamId)
@@ -392,11 +411,6 @@ namespace Uraty.Application.Battle
             return obj;
         }
 
-        /// <summary>
-        /// キャラクターの実行時参照情報を作成します。
-        /// </summary>
-        /// <param name="characterObject">対象キャラクターの GameObject です。</param>
-        /// <returns>作成された実行時情報です。</returns>
         private CharacterRuntimeEntry CreateCharacterRuntimeEntry(
             GameObject characterObject)
         {
@@ -418,12 +432,6 @@ namespace Uraty.Application.Battle
                         true));
         }
 
-        /// <summary>
-        /// キャラクター GameObject に対応する実行時情報を取得します。
-        /// </summary>
-        /// <param name="characterObject">対象キャラクターの GameObject です。</param>
-        /// <returns>対象キャラクターの実行時情報です。</returns>
-        /// <exception cref="InvalidOperationException">実行時情報が存在しない場合に送出されます。</exception>
         private CharacterRuntimeEntry GetRequiredCharacterEntry(
             GameObject characterObject)
         {
@@ -445,10 +453,6 @@ namespace Uraty.Application.Battle
                 $"{objectName} の CharacterRuntimeEntry が存在しません。");
         }
 
-        /// <summary>
-        /// キャラクターの死亡イベントを購読し、非表示化と復活処理を開始します。
-        /// </summary>
-        /// <param name="entry">購読対象キャラクターの実行時情報です。</param>
         private void SubscribeCharacterDeath(
             CharacterRuntimeEntry entry)
         {
@@ -483,11 +487,6 @@ namespace Uraty.Application.Battle
                 .AddTo(ref _disposables);
         }
 
-        /// <summary>
-        /// 指定時間後にキャラクターを最後に使用したスポナー位置へ復活させます。
-        /// </summary>
-        /// <param name="status">復活対象のステータスです。</param>
-        /// <returns>復活待機用のコルーチンです。</returns>
         private IEnumerator RespawnCharacterAfterDelay(
             CharacterStatus status)
         {
@@ -555,10 +554,6 @@ namespace Uraty.Application.Battle
                 $"{characterObject.name} respawned.");
         }
 
-        /// <summary>
-        /// プレイヤー以外の生成済みキャラクターに BotController を割り当てます。
-        /// </summary>
-        /// <param name="playerObject">プレイヤーが操作するキャラクターです。</param>
         private void SubscribeBotControllers(
             GameObject playerObject)
         {
@@ -606,11 +601,6 @@ namespace Uraty.Application.Battle
             }
         }
 
-        /// <summary>
-        /// 1体の BotController とキャラクターを接続し、移動・エイム・攻撃・回復行動を購読します。
-        /// </summary>
-        /// <param name="botController">入力イベント元の BotController です。</param>
-        /// <param name="entry">Bot が操作するキャラクターの実行時情報です。</param>
         private void SubscribeBotController(
             BotController botController,
             CharacterRuntimeEntry entry)
@@ -781,11 +771,6 @@ namespace Uraty.Application.Battle
                 .AddTo(ref _disposables);
         }
 
-        /// <summary>
-        /// Botが回復行動中に敵から離れるためのワールド方向を求めます。
-        /// </summary>
-        /// <param name="selfTransform">Botキャラクターの Transform です。</param>
-        /// <returns>逃走に使う正規化済みワールド方向です。</returns>
         private Vector3 FindFleeDirectionWorld(
             Transform selfTransform)
         {
@@ -832,10 +817,6 @@ namespace Uraty.Application.Battle
             return away.normalized;
         }
 
-        /// <summary>
-        /// プレイヤーコントローラーの入力イベントをキャラクター操作へ接続します。
-        /// </summary>
-        /// <param name="playerObject">プレイヤーが操作するキャラクターです。</param>
         private void SubscribePlayerController(
             GameObject playerObject)
         {
@@ -1005,10 +986,6 @@ namespace Uraty.Application.Battle
                 .AddTo(ref _disposables);
         }
 
-        /// <summary>
-        /// 可視チームのキャラクターだけが草むらをRevealできるように設定します。
-        /// </summary>
-        /// <param name="visibleTeamId">可視判定の基準となるチームIDです。</param>
         private void ConfigureBushRevealSensors(
             TeamId visibleTeamId)
         {
@@ -1040,11 +1017,6 @@ namespace Uraty.Application.Battle
             }
         }
 
-        /// <summary>
-        /// Reveal有効状態が前回値と異なる場合だけ CharacterReveal へ反映します。
-        /// </summary>
-        /// <param name="entry">対象キャラクターの実行時情報です。</param>
-        /// <param name="isEnabled">Revealを有効にするかどうかです。</param>
         private void SetRevealEnabledIfChanged(
             CharacterRuntimeEntry entry,
             bool isEnabled)
@@ -1065,9 +1037,6 @@ namespace Uraty.Application.Battle
                 true;
         }
 
-        /// <summary>
-        /// 草むらReveal状態とキャラクター描画状態を更新します。
-        /// </summary>
         private void UpdateCharacterVisibility()
         {
             ConfigureBushRevealSensors(
@@ -1134,13 +1103,11 @@ namespace Uraty.Application.Battle
             CharacterStatus status =
                 entry.Status;
 
-            // 味方は常に表示
             if (status.TeamId == _visibleTeamId)
             {
                 return true;
             }
 
-            // 敵で草の中なら非表示
             if (status.IsInsideBush)
             {
                 return false;
@@ -1175,9 +1142,6 @@ namespace Uraty.Application.Battle
                 true;
         }
 
-        /// <summary>
-        /// キャラクターが草むら内にいるかを更新します。
-        /// </summary>
         private static void UpdateCharacterInsideBushState(
             CharacterRuntimeEntry entry)
         {
@@ -1202,14 +1166,9 @@ namespace Uraty.Application.Battle
                 isInsideBush);
 
             Debug.Log(
-    $"{entry.GameObject.name} Bush={isInsideBush}");
+                $"{entry.GameObject.name} Bush={isInsideBush}");
         }
 
-        /// <summary>
-        /// 指定キャラクターを現在の可視チーム視点で描画すべきか判定します。
-        /// </summary>
-        /// <param name="targetEntry">描画判定対象の実行時情報です。</param>
-        /// <returns>描画すべきなら true、隠すべきなら false です。</returns>
         private bool ShouldRenderCharacter(
             CharacterRuntimeEntry targetEntry)
         {
@@ -1223,11 +1182,6 @@ namespace Uraty.Application.Battle
                     targetEntry);
         }
 
-        /// <summary>
-        /// 対象キャラクターが可視チームのReveal範囲内にいるか判定します。
-        /// </summary>
-        /// <param name="targetEntry">判定対象キャラクターの実行時情報です。</param>
-        /// <returns>Reveal範囲内なら true です。</returns>
         private bool IsInsideVisibleTeamRevealRange(
             CharacterRuntimeEntry targetEntry)
         {
@@ -1282,11 +1236,6 @@ namespace Uraty.Application.Battle
             return false;
         }
 
-        /// <summary>
-        /// キャラクター配下の Renderer を再取得し、実行時情報のキャッシュを更新します。
-        /// </summary>
-        /// <param name="characterObject">対象キャラクターの GameObject です。</param>
-        /// <returns>取得した Renderer 配列です。</returns>
         private Renderer[] CacheCharacterRenderers(
             GameObject characterObject)
         {
@@ -1307,11 +1256,6 @@ namespace Uraty.Application.Battle
             return renderers;
         }
 
-        /// <summary>
-        /// キャラクターの Renderer 有効状態をまとめて切り替えます。
-        /// </summary>
-        /// <param name="entry">対象キャラクターの実行時情報です。</param>
-        /// <param name="isEnabled">Rendererを有効にするかどうかです。</param>
         private void SetCharacterRenderersEnabled(
             CharacterRuntimeEntry entry,
             bool isEnabled)
@@ -1331,11 +1275,6 @@ namespace Uraty.Application.Battle
                 isEnabled);
         }
 
-        /// <summary>
-        /// Renderer 配列の enabled を必要な場合だけ切り替えます。
-        /// </summary>
-        /// <param name="renderers">切り替え対象の Renderer 配列です。</param>
-        /// <param name="isEnabled">Rendererを有効にするかどうかです。</param>
         private static void SetRenderersEnabled(
             Renderer[] renderers,
             bool isEnabled)
@@ -1367,13 +1306,6 @@ namespace Uraty.Application.Battle
             }
         }
 
-        /// <summary>
-        /// キャラクターに対応する未使用スポナーを予約し、その位置と回転をキャラクターへ反映します。
-        /// </summary>
-        /// <param name="characterObject">配置対象のキャラクターです。</param>
-        /// <param name="teamId">必要なスポナーのチームIDです。</param>
-        /// <returns>予約した Spawner コンポーネントです。</returns>
-        /// <exception cref="ArgumentNullException">characterObject が null の場合に送出されます。</exception>
         private Component AssignCharacterToSpawnerPosition(
             GameObject characterObject,
             TeamId teamId)
@@ -1400,12 +1332,6 @@ namespace Uraty.Application.Battle
             return spawner;
         }
 
-        /// <summary>
-        /// 指定チーム用の未使用スポナーを検索し、予約します。
-        /// </summary>
-        /// <param name="teamId">検索するスポナーのチームIDです。</param>
-        /// <returns>予約できた Spawner コンポーネントです。</returns>
-        /// <exception cref="InvalidOperationException">利用可能な Spawner が見つからない場合に送出されます。</exception>
         private Component FindAndReserveSpawnerComponent(
             TeamId teamId)
         {
@@ -1478,10 +1404,6 @@ namespace Uraty.Application.Battle
                 " (数が足りない /既に使用済み / LayerMask が誤っている可能性があります)");
         }
 
-        /// <summary>
-        /// Spawner 型、TeamId プロパティ、TryReserve メソッドの Reflection 情報をキャッシュします。
-        /// </summary>
-        /// <exception cref="InvalidOperationException">必要な型またはメンバーが見つからない場合に送出されます。</exception>
         private static void EnsureSpawnerReflectionCache()
         {
             if (_isSpawnerReflectionCached)
@@ -1525,11 +1447,6 @@ namespace Uraty.Application.Battle
                 true;
         }
 
-        /// <summary>
-        /// 現在読み込まれている Assembly から完全修飾名に一致する型を検索します。
-        /// </summary>
-        /// <param name="fullName">検索対象の完全修飾型名です。</param>
-        /// <returns>見つかった型です。見つからない場合は null です。</returns>
         private static Type ResolveTypeFromLoadedAssemblies(
             string fullName)
         {
@@ -1562,12 +1479,6 @@ namespace Uraty.Application.Battle
             return null;
         }
 
-        /// <summary>
-        /// ロールに対応するキャラクターPrefabを取得します。
-        /// </summary>
-        /// <param name="roleType">検索するロールです。</param>
-        /// <returns>対応するキャラクターPrefabです。</returns>
-        /// <exception cref="InvalidOperationException">指定ロールのPrefabが未登録の場合に送出されます。</exception>
         private GameObject FindCharacterPrefab(
             RoleType roleType)
         {
@@ -1584,13 +1495,6 @@ namespace Uraty.Application.Battle
                 $"{roleType} のPrefab未登録");
         }
 
-        /// <summary>
-        /// 指定 GameObject から必須コンポーネントを取得します。
-        /// </summary>
-        /// <typeparam name="T">取得するコンポーネント型です。</typeparam>
-        /// <param name="target">取得対象の GameObject です。</param>
-        /// <returns>取得したコンポーネントです。</returns>
-        /// <exception cref="InvalidOperationException">対象コンポーネントが存在しない場合に送出されます。</exception>
         private static T GetRequiredComponent<T>(
             GameObject target)
             where T : Component
@@ -1605,9 +1509,6 @@ namespace Uraty.Application.Battle
                 $"{target.name} に {typeof(T).Name} が存在しません。");
         }
 
-        /// <summary>
-        /// viewer から target が視認可能か判定します。
-        /// </summary>
         private bool CanCharacterBeSeen(
             CharacterRuntimeEntry viewerEntry,
             CharacterRuntimeEntry targetEntry)
@@ -1635,27 +1536,21 @@ namespace Uraty.Application.Battle
                 return false;
             }
 
-            // 草外なら常に見える
             if (!targetStatus.IsInsideBush)
             {
                 return true;
             }
 
-            // 同チームは見える
             if (viewerStatus.TeamId
                 == targetStatus.TeamId)
             {
                 return true;
             }
 
-            // 草内なら Reveal 範囲内のみ見える
             return viewerEntry.Reveal.ContainsWorldPosition(
                 targetEntry.Transform.position);
         }
 
-        /// <summary>
-        /// R3購読と実行時キャッシュを破棄します。
-        /// </summary>
         private void OnDestroy()
         {
             _disposables.Dispose();
@@ -1666,12 +1561,6 @@ namespace Uraty.Application.Battle
             _spawnerByCharacterObject.Clear();
         }
 
-        /// <summary>
-        /// Bot視点で攻撃対象にできる最も近い敵キャラクターを検索します。
-        /// </summary>
-        /// <param name="selfTransform">検索を行うBot自身の Transform です。</param>
-        /// <param name="searchRadius">検索半径です。</param>
-        /// <returns>最も近い敵の GameObject です。見つからない場合は null です。</returns>
         private GameObject FindNearestVisibleEnemyForBot(
             Transform selfTransform,
             float searchRadius)
@@ -1734,7 +1623,6 @@ namespace Uraty.Application.Battle
                     continue;
                 }
 
-                // Bot は草むら内の敵を探知しない
                 if (otherStatus.IsInsideBush)
                 {
                     continue;
@@ -1772,14 +1660,6 @@ namespace Uraty.Application.Battle
             return nearest;
         }
 
-        /// <summary>
-        /// プレイヤーの通常攻撃方向を、エイム結果とオートエイム設定から解決します。
-        /// </summary>
-        /// <param name="playerObject">プレイヤーキャラクターです。</param>
-        /// <param name="aim">通常攻撃エイムコンポーネントです。</param>
-        /// <param name="releasedDirectionFallback">リリース時に記録したフォールバック方向です。</param>
-        /// <param name="latestAimDirectionWorld">最後に有効だったエイム方向です。</param>
-        /// <returns>最終的に攻撃へ渡すワールド方向です。</returns>
         private Vector3 ResolvePlayerAttackDirection(
             GameObject playerObject,
             CharacterAttackAim aim,
@@ -1812,14 +1692,6 @@ namespace Uraty.Application.Battle
                 canAutoAim: false);
         }
 
-        /// <summary>
-        /// プレイヤーの必殺攻撃方向を、エイム結果とオートエイム設定から解決します。
-        /// </summary>
-        /// <param name="playerObject">プレイヤーキャラクターです。</param>
-        /// <param name="aim">必殺攻撃エイムコンポーネントです。</param>
-        /// <param name="releasedDirectionFallback">リリース時に記録したフォールバック方向です。</param>
-        /// <param name="latestAimDirectionWorld">最後に有効だったエイム方向です。</param>
-        /// <returns>最終的に必殺攻撃へ渡すワールド方向です。</returns>
         private Vector3 ResolvePlayerSuperDirection(
             GameObject playerObject,
             CharacterSuperAim aim,
@@ -1852,13 +1724,6 @@ namespace Uraty.Application.Battle
                 canAutoAim: false);
         }
 
-        /// <summary>
-        /// 基準方向とオートエイム可否から、実際に使用する攻撃方向を解決します。
-        /// </summary>
-        /// <param name="playerObject">プレイヤーキャラクターです。</param>
-        /// <param name="baseDirectionWorld">入力またはエイムから得た基準方向です。</param>
-        /// <param name="canAutoAim">オートエイムを許可するかどうかです。</param>
-        /// <returns>正規化済みの攻撃方向です。</returns>
         private Vector3 ResolveDirectionWithAutoAim(
             GameObject playerObject,
             Vector3 baseDirectionWorld,
@@ -1923,14 +1788,6 @@ namespace Uraty.Application.Battle
             return toEnemy.normalized;
         }
 
-        /// <summary>
-        /// 指定キャラクターの前方円錐範囲内にいる最も近い敵を検索します。
-        /// </summary>
-        /// <param name="selfTransform">検索者の Transform です。</param>
-        /// <param name="forward">検索者の正規化済み前方方向です。</param>
-        /// <param name="searchRadius">検索半径です。</param>
-        /// <param name="maxAngleDegrees">許容する最大角度です。</param>
-        /// <returns>最も近い敵の GameObject です。見つからない場合は null です。</returns>
         private GameObject FindNearestEnemyInCone(
             Transform selfTransform,
             Vector3 forward,
@@ -2042,52 +1899,24 @@ namespace Uraty.Application.Battle
             return nearest;
         }
 
-        /// <summary>
-        /// ロールとキャラクターPrefabの対応を保持する設定用エントリです。
-        /// </summary>
         [Serializable]
         private sealed class RoleCharacterPrefabEntry
         {
-            /// <summary>
-            /// 対応するロールです。
-            /// </summary>
             [SerializeField]
             private RoleType _roleType;
 
-            /// <summary>
-            /// 対応するキャラクターPrefabです。
-            /// </summary>
             [SerializeField]
             private GameObject _characterPrefab;
 
-            /// <summary>
-            /// 対応するロールを取得します。
-            /// </summary>
             public RoleType RoleType =>
                 _roleType;
 
-            /// <summary>
-            /// 対応するキャラクターPrefabを取得します。
-            /// </summary>
             public GameObject CharacterPrefab =>
                 _characterPrefab;
         }
 
-        /// <summary>
-        /// 生成済みキャラクターに必要な実行時参照をまとめた内部データです。
-        /// </summary>
         private sealed class CharacterRuntimeEntry
         {
-            /// <summary>
-            /// 実行時参照を初期化します。
-            /// </summary>
-            /// <param name="gameObject">キャラクターの GameObject です。</param>
-            /// <param name="transform">キャラクターの Transform です。</param>
-            /// <param name="status">キャラクターのステータスです。</param>
-            /// <param name="reveal">キャラクターのReveal範囲です。</param>
-            /// <param name="hpUi">キャラクターのHP UIです。</param>
-            /// <param name="reloadUi">キャラクターのHP UIです。</param>
-            /// <param name="renderers">キャラクター配下の Renderer 配列です。</param>
             public CharacterRuntimeEntry(
                 GameObject gameObject,
                 Transform transform,
@@ -2119,111 +1948,72 @@ namespace Uraty.Application.Battle
                     renderers;
             }
 
-            /// <summary>
-            /// キャラクターの GameObject です。
-            /// </summary>
             public GameObject GameObject
             {
                 get;
             }
 
-            /// <summary>
-            /// キャラクターの Transform です。
-            /// </summary>
             public Transform Transform
             {
                 get;
             }
 
-            /// <summary>
-            /// キャラクターのステータスです。
-            /// </summary>
             public CharacterStatus Status
             {
                 get;
             }
 
-            /// <summary>
-            /// キャラクターのReveal範囲です。
-            /// </summary>
             public CharacterReveal Reveal
             {
                 get;
             }
 
-            /// <summary>
-            /// キャラクターのHP UIです。
-            /// </summary>
             public HPSystem HpUi
             {
                 get;
             }
 
-            /// <summary>
-            /// キャラクターのHP UIです。
-            /// </summary>
             public CharacterReloadBar ReloadUi
             {
                 get;
             }
 
-            /// <summary>
-            /// キャラクター配下の Renderer 配列です。
-            /// </summary>
             public Renderer[] Renderers
             {
                 get;
                 set;
             }
 
-            /// <summary>
-            /// Reveal有効状態の前回値を保持しているかどうかです。
-            /// </summary>
             public bool HasRevealEnabledCache
             {
                 get;
                 set;
             }
 
-            /// <summary>
-            /// 最後に CharacterReveal へ反映した有効状態です。
-            /// </summary>
             public bool LastRevealEnabled
             {
                 get;
                 set;
             }
 
-            /// <summary>
-            /// HP UI表示状態の前回値を保持しているかどうかです。
-            /// </summary>
             public bool HasHpUiVisibleCache
             {
                 get;
                 set;
             }
 
-            /// <summary>
-            /// 最後に CharacterHP へ反映した表示状態です。
-            /// </summary>
             public bool LastHpUiVisible
             {
                 get;
                 set;
             }
 
-            /// <summary>
-            /// HP UI表示状態の前回値を保持しているかどうかです。
-            /// </summary>
             public bool HasReloadUiVisibleCache
             {
                 get;
                 set;
             }
 
-            /// <summary>
-            /// 最後に CharacterHP へ反映した表示状態です。
-            /// </summary>
             public bool LastReloadUiVisible
             {
                 get;

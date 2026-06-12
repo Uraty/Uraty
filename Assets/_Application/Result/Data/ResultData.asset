@@ -12,5 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a159162b0164dbe4b91f7baf361de59c, type: 3}
   m_Name: ResultData
   m_EditorClassIdentifier: Uraty.Application.Reslut::Uraty.Application.Reslut.ResultData
-  _playerName: aaaa
-  _role: {fileID: 9095663280809155271, guid: 76225e6227f412541bdd9faa383d1b72, type: 3}
+  _roleType: 0
