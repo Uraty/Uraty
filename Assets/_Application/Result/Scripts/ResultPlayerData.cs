@@ -65,8 +65,31 @@ namespace Uraty.Application.Result
                     _characterSpawnPositions[playerIndex].position,
                     _characterSpawnPositions[playerIndex].rotation);
 
-            _playerObjects[playerIndex]
-                .AddComponent<RotateObject>();
+            _playerObjects[playerIndex].AddComponent<RotateObject>();
+
+            Canvas canvas = _playerObjects[playerIndex].GetComponentInChildren<Canvas>(true);
+            if (canvas != null)
+            {
+                canvas.gameObject.SetActive(false);
+            }
+
+            int resultFrontLayer = LayerMask.NameToLayer("ResultFrontObj");
+            if (resultFrontLayer == -1)
+            {
+                return;
+            }
+
+            SetLayerRecursively(_playerObjects[playerIndex], resultFrontLayer);
+        }
+
+        private void SetLayerRecursively(GameObject target, int layer)
+        {
+            target.layer = layer;
+
+            foreach (Transform child in target.transform)
+            {
+                SetLayerRecursively(child.gameObject, layer);
+            }
         }
     }
 }
