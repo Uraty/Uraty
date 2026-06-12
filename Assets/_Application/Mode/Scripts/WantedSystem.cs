@@ -301,24 +301,13 @@ namespace Uraty.Application.Mode
             CharacterStatus sourceStatus,
             CharacterStatus destinationStatus)
         {
-            int sourceScore =
-                GetScoreOrDefault(sourceStatus);
-
             int destinationScore =
                 GetScoreOrDefault(destinationStatus);
 
-            SetScore(
-                sourceStatus,
-                GetInitialScore());
-
-            if (sourceScore <= 0)
-            {
-                return;
-            }
-
+            // 倒した側は常に +1 する（死んだ側のスコアはリセットしない）
             SetScore(
                 destinationStatus,
-                destinationScore + sourceScore);
+                destinationScore + 1);
         }
 
         private void SetScore(
