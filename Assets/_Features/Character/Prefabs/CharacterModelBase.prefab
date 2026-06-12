@@ -594,6 +594,10 @@ PrefabInstance:
       value: HPBar
       objectReference: {fileID: 0}
     - target: {fileID: 7578832540679116742, guid: 116e9a2fd785230468c4046cfe3199ae, type: 3}
+      propertyPath: _canvas
+      value: 
+      objectReference: {fileID: 2724125186799860388}
+    - target: {fileID: 7578832540679116742, guid: 116e9a2fd785230468c4046cfe3199ae, type: 3}
       propertyPath: _characterStatus
       value: 
       objectReference: {fileID: -6497995452392812755}

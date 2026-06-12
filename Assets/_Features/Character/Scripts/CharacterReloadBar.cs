@@ -36,6 +36,11 @@ namespace Uraty.Features.Character
         private float _lastReloadValue = -1.0f;
         private float _lastMaxReloadValue = -1.0f;
 
+        public void SetUiVisible(bool isVisible)
+        {
+            enabled = isVisible;
+        }
+
         private void Awake()
         {
             CacheReferences();
@@ -52,10 +57,8 @@ namespace Uraty.Features.Character
             UpdateBillboard();
         }
 
-        protected override void OnValidate()
+        private void OnValidate()
         {
-            base.OnValidate();
-
             _segmentCount = Mathf.Max(1, _segmentCount);
             _gap = Mathf.Max(0.0f, _gap);
             _roundRadius = Mathf.Max(0.0f, _roundRadius);

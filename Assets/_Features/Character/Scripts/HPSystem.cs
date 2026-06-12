@@ -21,6 +21,9 @@ namespace Uraty.Features.Character
         [Header("Damage Animation")]
         [SerializeField] private float _damageRatioDownSpeed = 0.002f;
 
+        [SerializeField]
+        private Canvas _canvas;
+
         private Camera _mainCamera;
 
         private float _lastMaxHP;
@@ -35,6 +38,19 @@ namespace Uraty.Features.Character
         {
             CacheCharacterStatus();
             CacheMainCamera();
+
+            if (_canvas == null)
+            {
+                _canvas = GetComponentInChildren<Canvas>(true);
+            }
+        }
+
+        public void SetUiVisible(bool isVisible)
+        {
+            if (_canvas != null)
+            {
+                _canvas.enabled = isVisible;
+            }
         }
 
         private void Start()
