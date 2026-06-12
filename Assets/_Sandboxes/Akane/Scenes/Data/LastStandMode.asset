@@ -16,4 +16,4 @@ MonoBehaviour:
   _displayName: last_stand
   _description: Description
   _icon: {fileID: 0}
-  _gameSceneName: BattleScene
+  _gameSceneName: MatchingScene

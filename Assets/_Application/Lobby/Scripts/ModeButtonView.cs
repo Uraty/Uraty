@@ -27,6 +27,9 @@ namespace Uraty.Application.Lobby
         // モード説明表示用Text。
         [SerializeField] private TextMeshProUGUI _descriptionText;
 
+        [Header("Font")]
+        [SerializeField] private TMP_FontAsset _fontAsset;
+
         // このボタンに対応するモードデータ。
         private GameModeData _modeData;
 
@@ -44,6 +47,8 @@ namespace Uraty.Application.Lobby
         {
             _modeData = modeData;
             _onClicked = onClicked;
+
+            ApplyFont();
 
             if (_nameText != null)
             {
@@ -66,6 +71,27 @@ namespace Uraty.Application.Lobby
             // 古いListenerが残らないように消してから登録する。
             _button.onClick.RemoveAllListeners();
             _button.onClick.AddListener(OnClick);
+        }
+
+        /// <summary>
+        /// Inspectorで設定されたフォントをTextへ反映する。
+        /// </summary>
+        private void ApplyFont()
+        {
+            if (_fontAsset == null)
+            {
+                return;
+            }
+
+            if (_nameText != null)
+            {
+                _nameText.font = _fontAsset;
+            }
+
+            if (_descriptionText != null)
+            {
+                _descriptionText.font = _fontAsset;
+            }
         }
 
         /// <summary>

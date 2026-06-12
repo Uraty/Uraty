@@ -292,6 +292,9 @@ namespace Uraty.Application.Lobby
                     _carouselRoot
                 );
 
+                // プレビュー画面では、Prefab内のHPバーやReloadバー用Canvasを表示しない。
+                HidePreviewCanvases(previewObject);
+
                 previewObject.transform.localPosition = new Vector3(
                     i * _slotSpacing,
                     0.0f,
@@ -330,6 +333,20 @@ namespace Uraty.Application.Lobby
                         _farSideScale
                     )
                 );
+            }
+        }
+
+        /// <summary>
+        /// プレビュー表示では、キャラPrefab内のCanvasを非表示にする。
+        /// HPBarやReloadBarなど、ゲーム中用UIが見えるのを防ぐ。
+        /// </summary>
+        private void HidePreviewCanvases(GameObject previewObject)
+        {
+            Canvas[] canvases = previewObject.GetComponentsInChildren<Canvas>(true);
+
+            foreach (Canvas canvas in canvases)
+            {
+                canvas.gameObject.SetActive(false);
             }
         }
 

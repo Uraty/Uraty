@@ -45,6 +45,10 @@ namespace Uraty.Application.Lobby
         [Header("Default Selection")]
         [SerializeField] private Selectable _returnSelectable;
 
+        // キャラPrefabの表示スケール。必要に応じて調整する。
+        [Header("Preview")]
+        [SerializeField] private Vector3 _previewScale = Vector3.one;
+
         private IDisposable _selectedCharacterChangedSubscription;
 
         // 現在ロビーに表示しているキャラPrefabの実体。
@@ -171,9 +175,11 @@ namespace Uraty.Application.Lobby
                 _previewRoot
             );
 
+            HidePreviewCanvases(_currentPreviewObject);
+
             _currentPreviewObject.transform.localPosition = Vector3.zero;
             _currentPreviewObject.transform.localRotation = Quaternion.identity;
-            _currentPreviewObject.transform.localScale = Vector3.one;
+            _currentPreviewObject.transform.localScale = _previewScale;
         }
 
         private void DestroyCurrentPreview()
@@ -268,6 +274,20 @@ namespace Uraty.Application.Lobby
             }
 
             EventSystem.current.SetSelectedGameObject(null);
+        }
+
+        /// <summary>
+        /// プレビュー表示では、キャラPrefab内のCanvasを非表示にする。
+        /// HPBarやReloadBarなど、ゲーム中用UIが見えるのを防ぐ。
+        /// </summary>
+        private void HidePreviewCanvases(GameObject previewObject)
+        {
+            Canvas[] canvases = previewObject.GetComponentsInChildren<Canvas>(true);
+
+            foreach (Canvas canvas in canvases)
+            {
+                canvas.gameObject.SetActive(false);
+            }
         }
     }
 }
