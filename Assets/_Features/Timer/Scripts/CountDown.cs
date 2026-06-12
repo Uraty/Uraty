@@ -1,77 +1,66 @@
+using System;
+
 using TMPro;
 
 using UnityEngine;
 
 namespace Uraty.Features.Timer
 {
-    public class CountDown : MonoBehaviour
+    /// <summary>
+    /// カウントダウン時間を表示する UI コンポーネントです。
+    /// 秒数の保持や減算は行わず、表示だけを担当します。
+    /// </summary>
+    public sealed class CountDown : MonoBehaviour
     {
-        [SerializeField] private float _durationSeconds = 180f;
-        [SerializeField] private TextMeshProUGUI _timerText;
+        /// <summary>
+        /// 残り時間を表示する TextMeshProUGUI です。
+        /// </summary>
+        [SerializeField]
+        private TextMeshProUGUI _timerText;
 
-        private float _remainingSeconds;
-        private bool _isRunning;
-
-        public bool IsRunning => _isRunning;
-        public float RemainingSeconds => _remainingSeconds;
+        private void Reset()
+        {
+            _timerText =
+                GetComponent<TextMeshProUGUI>();
+        }
 
         private void Awake()
         {
-            _remainingSeconds = _durationSeconds;
-            _isRunning = false;
-        }
-
-        private void Start()
-        {
-            StartTimer();
-        }
-
-        private void Update()
-        {
-            if (!_isRunning)
+            if (_timerText == null)
             {
-                return;
+                _timerText =
+                    GetComponent<TextMeshProUGUI>();
             }
 
-            if (_remainingSeconds > 0f)
+            if (_timerText == null)
             {
-                _remainingSeconds -= Time.deltaTime;
-                UpdateTimerDisplay(_remainingSeconds);
-                return;
+                throw new InvalidOperationException(
+                    $"{nameof(TextMeshProUGUI)} が設定されていません。");
             }
-
-            _remainingSeconds = 0f;
-            _isRunning = false;
-            HandleTimerCompleted();
         }
 
-        public void StartTimer()
+        /// <summary>
+        /// 指定された残り秒数をタイマー表示へ反映します。
+        /// </summary>
+        /// <param name="remainingSeconds">表示する残り秒数です。</param>
+        public void SetRemainingSeconds(
+            float remainingSeconds)
         {
-            _isRunning = true;
-        }
+            float clampedSeconds =
+                Mathf.Max(
+                    0f,
+                    remainingSeconds);
 
-        public void StopTimer()
-        {
-            _isRunning = false;
-        }
+            int minutes =
+                Mathf.FloorToInt(
+                    clampedSeconds / 60f);
 
-        public void ResetTimer()
-        {
-            _remainingSeconds = _durationSeconds;
-            UpdateTimerDisplay(_remainingSeconds);
-        }
+            int seconds =
+                Mathf.FloorToInt(
+                    clampedSeconds % 60f);
 
-        private void UpdateTimerDisplay(float remainingSeconds)
-        {
-            var minutes = Mathf.FloorToInt(remainingSeconds / 60f);
-            var seconds = Mathf.FloorToInt(remainingSeconds % 60f);
-
-            _timerText.text = $"{minutes:00}:{seconds:00}";
-        }
-
-        private void HandleTimerCompleted()
-        {
-            Debug.Log("Timer completed");
+            _timerText.text =
+                $"{minutes:00}:{seconds:00}";
         }
     }
 }
