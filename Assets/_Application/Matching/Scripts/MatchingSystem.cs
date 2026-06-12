@@ -216,7 +216,7 @@ namespace Uraty.Application.Matching
                 return;
             }
 
-            SceneManager.LoadScene(targetSceneName);
+            SceneManager.LoadScene("BattleScene");
         }
 
         private void DebugBotData(RoleType[] allyRoleIds, RoleType[] enemyRoleIds)
