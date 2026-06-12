@@ -37,7 +37,7 @@ namespace Uraty.Application.Matching
                 return;
             }
 
-            _buttonSystem.AddPressedListener(LoadTargetScene);
+            _buttonSystem.AddPressedRequestedListener(LoadTargetScene);
         }
 
         private void OnDisable()
@@ -47,7 +47,7 @@ namespace Uraty.Application.Matching
                 return;
             }
 
-            _buttonSystem.RemovePressedListener(LoadTargetScene);
+            _buttonSystem.RemovePressedRequestedListener(LoadTargetScene);
         }
 
         private void LoadTargetScene()
