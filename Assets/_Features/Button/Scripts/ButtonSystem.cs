@@ -20,6 +20,9 @@ namespace Uraty.Features.Button
         [SerializeField, Tooltip("対象UIが所属するCanvas")]
         private Canvas _targetCanvas;
 
+        [SerializeField, Tooltip("PadCursorなど、ゲームパッド用カーソル位置")]
+        private RectTransform _virtualPointerRectTransform;
+
         [SerializeField, Tooltip("Submit入力で押下判定を行う")]
         private bool _usesSubmit = true;
 
@@ -31,6 +34,9 @@ namespace Uraty.Features.Button
 
         [SerializeField, Tooltip("ゲームパッドやキーボードなど、座標を持たない入力も許可する")]
         private bool _allowsNonPointerInput = false;
+
+        [SerializeField, Tooltip("Cancel入力時は当たり判定なしで押下を許可する")]
+        private bool _ignoresPointerInsideOnCancel = true;
 
         [SerializeField, Tooltip("挙動確認用ログを出力する")]
         private bool _outputsDebugLog = true;
@@ -255,12 +261,12 @@ namespace Uraty.Features.Button
 
         private void HandleSubmitPerformed(InputAction.CallbackContext context)
         {
-            InvokePressedIfAllowed(context);
+            InvokePressedIfAllowed(context, ignoresPointerInside: false);
         }
 
         private void HandleCancelPerformed(InputAction.CallbackContext context)
         {
-            InvokePressedIfAllowed(context);
+            InvokePressedIfAllowed(context, ignoresPointerInside: _ignoresPointerInsideOnCancel);
         }
 
         public void InvokePressed()
@@ -271,6 +277,13 @@ namespace Uraty.Features.Button
 
         public void InvokePressedIfAllowed(InputAction.CallbackContext context)
         {
+            InvokePressedIfAllowed(context, ignoresPointerInside: false);
+        }
+
+        public void InvokePressedIfAllowed(
+            InputAction.CallbackContext context,
+            bool ignoresPointerInside)
+        {
             if (_isWaitingComplete)
             {
                 LogDebug("押下演出待機中のため、入力を無視します。");
@@ -279,16 +292,19 @@ namespace Uraty.Features.Button
 
             _wasPressed = false;
 
-            bool hasPointerPosition = TryGetPointerPosition(context, out Vector2 pointerPosition);
-
-            if (_requiresPointerInside && hasPointerPosition && !IsPointerInsideTarget(pointerPosition))
+            if (!ignoresPointerInside && _requiresPointerInside)
             {
-                return;
-            }
-
-            if (_requiresPointerInside && !hasPointerPosition && !_allowsNonPointerInput)
-            {
-                return;
+                if (!TryGetInteractionPosition(context, out Vector2 interactionPosition))
+                {
+                    if (!_allowsNonPointerInput)
+                    {
+                        return;
+                    }
+                }
+                else if (!IsPointerInsideTarget(interactionPosition))
+                {
+                    return;
+                }
             }
 
             _wasPressed = true;
@@ -311,14 +327,69 @@ namespace Uraty.Features.Button
 
         private void UpdatePointerInsideState()
         {
-            if (Mouse.current == null)
+            if (TryGetCurrentPointerPosition(out Vector2 pointerPosition))
             {
-                _isPointerInside = false;
+                _isPointerInside = IsPointerInsideTarget(pointerPosition);
                 return;
             }
 
-            Vector2 pointerPosition = Mouse.current.position.ReadValue();
-            _isPointerInside = IsPointerInsideTarget(pointerPosition);
+            if (_virtualPointerRectTransform != null)
+            {
+                Vector2 virtualPointerPosition = RectTransformUtility.WorldToScreenPoint(
+                    GetTargetCamera(),
+                    _virtualPointerRectTransform.position);
+
+                _isPointerInside = IsPointerInsideTarget(virtualPointerPosition);
+                return;
+            }
+
+            _isPointerInside = false;
+        }
+
+        private bool TryGetInteractionPosition(
+            InputAction.CallbackContext context,
+            out Vector2 interactionPosition)
+        {
+            if (TryGetPointerPosition(context, out interactionPosition))
+            {
+                return true;
+            }
+
+            if (_virtualPointerRectTransform == null)
+            {
+                return false;
+            }
+
+            interactionPosition = RectTransformUtility.WorldToScreenPoint(
+                GetTargetCamera(),
+                _virtualPointerRectTransform.position);
+
+            return true;
+        }
+
+        private bool TryGetCurrentPointerPosition(out Vector2 pointerPosition)
+        {
+            pointerPosition = Vector2.zero;
+
+            if (Mouse.current != null)
+            {
+                pointerPosition = Mouse.current.position.ReadValue();
+                return true;
+            }
+
+            if (Pen.current != null)
+            {
+                pointerPosition = Pen.current.position.ReadValue();
+                return true;
+            }
+
+            if (Touchscreen.current != null)
+            {
+                pointerPosition = Touchscreen.current.primaryTouch.position.ReadValue();
+                return true;
+            }
+
+            return false;
         }
 
         private bool TryGetPointerPosition(
@@ -363,17 +434,20 @@ namespace Uraty.Features.Button
                 return false;
             }
 
-            Camera targetCamera = null;
-
-            if (_targetCanvas != null && _targetCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
-            {
-                targetCamera = _targetCanvas.worldCamera;
-            }
-
             return RectTransformUtility.RectangleContainsScreenPoint(
                 _targetRectTransform,
                 pointerPosition,
-                targetCamera);
+                GetTargetCamera());
+        }
+
+        private Camera GetTargetCamera()
+        {
+            if (_targetCanvas != null && _targetCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
+            {
+                return _targetCanvas.worldCamera;
+            }
+
+            return null;
         }
 
         private void LogDebug(string message)
