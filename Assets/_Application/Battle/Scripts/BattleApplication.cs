@@ -255,6 +255,9 @@ namespace Uraty.Application.Battle
                 roleTypes,
                 selectedIndex);
 
+            UpdateReloadBarVisibility(
+                playerObject);
+
             ConfigureBushRevealSensors(
                 _visibleTeamId);
 
@@ -405,7 +408,10 @@ namespace Uraty.Application.Battle
                 GetRequiredComponent<CharacterReveal>(
                     characterObject),
                 characterObject
-                    .GetComponentInChildren<CharacterHP>(
+                    .GetComponentInChildren<HPSystem>(
+                        true),
+                characterObject
+                    .GetComponentInChildren<CharacterReloadBar>(
                         true),
                 characterObject
                     .GetComponentsInChildren<Renderer>(
@@ -1100,8 +1106,47 @@ namespace Uraty.Application.Battle
 
                 SetCharacterHpUiVisibleIfChanged(
                     entry,
-                    shouldRender);
+                    ShouldShowHpUi(entry));
             }
+        }
+
+        private void UpdateReloadBarVisibility(
+            GameObject playerObject)
+        {
+            foreach (CharacterRuntimeEntry entry in _characterEntries)
+            {
+                if (entry.ReloadUi == null)
+                {
+                    continue;
+                }
+
+                bool isPlayer =
+                    entry.GameObject == playerObject;
+
+                entry.ReloadUi.SetUiVisible(
+                    isPlayer);
+            }
+        }
+
+        private bool ShouldShowHpUi(
+            CharacterRuntimeEntry entry)
+        {
+            CharacterStatus status =
+                entry.Status;
+
+            // 味方は常に表示
+            if (status.TeamId == _visibleTeamId)
+            {
+                return true;
+            }
+
+            // 敵で草の中なら非表示
+            if (status.IsInsideBush)
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private static void SetCharacterHpUiVisibleIfChanged(
@@ -1155,6 +1200,9 @@ namespace Uraty.Application.Battle
 
             entry.Status.SetInsideBush(
                 isInsideBush);
+
+            Debug.Log(
+    $"{entry.GameObject.name} Bush={isInsideBush}");
         }
 
         /// <summary>
@@ -2038,13 +2086,15 @@ namespace Uraty.Application.Battle
             /// <param name="status">キャラクターのステータスです。</param>
             /// <param name="reveal">キャラクターのReveal範囲です。</param>
             /// <param name="hpUi">キャラクターのHP UIです。</param>
+            /// <param name="reloadUi">キャラクターのHP UIです。</param>
             /// <param name="renderers">キャラクター配下の Renderer 配列です。</param>
             public CharacterRuntimeEntry(
                 GameObject gameObject,
                 Transform transform,
                 CharacterStatus status,
                 CharacterReveal reveal,
-                CharacterHP hpUi,
+                HPSystem hpUi,
+                CharacterReloadBar reloadUi,
                 Renderer[] renderers)
             {
                 GameObject =
@@ -2061,6 +2111,9 @@ namespace Uraty.Application.Battle
 
                 HpUi =
                     hpUi;
+
+                ReloadUi =
+                    reloadUi;
 
                 Renderers =
                     renderers;
@@ -2101,7 +2154,15 @@ namespace Uraty.Application.Battle
             /// <summary>
             /// キャラクターのHP UIです。
             /// </summary>
-            public CharacterHP HpUi
+            public HPSystem HpUi
+            {
+                get;
+            }
+
+            /// <summary>
+            /// キャラクターのHP UIです。
+            /// </summary>
+            public CharacterReloadBar ReloadUi
             {
                 get;
             }
@@ -2146,6 +2207,24 @@ namespace Uraty.Application.Battle
             /// 最後に CharacterHP へ反映した表示状態です。
             /// </summary>
             public bool LastHpUiVisible
+            {
+                get;
+                set;
+            }
+
+            /// <summary>
+            /// HP UI表示状態の前回値を保持しているかどうかです。
+            /// </summary>
+            public bool HasReloadUiVisibleCache
+            {
+                get;
+                set;
+            }
+
+            /// <summary>
+            /// 最後に CharacterHP へ反映した表示状態です。
+            /// </summary>
+            public bool LastReloadUiVisible
             {
                 get;
                 set;

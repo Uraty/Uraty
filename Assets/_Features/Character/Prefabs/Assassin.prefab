@@ -60,6 +60,10 @@ PrefabInstance:
       propertyPath: _superSettings.Array.data[0]._bulletPrefab
       value: 
       objectReference: {fileID: 3889814631699899837, guid: 5265405e7bfef534bb386f823db27161, type: 3}
+    - target: {fileID: 6250889263525742143, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
+      propertyPath: _canvas
+      value: 
+      objectReference: {fileID: 3601911764526281685}
     - target: {fileID: 7179965540641218944, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -112,6 +116,11 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 4610899496224833539}
   m_SourcePrefab: {fileID: 100100000, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
+--- !u!223 &3601911764526281685 stripped
+Canvas:
+  m_CorrespondingSourceObject: {fileID: 2724125186799860388, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
+  m_PrefabInstance: {fileID: 1455373815193651569}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &7931562737157900142 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8800056277905460767, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
