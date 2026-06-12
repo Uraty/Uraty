@@ -65,8 +65,15 @@ namespace Uraty.Application.Result
                     _characterSpawnPositions[playerIndex].position,
                     _characterSpawnPositions[playerIndex].rotation);
 
-            _playerObjects[playerIndex]
-                .AddComponent<RotateObject>();
+            _playerObjects[playerIndex].AddComponent<RotateObject>();
+
+            Canvas canvas = _playerObjects[playerIndex].GetComponentInChildren<Canvas>(true);
+            if (canvas != null)
+            {
+                canvas.gameObject.SetActive(false);
+            }
+
+            _playerObjects[playerIndex].layer = LayerMask.NameToLayer("ResultFrontObj");
         }
     }
 }
