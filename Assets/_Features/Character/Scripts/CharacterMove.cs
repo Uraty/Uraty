@@ -7,16 +7,25 @@ namespace Uraty.Features.Character
     public sealed class CharacterMove : MonoBehaviour
     {
         private const float MinMoveDirectionSqrMagnitude = 0.0001f;
+        private const string IsMovingParameterName = "IsMoving";
+        private const float MovingHoldSeconds = 0.1f;
 
         [SerializeField]
         private CharacterController _characterController;
 
         [SerializeField]
+        private CharacterStatus _status;
+
+        [SerializeField]
         private float _moveSpeed = 10.0f;
+
+        private float _lastMoveTime = -1.0f;
+        private bool _currentIsMoving;
 
         private void Reset()
         {
             _characterController = GetComponent<CharacterController>();
+            _status = GetComponent<CharacterStatus>();
         }
 
         private void Awake()
@@ -26,11 +35,52 @@ namespace Uraty.Features.Character
                 _characterController = GetComponent<CharacterController>();
             }
 
+            if (_status == null)
+            {
+                _status = GetComponent<CharacterStatus>();
+            }
+
             if (_characterController == null)
             {
                 throw new InvalidOperationException(
                     $"{nameof(CharacterController)} が設定されていません。");
             }
+
+            if (_status == null)
+            {
+                throw new InvalidOperationException(
+                    $"{nameof(CharacterStatus)} が設定されていません。");
+            }
+
+            if (!HasBoolParameter(_status.Animator, IsMovingParameterName))
+            {
+                throw new InvalidOperationException(
+                    $"{nameof(Animator)} に Bool パラメータ {IsMovingParameterName} が存在しません。");
+            }
+        }
+
+        private void Update()
+        {
+            bool isMoving = Time.time - _lastMoveTime <= MovingHoldSeconds;
+
+            if (_currentIsMoving == isMoving)
+            {
+                return;
+            }
+
+            _currentIsMoving = isMoving;
+            _status.Animator.SetBool(IsMovingParameterName, _currentIsMoving);
+        }
+
+        private void OnDisable()
+        {
+            if (_status.Animator != null)
+            {
+                _status.Animator.SetBool(IsMovingParameterName, false);
+            }
+
+            _currentIsMoving = false;
+            _lastMoveTime = -1.0f;
         }
 
         public void Initialize(float moveSpeed)
@@ -52,6 +102,8 @@ namespace Uraty.Features.Character
                 moveDirectionWorld.Normalize();
             }
 
+            _lastMoveTime = Time.time;
+
             Rotate(moveDirectionWorld);
 
             _characterController.Move(
@@ -63,6 +115,20 @@ namespace Uraty.Features.Character
             transform.rotation = Quaternion.LookRotation(
                 moveDirectionWorld,
                 Vector3.up);
+        }
+
+        private static bool HasBoolParameter(Animator animator, string parameterName)
+        {
+            foreach (AnimatorControllerParameter parameter in animator.parameters)
+            {
+                if (parameter.name == parameterName &&
+                    parameter.type == AnimatorControllerParameterType.Bool)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

@@ -12,6 +12,9 @@ namespace Uraty.Features.Character
         private const float AttackReloadCost = 1f;
         private const float MaxSuperChargePercent = 100f;
 
+        [SerializeField]
+        private Animator _animator;
+
         [Header("Team")]
         [SerializeField]
         private TeamId _teamId = TeamId.None;
@@ -67,7 +70,7 @@ namespace Uraty.Features.Character
         public bool IsDead => _isDead;
         public bool IsAlive => !_isDead;
         public bool IsInsideBush => _isInsideBush;
-
+        public Animator Animator => _animator;
         public float MaxReloadCount => _maxReloadCount;
         public float CurrentReloadCount => _currentReloadCount;
         public float ReloadRecoveryPerSecond => _reloadRecoveryPerSecond;

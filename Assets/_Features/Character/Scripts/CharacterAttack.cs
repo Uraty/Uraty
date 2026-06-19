@@ -81,6 +81,8 @@ namespace Uraty.Features.Character
                 return;
             }
 
+            _status.Animator.SetTrigger("AttackTrigger");
+
             SpawnBullets(_attackSettings, aimDirectionWorld);
         }
 
