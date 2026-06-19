@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 
 using TMPro;
@@ -187,6 +188,10 @@ namespace Uraty.Application.Lobby
 
         // マウスドラッグ開始位置。
         private Vector2 _mouseDragStartPosition;
+
+        private const float MoveCompleteDistance = 0.01f;
+        private const float MoveCompleteScaleDifference = 0.01f;
+        private bool _isClickScrolling;
 
         private void Awake()
         {
@@ -426,7 +431,45 @@ namespace Uraty.Application.Lobby
                     Vector3.one * previewState.TargetScale,
                     Time.deltaTime * _moveSpeed
                 );
+
+                if (!previewState.IsVisibleAfterMove &&
+                    IsPreviewReachedTarget(previewState))
+                {
+                    previewObject.SetActive(false);
+                    previewState.IsActiveDuringMove = false;
+                }
             }
+
+            if (_isClickScrolling && IsPreviewMovementComplete())
+            {
+                _isClickScrolling = false;
+            }
+        }
+
+        private bool IsPreviewReachedTarget(CharacterPreviewState previewState)
+        {
+            if (previewState == null || previewState.Selectable == null)
+            {
+                return true;
+            }
+
+            Transform previewTransform = previewState.Selectable.transform;
+
+            float positionDistance = Vector3.Distance(
+                previewTransform.localPosition,
+                previewState.TargetLocalPosition
+            );
+
+            if (positionDistance > MoveCompleteDistance)
+            {
+                return false;
+            }
+
+            float scaleDifference = Mathf.Abs(
+                previewTransform.localScale.x - previewState.TargetScale
+            );
+
+            return scaleDifference <= MoveCompleteScaleDifference;
         }
 
         /// <summary>
@@ -436,6 +479,11 @@ namespace Uraty.Application.Lobby
         private void HandleMouseInput()
         {
             if (Mouse.current == null || EventSystem.current == null)
+            {
+                return;
+            }
+
+            if (_isClickScrolling)
             {
                 return;
             }
@@ -542,41 +590,16 @@ namespace Uraty.Application.Lobby
         }
 
         /// <summary>
-        /// 現在のマウス位置が、このControllerが付いている操作エリア上にあるか調べる。
-        /// </summary>
-        private bool IsPointerOverControlArea(Vector2 screenPosition)
-        {
-            PointerEventData pointerEventData = new PointerEventData(EventSystem.current)
-            {
-                position = screenPosition
-            };
-
-            List<RaycastResult> raycastResults = new();
-            EventSystem.current.RaycastAll(pointerEventData, raycastResults);
-
-            foreach (RaycastResult raycastResult in raycastResults)
-            {
-                // CharacterSelectSceneControllerがDragAreaに付いている前提。
-                if (raycastResult.gameObject == gameObject)
-                {
-                    return true;
-                }
-
-                if (raycastResult.gameObject.transform.IsChildOf(transform))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
         /// ゲームパッドの左右入力でキャラを切り替える。
         /// </summary>
         private void HandleGamepadInput()
         {
             if (_gameInput == null)
+            {
+                return;
+            }
+
+            if (_isClickScrolling)
             {
                 return;
             }
@@ -664,9 +687,200 @@ namespace Uraty.Application.Lobby
                     continue;
                 }
 
-                SelectIndex(selectable.Index);
+                StartClickSelection(selectable.Index);
                 return;
             }
+        }
+
+        private void StartClickSelection(int clickedIndex)
+        {
+            if (_previewStates.Count == 0)
+            {
+                return;
+            }
+
+            int targetIndex = WrapIndex(clickedIndex, _previewStates.Count);
+
+            if (targetIndex == _selectedIndex)
+            {
+                return;
+            }
+
+            int rightDistance = GetRightDistance(
+                _selectedIndex,
+                targetIndex,
+                _previewStates.Count
+            );
+
+            if (rightDistance > 0 && rightDistance <= GetVisibleSideCount())
+            {
+                SelectIndexByDirectScroll(targetIndex, rightDistance);
+                return;
+            }
+
+            SelectIndex(targetIndex, CharacterSlideDirection.None);
+        }
+
+        private void SelectIndexByDirectScroll(int nextIndex, int scrollSlotCount)
+        {
+            int previousIndex = _selectedIndex;
+
+            _selectedIndex = nextIndex;
+            _isClickScrolling = true;
+
+            RefreshSelectionTargetsByDirectScroll(
+                previousIndex,
+                scrollSlotCount
+            );
+
+            RefreshCharacterInfo();
+        }
+
+        private void RefreshSelectionTargetsByDirectScroll(
+            int previousIndex,
+            int scrollSlotCount)
+        {
+            int count = _previewStates.Count;
+            int visibleSideCount = GetVisibleSideCount();
+
+            for (int i = 0; i < _previewStates.Count; i++)
+            {
+                CharacterPreviewState previewState = _previewStates[i];
+
+                if (previewState == null || previewState.Selectable == null)
+                {
+                    continue;
+                }
+
+                int previousSlot = GetRightDistance(
+                    previousIndex,
+                    i,
+                    count
+                );
+
+                bool wasVisible = previousSlot <= visibleSideCount;
+
+                int targetSlot = GetRightDistance(
+                    _selectedIndex,
+                    i,
+                    count
+                );
+
+                bool willVisible = targetSlot <= visibleSideCount;
+
+                if (willVisible)
+                {
+                    if (!wasVisible || previousSlot <= targetSlot)
+                    {
+                        int startSlot = targetSlot + scrollSlotCount;
+
+                        SetPreviewStartTransform(
+                            i,
+                            startSlot * _slotSpacing,
+                            GetScaleBySlot(startSlot)
+                        );
+                    }
+
+                    previewState.TargetLocalPosition = new Vector3(
+                        targetSlot * _slotSpacing,
+                        0.0f,
+                        0.0f
+                    );
+
+                    previewState.TargetScale = GetScaleBySlot(targetSlot);
+                    previewState.IsActiveDuringMove = true;
+                    previewState.IsVisibleAfterMove = true;
+
+                    previewState.Selectable.gameObject.SetActive(true);
+
+                    continue;
+                }
+
+                if (wasVisible)
+                {
+                    previewState.IsActiveDuringMove = false;
+                    previewState.IsVisibleAfterMove = false;
+
+                    previewState.Selectable.gameObject.SetActive(false);
+
+                    continue;
+                }
+
+                previewState.IsActiveDuringMove = false;
+                previewState.IsVisibleAfterMove = false;
+
+                previewState.Selectable.gameObject.SetActive(false);
+            }
+        }
+
+        private CharacterSlideDirection GetClickStepDirection(int targetIndex)
+        {
+            int count = _previewStates.Count;
+
+            int rightDistance = GetRightDistance(
+                _selectedIndex,
+                targetIndex,
+                count
+            );
+
+            int leftDistance = GetRightDistance(
+                targetIndex,
+                _selectedIndex,
+                count
+            );
+
+            if (rightDistance == 0)
+            {
+                return CharacterSlideDirection.None;
+            }
+
+            if (rightDistance <= leftDistance)
+            {
+                return CharacterSlideDirection.Next;
+            }
+
+            return CharacterSlideDirection.Previous;
+        }
+
+        private bool IsPreviewMovementComplete()
+        {
+            for (int i = 0; i < _previewStates.Count; i++)
+            {
+                CharacterPreviewState previewState = _previewStates[i];
+
+                if (previewState == null || previewState.Selectable == null)
+                {
+                    continue;
+                }
+
+                if (!previewState.IsActiveDuringMove)
+                {
+                    continue;
+                }
+
+                Transform previewTransform = previewState.Selectable.transform;
+
+                float positionDistance = Vector3.Distance(
+                    previewTransform.localPosition,
+                    previewState.TargetLocalPosition
+                );
+
+                if (positionDistance > MoveCompleteDistance)
+                {
+                    return false;
+                }
+
+                float scaleDifference = Mathf.Abs(
+                    previewTransform.localScale.x - previewState.TargetScale
+                );
+
+                if (scaleDifference > MoveCompleteScaleDifference)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -795,17 +1009,6 @@ namespace Uraty.Application.Lobby
             }
 
             return (targetIndex - selectedIndex + count) % count;
-        }
-
-        private bool IsVisibleFromSelectedIndex(int selectedIndex, int targetIndex)
-        {
-            int rightDistance = GetRightDistance(
-                selectedIndex,
-                targetIndex,
-                _previewStates.Count
-            );
-
-            return rightDistance <= GetVisibleSideCount();
         }
 
         private int GetVisibleSideCount()
