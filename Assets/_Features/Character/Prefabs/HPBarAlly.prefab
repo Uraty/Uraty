@@ -224,7 +224,7 @@ GameObject:
   - component: {fileID: 7578832540679116742}
   - component: {fileID: 6218178204694074882}
   m_Layer: 5
-  m_Name: HPBar
+  m_Name: HPBarAlly
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -272,6 +272,7 @@ MonoBehaviour:
   _isBillboardEnabled: 1
   _isYawOnlyBillboard: 0
   _damageRatioDownSpeed: 0.002
+  _canvas: {fileID: 0}
 --- !u!222 &6218178204694074882
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -371,7 +372,7 @@ PrefabInstance:
     - target: {fileID: 1083375748955346614, guid: 311a7b53665e13840ae9bd16b3ed1bff, type: 3}
       propertyPath: m_Sprite
       value: 
-      objectReference: {fileID: 1024228389, guid: aa0360c537df5354986fcf8efddcc39e, type: 3}
+      objectReference: {fileID: 1043616144, guid: 9454af57f1d99554d94ebd4bf20bd16b, type: 3}
     - target: {fileID: 5243182032211889683, guid: 311a7b53665e13840ae9bd16b3ed1bff, type: 3}
       propertyPath: m_Name
       value: BarDamage
@@ -379,7 +380,7 @@ PrefabInstance:
     - target: {fileID: 7624453367258482242, guid: 311a7b53665e13840ae9bd16b3ed1bff, type: 3}
       propertyPath: m_Sprite
       value: 
-      objectReference: {fileID: 723142336, guid: aa0360c537df5354986fcf8efddcc39e, type: 3}
+      objectReference: {fileID: 1271112757, guid: 9454af57f1d99554d94ebd4bf20bd16b, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
