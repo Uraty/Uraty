@@ -183,6 +183,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 041a31e505024564bb119f63e65c9968, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterStatus
+  _animator: {fileID: 606937982945558161}
   _teamId: 0
   _maxHp: 100
   _recoveryStartDelaySeconds: 3
@@ -205,6 +206,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterMove
   _characterController: {fileID: -1381102960665348235}
+  _status: {fileID: 0}
   _moveSpeed: 10
 --- !u!114 &1490220000781514627
 MonoBehaviour:
@@ -467,36 +469,126 @@ PrefabInstance:
       propertyPath: m_ConstrainProportionsScale
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -8513424388201257645, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
+      propertyPath: m_Name
+      value: kuma:pCube1
+      objectReference: {fileID: 0}
     - target: {fileID: -8460793209488387726, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: b8a6445782bb67348aedd757152e120f, type: 2}
+    - target: {fileID: -7609145667655734672, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
+      propertyPath: m_Name
+      value: kuma:pCube3
+      objectReference: {fileID: 0}
+    - target: {fileID: -6622620090273987375, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
+      propertyPath: m_Name
+      value: kuma:right_leg
+      objectReference: {fileID: 0}
+    - target: {fileID: -4476539596837701128, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
+      propertyPath: m_Name
+      value: kuma:left_leg
+      objectReference: {fileID: 0}
+    - target: {fileID: -3957782524123411102, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
+      propertyPath: m_Name
+      value: kuma:pCube2
+      objectReference: {fileID: 0}
+    - target: {fileID: -3843374595830849499, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
+      propertyPath: m_Name
+      value: kuma:right_arm
+      objectReference: {fileID: 0}
     - target: {fileID: -3540725318260445992, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: b8a6445782bb67348aedd757152e120f, type: 2}
+    - target: {fileID: -417878991522404143, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
+      propertyPath: m_Name
+      value: kuma:Hips
+      objectReference: {fileID: 0}
     - target: {fileID: -329340364626206919, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: b8a6445782bb67348aedd757152e120f, type: 2}
+    - target: {fileID: -277465617993566423, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
+      propertyPath: m_Name
+      value: kuma:Spine2
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
       propertyPath: m_Name
       value: bear
+      objectReference: {fileID: 0}
+    - target: {fileID: 1576133319356100689, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
+      propertyPath: m_Name
+      value: kuma:right_hand
+      objectReference: {fileID: 0}
+    - target: {fileID: 1697662394383783520, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
+      propertyPath: m_Name
+      value: kuma:Spine1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1941015957768535714, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
+      propertyPath: m_Name
+      value: kuma:left_hand
+      objectReference: {fileID: 0}
+    - target: {fileID: 2650479354569092033, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
+      propertyPath: m_Name
+      value: kuma:left_arm
+      objectReference: {fileID: 0}
+    - target: {fileID: 4707675003532781882, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
+      propertyPath: m_Name
+      value: kuma:Head
+      objectReference: {fileID: 0}
+    - target: {fileID: 7152435242968560784, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
+      propertyPath: m_Name
+      value: kuma:teal
       objectReference: {fileID: 0}
     - target: {fileID: 7477672114596797951, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: b8a6445782bb67348aedd757152e120f, type: 2}
+    - target: {fileID: 7750397243111347764, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
+      propertyPath: m_Name
+      value: kuma:polySurface1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 606937982945558161}
   m_SourcePrefab: {fileID: 100100000, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
 --- !u!4 &1633316246460653401 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
   m_PrefabInstance: {fileID: 1234000615350483122}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &2153112960411174371 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
+  m_PrefabInstance: {fileID: 1234000615350483122}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &606937982945558161
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2153112960411174371}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 22100000, guid: b316f60a00644fa4ca6d6a2103d3f986, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1001 &4580990540897112569
 PrefabInstance:
   m_ObjectHideFlags: 0

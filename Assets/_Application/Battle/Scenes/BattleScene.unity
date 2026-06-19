@@ -2195,7 +2195,11 @@ PrefabInstance:
       objectReference: {fileID: 1397740527}
     - target: {fileID: -6035043067423633329, guid: a2178361e364e6642a09abe774603270, type: 3}
       propertyPath: _battleDurationSeconds
-      value: 5
+      value: 180
+      objectReference: {fileID: 0}
+    - target: {fileID: -6035043067423633329, guid: a2178361e364e6642a09abe774603270, type: 3}
+      propertyPath: _fallbackPlayerRoleType
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: -6035043067423633329, guid: a2178361e364e6642a09abe774603270, type: 3}
       propertyPath: _spawnerLayerMask.m_Bits
