@@ -36,6 +36,48 @@ namespace Uraty.Application.Lobby
             base.OnMove(eventData);
         }
 
+        public override void OnPointerEnter(PointerEventData eventData)
+        {
+            if (IsPointerDraggingOtherUi(eventData))
+            {
+                return;
+            }
+
+            base.OnPointerEnter(eventData);
+        }
+
+        private bool IsPointerDraggingOtherUi(PointerEventData eventData)
+        {
+            if (eventData == null)
+            {
+                return false;
+            }
+
+            GameObject pressedObject = eventData.pointerPress;
+
+            if (pressedObject == null)
+            {
+                pressedObject = eventData.pointerDrag;
+            }
+
+            if (pressedObject == null)
+            {
+                return false;
+            }
+
+            if (pressedObject == gameObject)
+            {
+                return false;
+            }
+
+            if (pressedObject.transform.IsChildOf(transform))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         public void OnSubmit(BaseEventData eventData)
         {
             _isEditing = !_isEditing;
