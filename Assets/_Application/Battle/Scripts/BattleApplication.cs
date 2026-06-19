@@ -384,6 +384,20 @@ namespace Uraty.Application.Battle
             GameObject obj =
                 Instantiate(prefab);
 
+            // チームカラー設定
+            Color teamColor =
+                teamId == TeamId.Primary
+                    ? Color.blue     // 味方
+                    : Color.red;     // 敵
+
+            Renderer[] renderers =
+                obj.GetComponentsInChildren<Renderer>();
+
+            foreach (Renderer renderer in renderers)
+            {
+                renderer.material.color = teamColor;
+            }
+
             Component spawner =
                 AssignCharacterToSpawnerPosition(
                     obj,
