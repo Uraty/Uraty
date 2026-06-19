@@ -394,9 +394,9 @@ namespace Uraty.Application.Battle
             // チームカラー設定
             Color teamColor =
                 teamId == TeamId.Primary
-                    ? Color.blue     // 味方
-                    : Color.red;     // 敵
-
+                    ? new Color(238f / 255f, 43f / 255f, 85f / 255f, 0.7f)     // 味方
+                    : new Color(155f / 255f, 182f / 255f, 82f / 255f, 0.7f);     // 敵
+            
             Renderer[] renderers =
                 obj.GetComponentsInChildren<Renderer>();
 
