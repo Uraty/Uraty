@@ -107,6 +107,13 @@ namespace Uraty.Application.Battle
         [SerializeField]
         private LayerMask _spawnerLayerMask;
 
+        [Header("ブッシュ内出た間を発射したときの見える時間")]
+        [SerializeField]
+        private float _attackRevealDuration = 1.0f;
+
+        private readonly Dictionary<GameObject, float>
+            _temporaryRevealEndTimeByCharacterObject = new();
+
         private bool _hasRequestedResultScene;
 
         private float _remainingBattleSeconds;
@@ -779,6 +786,9 @@ namespace Uraty.Application.Battle
                         return;
                     }
 
+                    RevealCharacterTemporarily(
+                        characterObject);
+
                     characterAttack.Attack(
                         latestAimDirectionWorld);
                 })
@@ -1183,15 +1193,41 @@ namespace Uraty.Application.Battle
                 $"{entry.GameObject.name} Bush={isInsideBush}");
         }
 
+        private void RevealCharacterTemporarily(
+            GameObject characterObject)
+        {
+            if (characterObject == null)
+            {
+                return;
+            }
+
+            _temporaryRevealEndTimeByCharacterObject[
+                characterObject] =
+                Time.time + _attackRevealDuration;
+        }
+
+        private bool IsTemporarilyRevealed(
+            GameObject characterObject)
+        {
+            return
+                _temporaryRevealEndTimeByCharacterObject
+                    .TryGetValue(
+                        characterObject,
+                        out float endTime)
+                && Time.time < endTime;
+        }
+
         private bool ShouldRenderCharacter(
             CharacterRuntimeEntry targetEntry)
         {
             CharacterStatus targetStatus =
-                targetEntry.Status;
+        targetEntry.Status;
 
             return
                 targetStatus.TeamId == _visibleTeamId
                 || !targetStatus.IsInsideBush
+                || IsTemporarilyRevealed(
+                    targetEntry.GameObject)
                 || IsInsideVisibleTeamRevealRange(
                     targetEntry);
         }
