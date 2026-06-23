@@ -25,7 +25,7 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3174438694334895550}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -73,5 +73,3 @@ MonoBehaviour:
   _fillColor: {r: 0.95, g: 0.75, b: 0.15, a: 1}
   _outlineColor: {r: 0, g: 0, b: 0, a: 1}
   _outlineThickness: 3
-  _isBillboardEnabled: 1
-  _isYawOnlyBillboard: 0

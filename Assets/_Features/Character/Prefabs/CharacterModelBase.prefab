@@ -544,7 +544,7 @@ PrefabInstance:
     - target: {fileID: 7477672114596797951, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: f0c63593840e4b042b733f3cb314be52, type: 2}
+      objectReference: {fileID: 2100000, guid: b8a6445782bb67348aedd757152e120f, type: 2}
     - target: {fileID: 7750397243111347764, guid: c2e51ee5b26da0d49b6ccf91a761aee2, type: 3}
       propertyPath: m_Name
       value: kuma:polySurface1
