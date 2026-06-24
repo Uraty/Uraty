@@ -19,6 +19,8 @@ namespace Uraty.Features.Character
         private float _speed;
         private float _superChargePercent;
         private bool _isPiercing;
+        private bool _shouldHealOwnerOnHit;
+        private float _ownerHealPercent;
 
         private Vector3 _startPosition;
         private GameObject _owner;
@@ -35,7 +37,9 @@ namespace Uraty.Features.Character
             TeamId teamId,
             GameObject owner,
             float superChargePercent,
-            bool isPiercing)
+            bool isPiercing,
+            bool shouldHealOwnerOnHit,
+            float ownerHealPercent)
         {
             direction.y = 0f;
 
@@ -50,6 +54,8 @@ namespace Uraty.Features.Character
             _speed = Mathf.Max(0f, speed);
             _superChargePercent = Mathf.Max(0f, superChargePercent);
             _isPiercing = isPiercing;
+            _shouldHealOwnerOnHit = shouldHealOwnerOnHit;
+            _ownerHealPercent = Mathf.Max(0f, ownerHealPercent);
 
             _startPosition = transform.position;
             _owner = owner;
@@ -99,8 +105,17 @@ namespace Uraty.Features.Character
                 }
             }
 
+            bool shouldApplyHitEffects =
+                ShouldApplyHitEffects(targetStatus);
+
             bool shouldAddSuperCharge =
-                ShouldAddSuperCharge(targetStatus);
+                shouldApplyHitEffects &&
+                _superChargePercent > 0f;
+
+            bool shouldHealOwner =
+                shouldApplyHitEffects &&
+                _shouldHealOwnerOnHit &&
+                _ownerHealPercent > 0f;
 
             bool shouldDestroy =
                 hittable.ReceiveBulletHit(
@@ -109,15 +124,20 @@ namespace Uraty.Features.Character
                     _damage,
                     _isPiercing);
 
+            if (shouldApplyHitEffects && targetStatus != null)
+            {
+                _hitCharacterInstanceIds.Add(
+                    targetStatus.GetInstanceID());
+            }
+
             if (shouldAddSuperCharge)
             {
-                if (targetStatus != null)
-                {
-                    _hitCharacterInstanceIds.Add(
-                        targetStatus.GetInstanceID());
-                }
-
                 AddSuperChargeToOwner();
+            }
+
+            if (shouldHealOwner)
+            {
+                HealOwnerByPercent();
             }
 
             if (shouldDestroy)
@@ -126,7 +146,7 @@ namespace Uraty.Features.Character
             }
         }
 
-        private bool ShouldAddSuperCharge(CharacterStatus targetStatus)
+        private bool ShouldApplyHitEffects(CharacterStatus targetStatus)
         {
             if (targetStatus == null)
             {
@@ -148,11 +168,6 @@ namespace Uraty.Features.Character
                 return false;
             }
 
-            if (_superChargePercent <= 0f)
-            {
-                return false;
-            }
-
             return true;
         }
 
@@ -169,6 +184,25 @@ namespace Uraty.Features.Character
             }
 
             ownerStatus.AddSuperCharge(_superChargePercent);
+        }
+
+        private void HealOwnerByPercent()
+        {
+            if (_owner == null)
+            {
+                return;
+            }
+
+            if (!_owner.TryGetComponent(out CharacterStatus ownerStatus))
+            {
+                return;
+            }
+
+            float healAmount =
+                ownerStatus.MaxHp *
+                (_ownerHealPercent / 100f);
+
+            ownerStatus.Heal(healAmount);
         }
 
         private float GetMovedDistance()

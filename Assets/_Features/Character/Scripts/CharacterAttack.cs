@@ -178,7 +178,9 @@ namespace Uraty.Features.Character
                     _status.TeamId,
                     gameObject,
                     _superChargePercent,
-                    setting.IsPiercing);
+                    setting.IsPiercing,
+                    setting.ShouldHealOwnerOnHit,
+                    setting.OwnerHealPercent);
             }
         }
 
@@ -282,6 +284,13 @@ namespace Uraty.Features.Character
 
             [SerializeField] private bool _isPiercing;
 
+            [Tooltip("この弾が敵に命中したとき、自身を回復するか")]
+            [SerializeField] private bool _shouldHealOwnerOnHit;
+
+            [Tooltip("自身のMaxHpに対する回復割合(%)。10なら最大HPの10%回復")]
+            [Min(0f)]
+            [SerializeField] private float _ownerHealPercent;
+
             [Min(0f)]
             [SerializeField] private float _delaySeconds;
 
@@ -292,6 +301,8 @@ namespace Uraty.Features.Character
             public float AngleOffsetDegrees => _angleOffsetDegrees;
             public Vector3 PositionOffsetLocal => _positionOffsetLocal;
             public bool IsPiercing => _isPiercing;
+            public bool ShouldHealOwnerOnHit => _shouldHealOwnerOnHit;
+            public float OwnerHealPercent => _ownerHealPercent;
             public float DelaySeconds => _delaySeconds;
         }
     }
