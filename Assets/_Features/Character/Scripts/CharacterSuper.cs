@@ -14,6 +14,8 @@ namespace Uraty.Features.Character
 
         [SerializeField] private CharacterStatus _status;
 
+        [SerializeField] private CharacterMove _characterMove;
+
         [Title("Super")]
         [SerializeField]
         private BulletSpawnSetting[] _superSettings = { new() };
@@ -24,6 +26,16 @@ namespace Uraty.Features.Character
         [Tooltip("このスーパーの弾が敵に命中したときに加算する必殺技チャージ率(%)")]
         [SerializeField, Min(0f)]
         private float _superChargePercent = 0f;
+
+        [Title("Super Move")]
+        [SerializeField]
+        private bool _isSuperMoveEnabled = true;
+
+        [SerializeField, Min(0f)]
+        private float _superMoveSpeed = 10f;
+
+        [SerializeField, Min(0f)]
+        private float _superMoveDistance = 1f;
 
         public CharacterSkillPreviewInfo PreviewInfo => CreatePreviewInfo();
 
@@ -67,6 +79,11 @@ namespace Uraty.Features.Character
             {
                 TryGetComponent(out _status);
             }
+
+            if (_characterMove == null)
+            {
+                TryGetComponent(out _characterMove);
+            }
         }
 
         public void Super(Vector3 aimDirectionWorld)
@@ -81,21 +98,22 @@ namespace Uraty.Features.Character
                 return;
             }
 
+            Vector3 baseDirection = ResolveDirection(aimDirectionWorld);
+
             _status.Animator.SetTrigger("SuperTrigger");
 
-            SpawnBullets(_superSettings, aimDirectionWorld);
+            BeginSuperMove(baseDirection);
+            SpawnBullets(_superSettings, baseDirection);
         }
 
         private void SpawnBullets(
             BulletSpawnSetting[] settings,
-            Vector3 aimDirectionWorld)
+            Vector3 baseDirection)
         {
             if (settings == null || settings.Length == 0)
             {
                 return;
             }
-
-            Vector3 baseDirection = ResolveDirection(aimDirectionWorld);
 
             for (int i = 0; i < settings.Length; i++)
             {
@@ -162,6 +180,20 @@ namespace Uraty.Features.Character
                     _superChargePercent,
                     setting.IsPiercing);
             }
+        }
+
+
+        private void BeginSuperMove(Vector3 direction)
+        {
+            if (!_isSuperMoveEnabled || _characterMove == null)
+            {
+                return;
+            }
+
+            _characterMove.BeginSkillMove(
+                direction,
+                _superMoveSpeed,
+                _superMoveDistance);
         }
 
         private Vector3 ResolveDirection(Vector3 aimDirectionWorld)
