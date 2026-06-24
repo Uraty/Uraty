@@ -14,6 +14,8 @@ namespace Uraty.Features.Character
 
         [SerializeField] private CharacterStatus _status;
 
+        [SerializeField] private CharacterMove _characterMove;
+
         [Title("Attack")]
         [SerializeField]
         private BulletSpawnSetting[] _attackSettings = { new() };
@@ -24,6 +26,16 @@ namespace Uraty.Features.Character
         [Tooltip("この攻撃の弾が敵に命中したときに加算する必殺技チャージ率(%)")]
         [SerializeField, Min(0f)]
         private float _superChargePercent = 10f;
+
+        [Title("Attack Move")]
+        [SerializeField]
+        private bool _isAttackMoveEnabled = true;
+
+        [SerializeField, Min(0f)]
+        private float _attackMoveSpeed = 10f;
+
+        [SerializeField, Min(0f)]
+        private float _attackMoveDistance = 1f;
 
         public CharacterSkillPreviewInfo PreviewInfo => CreatePreviewInfo();
 
@@ -67,6 +79,11 @@ namespace Uraty.Features.Character
             {
                 TryGetComponent(out _status);
             }
+
+            if (_characterMove == null)
+            {
+                TryGetComponent(out _characterMove);
+            }
         }
 
         public void Attack(Vector3 aimDirectionWorld)
@@ -81,21 +98,22 @@ namespace Uraty.Features.Character
                 return;
             }
 
+            Vector3 baseDirection = ResolveDirection(aimDirectionWorld);
+
             _status.Animator.SetTrigger("AttackTrigger");
 
-            SpawnBullets(_attackSettings, aimDirectionWorld);
+            BeginSkillMove(baseDirection);
+            SpawnBullets(_attackSettings, baseDirection);
         }
 
         private void SpawnBullets(
             BulletSpawnSetting[] settings,
-            Vector3 aimDirectionWorld)
+            Vector3 baseDirection)
         {
             if (settings == null || settings.Length == 0)
             {
                 return;
             }
-
-            Vector3 baseDirection = ResolveDirection(aimDirectionWorld);
 
             for (int i = 0; i < settings.Length; i++)
             {
@@ -162,6 +180,20 @@ namespace Uraty.Features.Character
                     _superChargePercent,
                     setting.IsPiercing);
             }
+        }
+
+
+        private void BeginSkillMove(Vector3 direction)
+        {
+            if (!_isAttackMoveEnabled || _characterMove == null)
+            {
+                return;
+            }
+
+            _characterMove.BeginSkillMove(
+                direction,
+                _attackMoveSpeed,
+                _attackMoveDistance);
         }
 
         private Vector3 ResolveDirection(Vector3 aimDirectionWorld)

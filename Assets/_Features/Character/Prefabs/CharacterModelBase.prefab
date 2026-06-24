@@ -206,7 +206,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterMove
   _characterController: {fileID: -1381102960665348235}
-  _status: {fileID: 0}
+  _status: {fileID: -6497995452392812755}
   _moveSpeed: 10
 --- !u!114 &1490220000781514627
 MonoBehaviour:
@@ -266,6 +266,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterAttack
   _status: {fileID: -6497995452392812755}
+  _characterMove: {fileID: 3961964901468283456}
   _attackSettings:
   - _bulletPrefab: {fileID: 3889814631699899837, guid: 5265405e7bfef534bb386f823db27161, type: 3}
     _damage: 10
@@ -277,6 +278,9 @@ MonoBehaviour:
     _delaySeconds: 0
   _attackDisableSeconds: 1
   _superChargePercent: 10
+  _isAttackMoveEnabled: 0
+  _attackMoveSpeed: 10
+  _attackMoveDistance: 1
 --- !u!114 &-3534891964442206321
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -335,6 +339,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterSuper
   _status: {fileID: -6497995452392812755}
+  _characterMove: {fileID: 3961964901468283456}
   _superSettings:
   - _bulletPrefab: {fileID: 0}
     _damage: 30
@@ -346,6 +351,9 @@ MonoBehaviour:
     _delaySeconds: 0
   _attackDisableSeconds: 1
   _superChargePercent: 0
+  _isSuperMoveEnabled: 0
+  _superMoveSpeed: 10
+  _superMoveDistance: 1
 --- !u!114 &7197989968914488443
 MonoBehaviour:
   m_ObjectHideFlags: 0

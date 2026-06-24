@@ -22,6 +22,13 @@ namespace Uraty.Features.Character
         private float _lastMoveTime = -1.0f;
         private bool _currentIsMoving;
 
+        private bool _isSkillMoving;
+        private Vector3 _skillMoveDirection = Vector3.forward;
+        private float _skillMoveSpeed;
+        private float _skillMoveRemainingDistance;
+
+        public bool IsSkillMoving => _isSkillMoving;
+
         private void Reset()
         {
             _characterController = GetComponent<CharacterController>();
@@ -61,19 +68,14 @@ namespace Uraty.Features.Character
 
         private void Update()
         {
-            bool isMoving = Time.time - _lastMoveTime <= MovingHoldSeconds;
-
-            if (_currentIsMoving == isMoving)
-            {
-                return;
-            }
-
-            _currentIsMoving = isMoving;
-            _status.Animator.SetBool(IsMovingParameterName, _currentIsMoving);
+            UpdateSkillMove();
+            UpdateMoveAnimation();
         }
 
         private void OnDisable()
         {
+            EndSkillMove();
+
             if (_status.Animator != null)
             {
                 _status.Animator.SetBool(IsMovingParameterName, false);
@@ -90,6 +92,11 @@ namespace Uraty.Features.Character
 
         public void Move(Vector3 moveDirectionWorld)
         {
+            if (_isSkillMoving)
+            {
+                return;
+            }
+
             moveDirectionWorld.y = 0.0f;
 
             if (moveDirectionWorld.sqrMagnitude <= MinMoveDirectionSqrMagnitude)
@@ -108,6 +115,98 @@ namespace Uraty.Features.Character
 
             _characterController.Move(
                 moveDirectionWorld * _moveSpeed * Time.deltaTime);
+        }
+
+        public bool BeginSkillMove(
+            Vector3 moveDirectionWorld,
+            float speed,
+            float distance)
+        {
+            if (_status == null || !_status.IsAlive)
+            {
+                return false;
+            }
+
+            moveDirectionWorld.y = 0.0f;
+
+            if (moveDirectionWorld.sqrMagnitude <= MinMoveDirectionSqrMagnitude)
+            {
+                return false;
+            }
+
+            float validSpeed = Mathf.Max(0.0f, speed);
+            float validDistance = Mathf.Max(0.0f, distance);
+
+            if (validSpeed <= 0.0f || validDistance <= 0.0f)
+            {
+                EndSkillMove();
+                return false;
+            }
+
+            _skillMoveDirection = moveDirectionWorld.normalized;
+            _skillMoveSpeed = validSpeed;
+            _skillMoveRemainingDistance = validDistance;
+            _isSkillMoving = true;
+
+            Rotate(_skillMoveDirection);
+
+            return true;
+        }
+
+        private void UpdateSkillMove()
+        {
+            if (!_isSkillMoving)
+            {
+                return;
+            }
+
+            if (_status == null || !_status.IsAlive)
+            {
+                EndSkillMove();
+                return;
+            }
+
+            float moveDistance = Mathf.Min(
+                _skillMoveSpeed * Time.deltaTime,
+                _skillMoveRemainingDistance);
+
+            if (moveDistance <= 0.0f)
+            {
+                EndSkillMove();
+                return;
+            }
+
+            Rotate(_skillMoveDirection);
+
+            _characterController.Move(
+                _skillMoveDirection * moveDistance);
+
+            _skillMoveRemainingDistance -= moveDistance;
+
+            if (_skillMoveRemainingDistance <= 0.0f)
+            {
+                EndSkillMove();
+            }
+        }
+
+        private void EndSkillMove()
+        {
+            _isSkillMoving = false;
+            _skillMoveRemainingDistance = 0.0f;
+            _skillMoveSpeed = 0.0f;
+        }
+
+        private void UpdateMoveAnimation()
+        {
+            bool isMoving = Time.time - _lastMoveTime <= MovingHoldSeconds;
+
+            if (_currentIsMoving == isMoving)
+            {
+                return;
+            }
+
+            _currentIsMoving = isMoving;
+            _status.Animator.SetBool(IsMovingParameterName, _currentIsMoving);
         }
 
         private void Rotate(Vector3 moveDirectionWorld)
