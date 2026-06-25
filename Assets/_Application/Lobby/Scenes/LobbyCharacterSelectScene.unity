@@ -400,7 +400,7 @@ MonoBehaviour:
   _characterDescriptionText: {fileID: 1345118777}
   _decideButton: {fileID: 1057750978}
   _closeButton: {fileID: 446670391}
-  _dragThreshold: 10
+  _dragThreshold: 80
   _gamepadInputThreshold: 0.6
   _gamepadRepeatSeconds: 0.25
   _dragArea: {fileID: 619568254}

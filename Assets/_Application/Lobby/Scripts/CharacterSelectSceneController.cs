@@ -30,27 +30,28 @@ namespace Uraty.Application.Lobby
         [SerializeField] private CharacterSelectionStore _characterSelectionStore;
 
         [Header("Characters")]
-        // キャラ選択画面に表示するキャラデータ一覧。
+        // キャラ選択画面に表示するキャラPrefab一覧。
         [SerializeField] private GameObject[] _characterPrefabs;
 
         [Header("Preview")]
         // 3Dキャラモデルを横並びで生成する親。
         [SerializeField] private Transform _carouselRoot;
 
-        // 3Dキャラ選択用のCamera。
+        // 3Dキャラクリック判定用のCamera。
+        // 未設定の場合はCamera.mainを使う。
         [SerializeField] private Camera _selectCamera;
 
         // キャラ同士の横間隔。
         [SerializeField] private float _slotSpacing = 2.5f;
 
-        // 選択中キャラが中央へ移動する速度。
+        // キャラが目標位置へ移動する速度。
         [SerializeField] private float _moveSpeed = 10.0f;
 
         // 3Dモデルクリック判定用Rayの距離。
         [SerializeField] private float _rayDistance = 1000.0f;
 
         [Header("Scale")]
-        // 選択中キャラの左右に何体まで表示するか。
+        // 選択中キャラの右側に何体まで表示するか。
         [SerializeField] private int _visibleSideCount = 2;
 
         // 中央の選択中キャラの拡大率。
@@ -59,7 +60,7 @@ namespace Uraty.Application.Lobby
         // 選択中キャラの隣にいるキャラの拡大率。
         [SerializeField] private float _nearSideScale = 1.0f;
 
-        // 選択中キャラから2つ離れたキャラの拡大率。
+        // 選択中キャラから2つ以上離れたキャラの拡大率。
         [SerializeField] private float _farSideScale = 0.75f;
 
         [Header("UI")]
@@ -87,17 +88,20 @@ namespace Uraty.Application.Lobby
         [SerializeField] private float _gamepadRepeatSeconds = 0.25f;
 
         [Header("Mouse")]
+        // マウスドラッグ / クリックを受け付けるUI領域。
         [SerializeField] private GameObject _dragArea;
 
         [Header("Default Selection")]
+        // キャラ選択Sceneを開いた時に最初に選択するUI。
+        // Pad操作用の透明なCharacterFocusButtonなどを入れる想定。
         [SerializeField] private Selectable _firstSelectable;
 
-        private enum CharacterSlideDirection
-        {
-            None,
-            Next,
-            Previous
-        }
+        // 通常移動が完了したとみなす距離。
+        private const float MoveCompleteDistance = 0.05f;
+
+        // 退場するキャラを非表示にしてよい距離。
+        // スケールが完全に縮み切るまで待つと遅いので、位置だけで判定する。
+        private const float ExitCompleteDistance = 0.2f;
 
         // 生成したキャラ表示オブジェクトの状態一覧。
         private readonly List<CharacterPreviewState> _previewStates = new();
@@ -105,6 +109,25 @@ namespace Uraty.Application.Lobby
         // 現在選択中のIndex。
         private int _selectedIndex;
 
+        // 次にゲームパッド入力を受け付ける時刻。
+        private float _nextGamepadInputTime;
+
+        // マウスドラッグ中かどうか。
+        private bool _isMouseDragging;
+
+        // 今回のマウス操作でドラッグによる切り替えが発生したか。
+        private bool _hasMouseDragged;
+
+        // キャラのスクロール移動中かどうか。
+        // 移動中は連続入力で目標位置が壊れないように入力を止める。
+        private bool _isScrolling;
+
+        // マウスドラッグ開始位置。
+        private Vector2 _mouseDragStartPosition;
+
+        /// <summary>
+        /// 生成したプレビューキャラ1体分の状態。
+        /// </summary>
         private sealed class CharacterPreviewState
         {
             public CharacterPreviewState(
@@ -127,66 +150,65 @@ namespace Uraty.Application.Lobby
                 IsVisibleAfterMove = false;
             }
 
+            // 元になったキャラPrefab。
             public GameObject SourcePrefab
             {
                 get;
             }
 
+            // 3Dモデルクリック時にIndexを取得するための選択用コンポーネント。
             public CharacterPreviewSelectable Selectable
             {
                 get;
             }
 
+            // 表示用ステータス取得元。
             public CharacterStatus Status
             {
                 get;
             }
 
+            // 通常攻撃情報取得元。
             public CharacterAttack Attack
             {
                 get;
             }
 
+            // 必殺技情報取得元。
             public CharacterSuper CharacterSuper
             {
                 get;
             }
 
+            // 表示名。
+            // 現状はPrefab名をそのまま表示する。
             public string DisplayName =>
                 SourcePrefab != null ? SourcePrefab.name : "未設定";
 
+            // 移動先のローカル座標。
             public Vector3 TargetLocalPosition
             {
                 get; set;
             }
 
+            // 移動先のスケール倍率。
             public float TargetScale
             {
                 get; set;
             }
 
+            // 移動中に表示対象として扱うか。
             public bool IsActiveDuringMove
             {
                 get; set;
             }
 
+            // 移動完了後も表示するか。
             public bool IsVisibleAfterMove
             {
                 get; set;
             }
         }
-
-        // 次にゲームパッド入力を受け付ける時刻。
-        private float _nextGamepadInputTime;
-
-        // マウスドラッグ中かどうか。
-        private bool _isMouseDragging;
-
-        // 今回のマウス操作でドラッグによる切り替えが発生したか。
-        private bool _hasMouseDragged;
-
-        // マウスドラッグ開始位置。
-        private Vector2 _mouseDragStartPosition;
 
         private void Awake()
         {
@@ -234,7 +256,7 @@ namespace Uraty.Application.Lobby
 
         private void Update()
         {
-            // 選択中キャラが中央に来るように、親を少しずつ移動する。
+            // 各キャラを目標位置へ移動させる。
             MoveCharacterPreviews();
 
             // Cancelでキャラ選択画面を閉じる。
@@ -262,7 +284,7 @@ namespace Uraty.Application.Lobby
         }
 
         /// <summary>
-        /// CharacterData配列から3Dキャラモデルを生成する。
+        /// キャラPrefab配列から3Dキャラモデルを生成する。
         /// </summary>
         private void CreateCharacterPreviews()
         {
@@ -426,7 +448,96 @@ namespace Uraty.Application.Lobby
                     Vector3.one * previewState.TargetScale,
                     Time.deltaTime * _moveSpeed
                 );
+
+                // 退場予定のキャラは、外側へある程度流れたら非表示にする。
+                // スケールが完全一致するまで待つと、消えるまでが長く見えるため位置だけで判定する。
+                if (!previewState.IsVisibleAfterMove &&
+                    IsPreviewReachedTargetPosition(
+                        previewState,
+                        ExitCompleteDistance
+                    ))
+                {
+                    previewObject.SetActive(false);
+                    previewState.IsActiveDuringMove = false;
+                }
             }
+
+            // スクロール中の全キャラが目標位置に近づいたら、最終表示状態に整える。
+            if (_isScrolling && IsPreviewMovementComplete())
+            {
+                CompleteScroll();
+            }
+        }
+
+        /// <summary>
+        /// スクロール完了時に、選択状態を最終配置へ整える。
+        /// </summary>
+        private void CompleteScroll()
+        {
+            _isScrolling = false;
+
+            RefreshSelection();
+            ApplyPreviewStatesImmediately();
+        }
+
+        /// <summary>
+        /// 指定キャラが目標位置に十分近づいたか調べる。
+        /// </summary>
+        private bool IsPreviewReachedTargetPosition(
+            CharacterPreviewState previewState,
+            float completeDistance)
+        {
+            if (previewState == null || previewState.Selectable == null)
+            {
+                return true;
+            }
+
+            Transform previewTransform = previewState.Selectable.transform;
+
+            float positionDistance = Vector3.Distance(
+                previewTransform.localPosition,
+                previewState.TargetLocalPosition
+            );
+
+            return positionDistance <= completeDistance;
+        }
+
+        /// <summary>
+        /// スクロール移動が完了したか調べる。
+        /// 入力ロック解除の判定に使う。
+        /// </summary>
+        private bool IsPreviewMovementComplete()
+        {
+            for (int i = 0; i < _previewStates.Count; i++)
+            {
+                CharacterPreviewState previewState = _previewStates[i];
+
+                if (previewState == null || previewState.Selectable == null)
+                {
+                    continue;
+                }
+
+                if (!previewState.IsActiveDuringMove)
+                {
+                    continue;
+                }
+
+                // 退場中のキャラがまだ残っている場合は、完了扱いにしない。
+                if (!previewState.IsVisibleAfterMove)
+                {
+                    return false;
+                }
+
+                if (!IsPreviewReachedTargetPosition(
+                        previewState,
+                        MoveCompleteDistance
+                    ))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -440,19 +551,20 @@ namespace Uraty.Application.Lobby
                 return;
             }
 
+            if (_isScrolling)
+            {
+                return;
+            }
+
             Vector2 mousePosition = Mouse.current.position.ReadValue();
 
             if (Mouse.current.leftButton.wasPressedThisFrame)
             {
-                Debug.Log($"Mouse pressed: {mousePosition}");
-
                 if (!IsPointerOverDragArea(mousePosition))
                 {
-                    Debug.Log("DragArea上ではありません。");
+                    _isMouseDragging = false;
                     return;
                 }
-
-                Debug.Log("Mouse drag start");
 
                 _isMouseDragging = true;
                 _hasMouseDragged = false;
@@ -470,21 +582,18 @@ namespace Uraty.Application.Lobby
             {
                 float dragAmount = mousePosition.x - _mouseDragStartPosition.x;
 
-                Debug.Log($"Mouse drag amount: {dragAmount}");
-
                 if (Mathf.Abs(dragAmount) < _dragThreshold)
                 {
                     return;
                 }
 
+                // 左へドラッグしたら右側のキャラを選択する。
                 if (dragAmount < 0.0f)
                 {
-                    Debug.Log("Mouse SelectNext");
                     SelectNext();
                 }
                 else
                 {
-                    Debug.Log("Mouse SelectPrevious");
                     SelectPrevious();
                 }
 
@@ -496,8 +605,7 @@ namespace Uraty.Application.Lobby
 
             if (Mouse.current.leftButton.wasReleasedThisFrame)
             {
-                Debug.Log("Mouse released");
-
+                // ドラッグが発生していない場合だけ、クリック選択として扱う。
                 if (!_hasMouseDragged)
                 {
                     TrySelectCharacterByScreenPosition(mousePosition);
@@ -507,6 +615,9 @@ namespace Uraty.Application.Lobby
             }
         }
 
+        /// <summary>
+        /// 現在のマウス位置が、ドラッグ操作エリア上にあるか調べる。
+        /// </summary>
         private bool IsPointerOverDragArea(Vector2 screenPosition)
         {
             if (_dragArea == null)
@@ -525,8 +636,6 @@ namespace Uraty.Application.Lobby
 
             foreach (RaycastResult raycastResult in raycastResults)
             {
-                Debug.Log($"UI Raycast Hit: {raycastResult.gameObject.name}");
-
                 if (raycastResult.gameObject == _dragArea)
                 {
                     return true;
@@ -542,41 +651,16 @@ namespace Uraty.Application.Lobby
         }
 
         /// <summary>
-        /// 現在のマウス位置が、このControllerが付いている操作エリア上にあるか調べる。
-        /// </summary>
-        private bool IsPointerOverControlArea(Vector2 screenPosition)
-        {
-            PointerEventData pointerEventData = new PointerEventData(EventSystem.current)
-            {
-                position = screenPosition
-            };
-
-            List<RaycastResult> raycastResults = new();
-            EventSystem.current.RaycastAll(pointerEventData, raycastResults);
-
-            foreach (RaycastResult raycastResult in raycastResults)
-            {
-                // CharacterSelectSceneControllerがDragAreaに付いている前提。
-                if (raycastResult.gameObject == gameObject)
-                {
-                    return true;
-                }
-
-                if (raycastResult.gameObject.transform.IsChildOf(transform))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
         /// ゲームパッドの左右入力でキャラを切り替える。
         /// </summary>
         private void HandleGamepadInput()
         {
             if (_gameInput == null)
+            {
+                return;
+            }
+
+            if (_isScrolling)
             {
                 return;
             }
@@ -607,6 +691,9 @@ namespace Uraty.Application.Lobby
             }
         }
 
+        /// <summary>
+        /// Cancel入力でキャラ選択画面を閉じる。
+        /// </summary>
         private void HandleCancelInput()
         {
             if (_gameInput == null)
@@ -664,9 +751,48 @@ namespace Uraty.Application.Lobby
                     continue;
                 }
 
-                SelectIndex(selectable.Index);
+                SelectClickedCharacter(selectable.Index);
                 return;
             }
+        }
+
+        /// <summary>
+        /// クリックされたキャラを選択する。
+        /// 現在位置から見て近い方向へ、必要スロット数分まとめてスクロールする。
+        /// </summary>
+        private void SelectClickedCharacter(int clickedIndex)
+        {
+            if (_previewStates.Count == 0)
+            {
+                return;
+            }
+
+            int targetIndex = WrapIndex(clickedIndex, _previewStates.Count);
+
+            if (targetIndex == _selectedIndex)
+            {
+                return;
+            }
+
+            int rightDistance = GetRightDistance(
+                _selectedIndex,
+                targetIndex,
+                _previewStates.Count
+            );
+
+            int leftDistance = GetRightDistance(
+                targetIndex,
+                _selectedIndex,
+                _previewStates.Count
+            );
+
+            if (rightDistance <= leftDistance)
+            {
+                SelectIndexByScroll(targetIndex, rightDistance);
+                return;
+            }
+
+            SelectIndexByScroll(targetIndex, -leftDistance);
         }
 
         /// <summary>
@@ -674,12 +800,7 @@ namespace Uraty.Application.Lobby
         /// </summary>
         private void SelectNext()
         {
-            if (_previewStates.Count == 0)
-            {
-                return;
-            }
-
-            SelectIndex(_selectedIndex + 1, CharacterSlideDirection.Next);
+            SelectIndexByScroll(_selectedIndex + 1, 1);
         }
 
         /// <summary>
@@ -687,24 +808,15 @@ namespace Uraty.Application.Lobby
         /// </summary>
         private void SelectPrevious()
         {
-            if (_previewStates.Count == 0)
-            {
-                return;
-            }
-
-            SelectIndex(_selectedIndex - 1, CharacterSlideDirection.Previous);
-        }
-
-        private void SelectIndex(int index)
-        {
-            SelectIndex(index, CharacterSlideDirection.None);
+            SelectIndexByScroll(_selectedIndex - 1, -1);
         }
 
         /// <summary>
-        /// 指定Indexのキャラを選択する。
-        /// 範囲外の場合はループさせる。
+        /// 指定Indexのキャラを選択し、指定スロット数分スクロールさせる。
+        /// scrollSlotCountが正なら右側のキャラを中央へ流す。
+        /// scrollSlotCountが負なら左側のキャラを中央へ流す。
         /// </summary>
-        private void SelectIndex(int index, CharacterSlideDirection slideDirection)
+        private void SelectIndexByScroll(int index, int scrollSlotCount)
         {
             if (_previewStates.Count == 0)
             {
@@ -714,41 +826,216 @@ namespace Uraty.Application.Lobby
             int previousIndex = _selectedIndex;
             int nextIndex = WrapIndex(index, _previewStates.Count);
 
-            if (previousIndex == nextIndex)
+            if (previousIndex == nextIndex || scrollSlotCount == 0)
             {
                 return;
             }
 
-            PrepareSlideStartPositions(previousIndex, nextIndex, slideDirection);
-
             _selectedIndex = nextIndex;
+            _isScrolling = true;
 
-            RefreshSelectionTargets(previousIndex, slideDirection);
+            RefreshSelectionTargetsByScroll(previousIndex, scrollSlotCount);
             RefreshCharacterInfo();
-        }
-
-        private int WrapIndex(int index, int count)
-        {
-            if (count <= 0)
-            {
-                return 0;
-            }
-
-            return (index % count + count) % count;
         }
 
         /// <summary>
-        /// 選択状態に応じて、各キャラの目標位置・表示状態・説明文を更新する。
+        /// スクロール方向に応じて、各キャラの目標位置を更新する。
+        /// </summary>
+        private void RefreshSelectionTargetsByScroll(
+            int previousIndex,
+            int scrollSlotCount)
+        {
+            if (scrollSlotCount > 0)
+            {
+                RefreshNextScrollTargets(previousIndex, scrollSlotCount);
+                return;
+            }
+
+            RefreshPreviousScrollTargets(previousIndex, -scrollSlotCount);
+        }
+
+        /// <summary>
+        /// 右側のキャラを中央へ持ってくるスクロール。
+        /// 左ドラッグ / 十字キー右 / 右側キャラクリックで使う。
+        /// </summary>
+        private void RefreshNextScrollTargets(
+            int previousIndex,
+            int scrollAmount)
+        {
+            int count = _previewStates.Count;
+            int visibleSideCount = GetVisibleSideCount();
+
+            for (int i = 0; i < _previewStates.Count; i++)
+            {
+                CharacterPreviewState previewState = _previewStates[i];
+
+                if (previewState == null || previewState.Selectable == null)
+                {
+                    continue;
+                }
+
+                int previousSlot = GetRightDistance(
+                    previousIndex,
+                    i,
+                    count
+                );
+
+                int targetSlot = GetRightDistance(
+                    _selectedIndex,
+                    i,
+                    count
+                );
+
+                bool wasVisible = previousSlot <= visibleSideCount;
+                bool willVisible = targetSlot <= visibleSideCount;
+
+                // 左側へ押し出されるキャラ。
+                // 右側から出現する動きの逆として、左へ流しながら遠距離サイズへ縮める。
+                bool exitsLeft =
+                    wasVisible && previousSlot < scrollAmount;
+
+                if (exitsLeft)
+                {
+                    int exitSlot = previousSlot - scrollAmount;
+
+                    SetPreviewMoveTarget(
+                        previewState,
+                        exitSlot,
+                        _farSideScale,
+                        true,
+                        false
+                    );
+
+                    continue;
+                }
+
+                if (willVisible)
+                {
+                    // 新しく右側から入ってくるキャラは、右奥から開始させる。
+                    if (!wasVisible)
+                    {
+                        int startSlot = targetSlot + scrollAmount;
+
+                        SetPreviewStartTransform(
+                            previewState,
+                            startSlot,
+                            _farSideScale
+                        );
+                    }
+
+                    SetPreviewMoveTarget(
+                        previewState,
+                        targetSlot,
+                        GetScaleBySlot(targetSlot),
+                        true,
+                        true
+                    );
+
+                    continue;
+                }
+
+                HidePreviewImmediately(previewState);
+            }
+        }
+
+        /// <summary>
+        /// 左側のキャラを中央へ持ってくるスクロール。
+        /// 右ドラッグ / 十字キー左で使う。
+        /// </summary>
+        private void RefreshPreviousScrollTargets(
+            int previousIndex,
+            int scrollAmount)
+        {
+            int count = _previewStates.Count;
+            int visibleSideCount = GetVisibleSideCount();
+
+            for (int i = 0; i < _previewStates.Count; i++)
+            {
+                CharacterPreviewState previewState = _previewStates[i];
+
+                if (previewState == null || previewState.Selectable == null)
+                {
+                    continue;
+                }
+
+                int previousSlot = GetRightDistance(
+                    previousIndex,
+                    i,
+                    count
+                );
+
+                int targetSlot = GetRightDistance(
+                    _selectedIndex,
+                    i,
+                    count
+                );
+
+                bool wasVisible = previousSlot <= visibleSideCount;
+                bool willVisible = targetSlot <= visibleSideCount;
+
+                // 右側へ押し出されるキャラ。
+                // 左側から出現する動きの逆として、右へ流しながら遠距離サイズへ縮める。
+                bool exitsRight =
+                    wasVisible && previousSlot > visibleSideCount - scrollAmount;
+
+                if (exitsRight)
+                {
+                    int exitSlot = previousSlot + scrollAmount;
+
+                    SetPreviewMoveTarget(
+                        previewState,
+                        exitSlot,
+                        _farSideScale,
+                        true,
+                        false
+                    );
+
+                    continue;
+                }
+
+                if (willVisible)
+                {
+                    // 新しく左側から入ってくるキャラは、左奥から開始させる。
+                    if (!wasVisible)
+                    {
+                        int startSlot = targetSlot - scrollAmount;
+
+                        SetPreviewStartTransform(
+                            previewState,
+                            startSlot,
+                            _farSideScale
+                        );
+                    }
+
+                    SetPreviewMoveTarget(
+                        previewState,
+                        targetSlot,
+                        GetScaleBySlot(targetSlot),
+                        true,
+                        true
+                    );
+
+                    continue;
+                }
+
+                HidePreviewImmediately(previewState);
+            }
+        }
+
+        /// <summary>
+        /// 現在の選択Indexに基づいて、最終的な表示状態を作る。
+        /// 初期表示やスクロール完了後の整列で使う。
         /// </summary>
         private void RefreshSelection()
         {
-            RefreshSelectionTargets(_selectedIndex, CharacterSlideDirection.None);
+            RefreshSelectionTargets();
             RefreshCharacterInfo();
         }
 
-        private void RefreshSelectionTargets(
-            int previousIndex,
-            CharacterSlideDirection slideDirection)
+        /// <summary>
+        /// 各キャラを、現在の選択Indexから見た最終位置へ設定する。
+        /// </summary>
+        private void RefreshSelectionTargets()
         {
             int visibleSideCount = GetVisibleSideCount();
 
@@ -767,26 +1054,38 @@ namespace Uraty.Application.Lobby
                     _previewStates.Count
                 );
 
-                bool finalVisible = rightDistance <= visibleSideCount;
+                bool visible = rightDistance <= visibleSideCount;
 
-                int targetSlot = finalVisible
+                int targetSlot = visible
                     ? rightDistance
                     : visibleSideCount + 1;
 
-                previewState.TargetLocalPosition = new Vector3(
-                    targetSlot * _slotSpacing,
-                    0.0f,
-                    0.0f
+                SetPreviewMoveTarget(
+                    previewState,
+                    targetSlot,
+                    GetScaleBySlot(targetSlot),
+                    visible,
+                    visible
                 );
-
-                previewState.TargetScale = GetScaleBySlot(targetSlot);
-                previewState.IsActiveDuringMove = finalVisible;
-                previewState.IsVisibleAfterMove = finalVisible;
-
-                previewState.Selectable.gameObject.SetActive(finalVisible);
             }
         }
 
+        /// <summary>
+        /// indexを範囲内にループさせる。
+        /// </summary>
+        private int WrapIndex(int index, int count)
+        {
+            if (count <= 0)
+            {
+                return 0;
+            }
+
+            return (index % count + count) % count;
+        }
+
+        /// <summary>
+        /// selectedIndexからtargetIndexまで、右方向に何スロット離れているかを返す。
+        /// </summary>
         private int GetRightDistance(int selectedIndex, int targetIndex, int count)
         {
             if (count <= 0)
@@ -797,118 +1096,22 @@ namespace Uraty.Application.Lobby
             return (targetIndex - selectedIndex + count) % count;
         }
 
-        private bool IsVisibleFromSelectedIndex(int selectedIndex, int targetIndex)
-        {
-            int rightDistance = GetRightDistance(
-                selectedIndex,
-                targetIndex,
-                _previewStates.Count
-            );
-
-            return rightDistance <= GetVisibleSideCount();
-        }
-
+        /// <summary>
+        /// 表示する右側キャラ数を返す。
+        /// </summary>
         private int GetVisibleSideCount()
         {
             return Mathf.Max(0, _visibleSideCount);
         }
 
+        /// <summary>
+        /// スロット位置に応じたスケールを返す。
+        /// </summary>
         private float GetScaleBySlot(int slot)
         {
             int distance = Mathf.Abs(slot);
 
             return GetScaleByDistance(distance);
-        }
-
-        private void PrepareSlideStartPositions(
-            int previousIndex,
-            int nextIndex,
-            CharacterSlideDirection slideDirection)
-        {
-            if (_previewStates.Count == 0)
-            {
-                return;
-            }
-
-            int visibleSideCount = GetVisibleSideCount();
-
-            if (slideDirection == CharacterSlideDirection.Previous)
-            {
-                SetPreviewStartTransform(
-                    nextIndex,
-                    -_slotSpacing,
-                    _farSideScale
-                );
-
-                return;
-            }
-
-            if (slideDirection == CharacterSlideDirection.Next)
-            {
-                int enteringRightIndex = WrapIndex(
-                    nextIndex + visibleSideCount,
-                    _previewStates.Count
-                );
-
-                if (enteringRightIndex == previousIndex)
-                {
-                    return;
-                }
-
-                SetPreviewStartTransform(
-                    enteringRightIndex,
-                    (visibleSideCount + 1) * _slotSpacing,
-                    _farSideScale
-                );
-            }
-        }
-
-        private void SetPreviewStartTransform(int index, float localX, float scale)
-        {
-            if (index < 0 || index >= _previewStates.Count)
-            {
-                return;
-            }
-
-            CharacterPreviewState previewState = _previewStates[index];
-
-            if (previewState == null || previewState.Selectable == null)
-            {
-                return;
-            }
-
-            GameObject previewObject = previewState.Selectable.gameObject;
-            Transform previewTransform = previewState.Selectable.transform;
-
-            previewObject.SetActive(true);
-
-            previewTransform.localPosition = new Vector3(
-                localX,
-                0.0f,
-                0.0f
-            );
-
-            previewTransform.localScale = Vector3.one * scale;
-        }
-
-        private void ApplyPreviewStatesImmediately()
-        {
-            for (int i = 0; i < _previewStates.Count; i++)
-            {
-                CharacterPreviewState previewState = _previewStates[i];
-
-                if (previewState == null || previewState.Selectable == null)
-                {
-                    continue;
-                }
-
-                Transform previewTransform = previewState.Selectable.transform;
-
-                previewTransform.localPosition = previewState.TargetLocalPosition;
-                previewTransform.localScale = Vector3.one * previewState.TargetScale;
-
-                previewState.Selectable.gameObject.SetActive(previewState.IsVisibleAfterMove);
-            }
         }
 
         /// <summary>
@@ -926,12 +1129,107 @@ namespace Uraty.Application.Lobby
                 return _nearSideScale;
             }
 
-            if (distance == 2)
+            return _farSideScale;
+        }
+
+        /// <summary>
+        /// キャラの開始位置とスケールを即時設定する。
+        /// 新しく画面内に入ってくるキャラの初期位置に使う。
+        /// </summary>
+        private void SetPreviewStartTransform(
+            CharacterPreviewState previewState,
+            int slot,
+            float scale)
+        {
+            if (previewState == null || previewState.Selectable == null)
             {
-                return _farSideScale;
+                return;
             }
 
-            return _farSideScale;
+            Transform previewTransform = previewState.Selectable.transform;
+
+            previewState.Selectable.gameObject.SetActive(true);
+
+            previewTransform.localPosition = new Vector3(
+                slot * _slotSpacing,
+                0.0f,
+                0.0f
+            );
+
+            previewTransform.localScale = Vector3.one * scale;
+        }
+
+        /// <summary>
+        /// キャラの移動目標を設定する。
+        /// activeDuringMoveがfalseなら移動対象外として扱う。
+        /// visibleAfterMoveがfalseなら到達後に非表示にする。
+        /// </summary>
+        private void SetPreviewMoveTarget(
+            CharacterPreviewState previewState,
+            int slot,
+            float targetScale,
+            bool activeDuringMove,
+            bool visibleAfterMove)
+        {
+            if (previewState == null || previewState.Selectable == null)
+            {
+                return;
+            }
+
+            previewState.TargetLocalPosition = new Vector3(
+                slot * _slotSpacing,
+                0.0f,
+                0.0f
+            );
+
+            previewState.TargetScale = targetScale;
+            previewState.IsActiveDuringMove = activeDuringMove;
+            previewState.IsVisibleAfterMove = visibleAfterMove;
+
+            previewState.Selectable.gameObject.SetActive(activeDuringMove);
+        }
+
+        /// <summary>
+        /// 指定キャラを即時非表示にする。
+        /// 画面外で今回の移動にも関係ないキャラに使う。
+        /// </summary>
+        private void HidePreviewImmediately(CharacterPreviewState previewState)
+        {
+            if (previewState == null || previewState.Selectable == null)
+            {
+                return;
+            }
+
+            previewState.IsActiveDuringMove = false;
+            previewState.IsVisibleAfterMove = false;
+
+            previewState.Selectable.gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// 現在の目標位置・スケールを即座に反映する。
+        /// 初期表示やスクロール完了後の整列に使う。
+        /// </summary>
+        private void ApplyPreviewStatesImmediately()
+        {
+            for (int i = 0; i < _previewStates.Count; i++)
+            {
+                CharacterPreviewState previewState = _previewStates[i];
+
+                if (previewState == null || previewState.Selectable == null)
+                {
+                    continue;
+                }
+
+                Transform previewTransform = previewState.Selectable.transform;
+
+                previewTransform.localPosition = previewState.TargetLocalPosition;
+                previewTransform.localScale = Vector3.one * previewState.TargetScale;
+
+                previewState.Selectable.gameObject.SetActive(
+                    previewState.IsVisibleAfterMove
+                );
+            }
         }
 
         /// <summary>
@@ -968,6 +1266,9 @@ namespace Uraty.Application.Lobby
             }
         }
 
+        /// <summary>
+        /// 現在選択中のプレビュー状態を取得する。
+        /// </summary>
         private CharacterPreviewState GetSelectedPreviewState()
         {
             if (_selectedIndex < 0 || _selectedIndex >= _previewStates.Count)
@@ -978,6 +1279,10 @@ namespace Uraty.Application.Lobby
             return _previewStates[_selectedIndex];
         }
 
+        /// <summary>
+        /// キャラ説明文を作成する。
+        /// CharacterStatus / CharacterAttack / CharacterSuper から表示用情報を取得する。
+        /// </summary>
         private string CreateCharacterDescription(CharacterPreviewState previewState)
         {
             CharacterStatus status = previewState.Status;
@@ -1005,6 +1310,9 @@ namespace Uraty.Application.Lobby
                 $"必殺技\n{FormatSkillInfo(superInfo)}";
         }
 
+        /// <summary>
+        /// 攻撃 / 必殺技の表示用情報を文字列にする。
+        /// </summary>
         private string FormatSkillInfo(CharacterSkillPreviewInfo info)
         {
             if (!info.IsValid)
@@ -1020,7 +1328,7 @@ namespace Uraty.Application.Lobby
         }
 
         /// <summary>
-        /// 現在選択中のCharacterDataを取得する。
+        /// 現在選択中のキャラPrefabを取得する。
         /// </summary>
         private GameObject GetSelectedCharacterPrefab()
         {
@@ -1066,6 +1374,10 @@ namespace Uraty.Application.Lobby
             SceneManager.UnloadSceneAsync(gameObject.scene);
         }
 
+        /// <summary>
+        /// キャラ操作用のUIが選択されているか調べる。
+        /// Padの左右入力でキャラだけを切り替えるために使う。
+        /// </summary>
         private bool IsCharacterFocusSelected()
         {
             if (_firstSelectable == null)
@@ -1088,6 +1400,9 @@ namespace Uraty.Application.Lobby
             return selectedGameObject == _firstSelectable.gameObject;
         }
 
+        /// <summary>
+        /// 指定したUIを選択状態にする。
+        /// </summary>
         private void SelectUi(Selectable selectable)
         {
             if (selectable == null)
