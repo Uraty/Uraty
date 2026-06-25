@@ -54,10 +54,10 @@ namespace Uraty.Application.Result
 
             _resultPlayerDataTexts[playerIndex].text =
                 $"{roleType}" +
-                $"\nDAMAGE\t: {damage}" +
-                $"\nHEAL\t\t: {heal}" +
-                $"\nKILL\t\t\t: {kill}" +
-                $"\nDEATH\t\t: {death}";
+                $"\n{damage}" +
+                $"\n{heal}" +
+                $"\n{kill}" +
+                $"\n{death}";
 
             _playerObjects[playerIndex] =
                 Instantiate(
