@@ -84,6 +84,12 @@ namespace Uraty.Application.Lobby
         // ゲームパッド左右入力を受け付けるしきい値。
         [SerializeField] private float _gamepadInputThreshold = 0.6f;
 
+        // この値以上左右に動かしたらクリック扱いではなくドラッグ扱いにする。
+        [SerializeField] private float _clickCancelDragPixels = 8.0f;
+
+        // このpx数ドラッグするごとに、1キャラ分スクロールする。
+        [SerializeField] private float _dragScrollPixelsPerStep = 120.0f;
+
         // ゲームパッド長押し時の連続切り替え間隔。
         [SerializeField] private float _gamepadRepeatSeconds = 0.25f;
 
@@ -124,6 +130,13 @@ namespace Uraty.Application.Lobby
 
         // マウスドラッグ開始位置。
         private Vector2 _mouseDragStartPosition;
+
+        // 直前フレームのマウス位置。
+        private Vector2 _mouseDragPreviousPosition;
+
+        // ドラッグ量の蓄積。
+        // 一定量を超えるごとに1キャラ分スクロールする。
+        private float _dragScrollAccumulatedPixels;
 
         /// <summary>
         /// 生成したプレビューキャラ1体分の状態。
@@ -323,7 +336,7 @@ namespace Uraty.Application.Lobby
                     0.0f
                 );
 
-                previewObject.transform.localRotation = Quaternion.identity;
+                previewObject.transform.localRotation = Quaternion.Euler(0.0f, 180.0f, 0.0f);
 
                 CharacterPreviewSelectable selectable =
                     previewObject.GetComponent<CharacterPreviewSelectable>();
@@ -551,7 +564,9 @@ namespace Uraty.Application.Lobby
                 return;
             }
 
-            if (_isScrolling)
+            // スクロール中でも、すでにドラッグ中なら継続入力を受け付ける。
+            // これにより、ドラッグし続けた時に連続スクロールできる。
+            if (_isScrolling && !_isMouseDragging)
             {
                 return;
             }
@@ -569,6 +584,8 @@ namespace Uraty.Application.Lobby
                 _isMouseDragging = true;
                 _hasMouseDragged = false;
                 _mouseDragStartPosition = mousePosition;
+                _mouseDragPreviousPosition = mousePosition;
+                _dragScrollAccumulatedPixels = 0.0f;
 
                 return;
             }
@@ -580,38 +597,68 @@ namespace Uraty.Application.Lobby
 
             if (Mouse.current.leftButton.isPressed)
             {
-                float dragAmount = mousePosition.x - _mouseDragStartPosition.x;
+                Vector2 frameDelta = mousePosition - _mouseDragPreviousPosition;
+                _mouseDragPreviousPosition = mousePosition;
 
-                if (Mathf.Abs(dragAmount) < _dragThreshold)
+                float totalDragAmount = mousePosition.x - _mouseDragStartPosition.x;
+
+                if (Mathf.Abs(totalDragAmount) >= _clickCancelDragPixels)
                 {
-                    return;
+                    _hasMouseDragged = true;
                 }
 
-                // 左へドラッグしたら右側のキャラを選択する。
-                if (dragAmount < 0.0f)
-                {
-                    SelectNext();
-                }
-                else
-                {
-                    SelectPrevious();
-                }
+                _dragScrollAccumulatedPixels += frameDelta.x;
 
-                _mouseDragStartPosition = mousePosition;
-                _hasMouseDragged = true;
+                ConsumeDragScrollPixels();
 
                 return;
             }
 
             if (Mouse.current.leftButton.wasReleasedThisFrame)
             {
-                // ドラッグが発生していない場合だけ、クリック選択として扱う。
-                if (!_hasMouseDragged)
+                bool shouldClickSelect = !_hasMouseDragged;
+
+                _isMouseDragging = false;
+                _dragScrollAccumulatedPixels = 0.0f;
+
+                if (shouldClickSelect)
                 {
                     TrySelectCharacterByScreenPosition(mousePosition);
                 }
+            }
+        }
 
-                _isMouseDragging = false;
+        /// <summary>
+        /// 蓄積したドラッグ量を消費して、一定距離ごとにキャラをスクロールする。
+        /// 左ドラッグなら右側キャラへ、右ドラッグなら左側キャラへ切り替える。
+        /// </summary>
+        private void ConsumeDragScrollPixels()
+        {
+            if (_dragScrollPixelsPerStep <= 0.0f)
+            {
+                return;
+            }
+
+            const int MaxScrollStepsPerFrame = 3;
+
+            int scrollStepCount = 0;
+
+            while (_dragScrollAccumulatedPixels <= -_dragScrollPixelsPerStep &&
+                   scrollStepCount < MaxScrollStepsPerFrame)
+            {
+                SelectNext();
+
+                _dragScrollAccumulatedPixels += _dragScrollPixelsPerStep;
+                scrollStepCount++;
+            }
+
+            while (_dragScrollAccumulatedPixels >= _dragScrollPixelsPerStep &&
+                   scrollStepCount < MaxScrollStepsPerFrame)
+            {
+                SelectPrevious();
+
+                _dragScrollAccumulatedPixels -= _dragScrollPixelsPerStep;
+                scrollStepCount++;
             }
         }
 
