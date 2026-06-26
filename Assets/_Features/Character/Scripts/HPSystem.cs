@@ -14,6 +14,9 @@ namespace Uraty.Features.Character
         [SerializeField] private BarBase _barDamage;
         [SerializeField] private TextMeshProUGUI _textCurrentHP;
 
+        [Header("HP Change Text")]
+        [SerializeField] private HPDirection _hpDirection;
+
         [Header("Billboard")]
         [SerializeField] private bool _isBillboardEnabled = true;
         [SerializeField] private bool _isYawOnlyBillboard;
@@ -37,6 +40,7 @@ namespace Uraty.Features.Character
         private void Awake()
         {
             CacheCharacterStatus();
+            CacheHPDirection();
             CacheMainCamera();
 
             if (_canvas == null)
@@ -75,6 +79,11 @@ namespace Uraty.Features.Character
             {
                 _characterStatus = GetComponentInParent<CharacterStatus>();
             }
+
+            if (_hpDirection == null)
+            {
+                _hpDirection = GetComponentInChildren<HPDirection>(true);
+            }
         }
 
         /// <summary>
@@ -88,6 +97,19 @@ namespace Uraty.Features.Character
             }
 
             _characterStatus = GetComponentInParent<CharacterStatus>();
+        }
+
+        /// <summary>
+        /// HP変化量表示をキャッシュする。
+        /// </summary>
+        private void CacheHPDirection()
+        {
+            if (_hpDirection != null)
+            {
+                return;
+            }
+
+            _hpDirection = GetComponentInChildren<HPDirection>(true);
         }
 
         /// <summary>
@@ -174,10 +196,14 @@ namespace Uraty.Features.Character
             }
             else if (currentHP < _lastCurrentHP)
             {
+                float damageAmount = _lastCurrentHP - currentHP;
+                _hpDirection?.ShowDamage(damageAmount);
                 _isDamage = true;
             }
             else
             {
+                float healAmount = currentHP - _lastCurrentHP;
+                _hpDirection?.ShowHeal(healAmount);
                 _barDamage.SetBarRatio(hpRatio);
                 _isDamage = false;
             }
