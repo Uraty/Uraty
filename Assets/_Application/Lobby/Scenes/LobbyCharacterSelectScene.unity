@@ -402,6 +402,8 @@ MonoBehaviour:
   _closeButton: {fileID: 446670391}
   _dragThreshold: 80
   _gamepadInputThreshold: 0.6
+  _clickCancelDragPixels: 8
+  _dragScrollPixelsPerStep: 240
   _gamepadRepeatSeconds: 0.25
   _dragArea: {fileID: 619568254}
   _firstSelectable: {fileID: 1152635830}

@@ -50,6 +50,9 @@ namespace Uraty.Application.Lobby
         // 3Dモデルクリック判定用Rayの距離。
         [SerializeField] private float _rayDistance = 1000.0f;
 
+        // プレビュー表示時のキャラのY軸回転。
+        [SerializeField] private float _previewRotationY = 180.0f;
+
         [Header("Scale")]
         // 選択中キャラの右側に何体まで表示するか。
         [SerializeField] private int _visibleSideCount = 2;
@@ -77,8 +80,14 @@ namespace Uraty.Application.Lobby
         [SerializeField] private Button _closeButton;
 
         [Header("Drag")]
-        // この値以上左右に動かしたらキャラを切り替える。
-        [SerializeField] private float _dragThreshold = 80.0f;
+        // この値以上左右に動かしたらクリック扱いではなくドラッグ扱いにする。
+        [SerializeField] private float _clickCancelDragPixels = 8.0f;
+
+        // 何pxドラッグしたら1スロット分動いた見た目にするか。
+        [SerializeField] private float _dragPixelsPerSlot = 180.0f;
+
+        // ドラッグ中にキャラがマウスへ追従する速度。
+        [SerializeField] private float _dragFollowSpeed = 35.0f;
 
         [Header("Gamepad")]
         // ゲームパッド左右入力を受け付けるしきい値。
@@ -103,6 +112,9 @@ namespace Uraty.Application.Lobby
         // スケールが完全に縮み切るまで待つと遅いので、位置だけで判定する。
         private const float ExitCompleteDistance = 0.2f;
 
+        // ドラッグ中に表示対象とする範囲の余白。
+        private const float DragVisibleSlotMargin = 0.1f;
+
         // 生成したキャラ表示オブジェクトの状態一覧。
         private readonly List<CharacterPreviewState> _previewStates = new();
 
@@ -115,15 +127,26 @@ namespace Uraty.Application.Lobby
         // マウスドラッグ中かどうか。
         private bool _isMouseDragging;
 
-        // 今回のマウス操作でドラッグによる切り替えが発生したか。
+        // 今回のマウス操作でドラッグによる移動が発生したか。
         private bool _hasMouseDragged;
 
         // キャラのスクロール移動中かどうか。
-        // 移動中は連続入力で目標位置が壊れないように入力を止める。
+        // 十字キー / クリック操作中は連続入力で目標位置が壊れないように入力を止める。
         private bool _isScrolling;
 
         // マウスドラッグ開始位置。
         private Vector2 _mouseDragStartPosition;
+
+        // 直前フレームのマウス位置。
+        private Vector2 _mouseDragPreviousPosition;
+
+        // ドラッグ中の連続スクロール位置。
+        // 0.0なら0番目、1.0なら1番目が中央、0.5なら中間位置。
+        private float _dragScrollPosition;
+
+        // ドラッグ方向。
+        // 正なら右側キャラを中央へ流す方向、負なら左側キャラを中央へ流す方向。
+        private float _dragScrollDirection;
 
         /// <summary>
         /// 生成したプレビューキャラ1体分の状態。
@@ -323,7 +346,11 @@ namespace Uraty.Application.Lobby
                     0.0f
                 );
 
-                previewObject.transform.localRotation = Quaternion.identity;
+                previewObject.transform.localRotation = Quaternion.Euler(
+                    0.0f,
+                    _previewRotationY,
+                    0.0f
+                );
 
                 CharacterPreviewSelectable selectable =
                     previewObject.GetComponent<CharacterPreviewSelectable>();
@@ -420,7 +447,11 @@ namespace Uraty.Application.Lobby
 
                 GameObject previewObject = previewState.Selectable.gameObject;
 
-                if (!previewState.IsActiveDuringMove)
+                bool activeDuringMove = _isMouseDragging
+                    ? IsDragPreviewVisible(previewState)
+                    : previewState.IsActiveDuringMove;
+
+                if (!activeDuringMove)
                 {
                     if (previewObject.activeSelf)
                     {
@@ -437,21 +468,34 @@ namespace Uraty.Application.Lobby
 
                 Transform previewTransform = previewState.Selectable.transform;
 
+                Vector3 targetLocalPosition = _isMouseDragging
+                    ? GetDragTargetLocalPosition(previewState)
+                    : previewState.TargetLocalPosition;
+
+                float targetScale = _isMouseDragging
+                    ? GetDragTargetScale(previewState)
+                    : previewState.TargetScale;
+
+                float moveSpeed = _isMouseDragging
+                    ? _dragFollowSpeed
+                    : _moveSpeed;
+
                 previewTransform.localPosition = Vector3.Lerp(
                     previewTransform.localPosition,
-                    previewState.TargetLocalPosition,
-                    Time.deltaTime * _moveSpeed
+                    targetLocalPosition,
+                    Time.deltaTime * moveSpeed
                 );
 
                 previewTransform.localScale = Vector3.Lerp(
                     previewTransform.localScale,
-                    Vector3.one * previewState.TargetScale,
-                    Time.deltaTime * _moveSpeed
+                    Vector3.one * targetScale,
+                    Time.deltaTime * moveSpeed
                 );
 
                 // 退場予定のキャラは、外側へある程度流れたら非表示にする。
                 // スケールが完全一致するまで待つと、消えるまでが長く見えるため位置だけで判定する。
-                if (!previewState.IsVisibleAfterMove &&
+                if (!_isMouseDragging &&
+                    !previewState.IsVisibleAfterMove &&
                     IsPreviewReachedTargetPosition(
                         previewState,
                         ExitCompleteDistance
@@ -467,6 +511,102 @@ namespace Uraty.Application.Lobby
             {
                 CompleteScroll();
             }
+        }
+
+        /// <summary>
+        /// ドラッグ中に表示するキャラかどうかを返す。
+        /// </summary>
+        private bool IsDragPreviewVisible(CharacterPreviewState previewState)
+        {
+            float slot = GetDragSlot(previewState);
+            float minSlot = -1.0f - DragVisibleSlotMargin;
+            float maxSlot = GetVisibleSideCount() + 1.0f + DragVisibleSlotMargin;
+
+            return slot >= minSlot && slot <= maxSlot;
+        }
+
+        /// <summary>
+        /// ドラッグ中のキャラ目標位置を返す。
+        /// </summary>
+        private Vector3 GetDragTargetLocalPosition(
+            CharacterPreviewState previewState)
+        {
+            float slot = GetDragSlot(previewState);
+
+            return new Vector3(
+                slot * _slotSpacing,
+                0.0f,
+                0.0f
+            );
+        }
+
+        /// <summary>
+        /// ドラッグ中のキャラ目標スケールを返す。
+        /// </summary>
+        private float GetDragTargetScale(CharacterPreviewState previewState)
+        {
+            float slot = GetDragSlot(previewState);
+
+            return GetScaleBySlot(slot);
+        }
+
+        /// <summary>
+        /// ドラッグ中の見た目上のスロット位置を返す。
+        /// SelectNextを連続実行せず、floatのスクロール位置から連続的に算出する。
+        /// </summary>
+        private float GetDragSlot(CharacterPreviewState previewState)
+        {
+            if (previewState == null || previewState.Selectable == null)
+            {
+                return 0.0f;
+            }
+
+            int count = _previewStates.Count;
+
+            if (count <= 0)
+            {
+                return 0.0f;
+            }
+
+            int index = previewState.Selectable.Index;
+
+            // 右ドラッグ中は、左側から前のキャラを入れたい。
+            // そのため、基準IndexをCeil側に置き、1つ前のキャラだけslot=-1として扱う。
+            if (_dragScrollDirection < 0.0f)
+            {
+                int baseIndex = Mathf.CeilToInt(_dragScrollPosition);
+                float fraction = baseIndex - _dragScrollPosition;
+                int wrappedBaseIndex = WrapIndex(baseIndex, count);
+
+                int rightDistance = GetRightDistance(
+                    wrappedBaseIndex,
+                    index,
+                    count
+                );
+
+                float baseSlot = rightDistance;
+
+                if (rightDistance == count - 1)
+                {
+                    baseSlot = -1.0f;
+                }
+
+                return baseSlot + fraction;
+            }
+
+            // 左ドラッグ中、またはまだ方向が決まっていない場合。
+            // 右側のキャラを中央へ流すため、Floor側を基準にして右方向距離を使う。
+            int floorBaseIndex = Mathf.FloorToInt(_dragScrollPosition);
+            float floorFraction = _dragScrollPosition - floorBaseIndex;
+            int wrappedFloorBaseIndex = WrapIndex(floorBaseIndex, count);
+
+            int floorRightDistance = GetRightDistance(
+                wrappedFloorBaseIndex,
+                index,
+                count
+            );
+
+            return floorRightDistance - floorFraction;
         }
 
         /// <summary>
@@ -551,6 +691,8 @@ namespace Uraty.Application.Lobby
                 return;
             }
 
+            // 十字キーやクリックによるスクロール中は、新しいドラッグ開始を受け付けない。
+            // すでにドラッグ中の場合は、floatのドラッグ位置で処理するため_isScrollingにはならない。
             if (_isScrolling)
             {
                 return;
@@ -566,10 +708,7 @@ namespace Uraty.Application.Lobby
                     return;
                 }
 
-                _isMouseDragging = true;
-                _hasMouseDragged = false;
-                _mouseDragStartPosition = mousePosition;
-
+                StartMouseDrag(mousePosition);
                 return;
             }
 
@@ -580,39 +719,118 @@ namespace Uraty.Application.Lobby
 
             if (Mouse.current.leftButton.isPressed)
             {
-                float dragAmount = mousePosition.x - _mouseDragStartPosition.x;
-
-                if (Mathf.Abs(dragAmount) < _dragThreshold)
-                {
-                    return;
-                }
-
-                // 左へドラッグしたら右側のキャラを選択する。
-                if (dragAmount < 0.0f)
-                {
-                    SelectNext();
-                }
-                else
-                {
-                    SelectPrevious();
-                }
-
-                _mouseDragStartPosition = mousePosition;
-                _hasMouseDragged = true;
-
+                UpdateMouseDrag(mousePosition);
                 return;
             }
 
             if (Mouse.current.leftButton.wasReleasedThisFrame)
             {
-                // ドラッグが発生していない場合だけ、クリック選択として扱う。
-                if (!_hasMouseDragged)
-                {
-                    TrySelectCharacterByScreenPosition(mousePosition);
-                }
-
-                _isMouseDragging = false;
+                EndMouseDrag(mousePosition);
             }
+        }
+
+        /// <summary>
+        /// マウスドラッグを開始する。
+        /// </summary>
+        private void StartMouseDrag(Vector2 mousePosition)
+        {
+            _isMouseDragging = true;
+            _hasMouseDragged = false;
+            _mouseDragStartPosition = mousePosition;
+            _mouseDragPreviousPosition = mousePosition;
+            _dragScrollPosition = _selectedIndex;
+            _dragScrollDirection = 0.0f;
+        }
+
+        /// <summary>
+        /// マウスドラッグ中のスクロール位置を更新する。
+        /// SelectNext / SelectPreviousは呼ばず、float位置だけを更新する。
+        /// </summary>
+        private void UpdateMouseDrag(Vector2 mousePosition)
+        {
+            Vector2 frameDelta = mousePosition - _mouseDragPreviousPosition;
+            _mouseDragPreviousPosition = mousePosition;
+
+            float totalDragAmount = mousePosition.x - _mouseDragStartPosition.x;
+
+            if (Mathf.Abs(totalDragAmount) >= _clickCancelDragPixels)
+            {
+                _hasMouseDragged = true;
+            }
+
+            if (Mathf.Approximately(_dragPixelsPerSlot, 0.0f))
+            {
+                return;
+            }
+
+            if (Mathf.Abs(frameDelta.x) > 0.001f)
+            {
+                // 左ドラッグなら正方向、右ドラッグなら負方向へスクロール位置を進める。
+                _dragScrollDirection = frameDelta.x < 0.0f ? 1.0f : -1.0f;
+            }
+
+            _dragScrollPosition -= frameDelta.x / _dragPixelsPerSlot;
+
+            UpdateSelectedIndexByDragPosition();
+        }
+
+        /// <summary>
+        /// ドラッグ中のfloatスクロール位置から、現在の選択Indexを更新する。
+        /// 表示テキストだけは中央に近いキャラへ随時更新する。
+        /// </summary>
+        private void UpdateSelectedIndexByDragPosition()
+        {
+            if (_previewStates.Count == 0)
+            {
+                return;
+            }
+
+            int nextIndex = WrapIndex(
+                Mathf.RoundToInt(_dragScrollPosition),
+                _previewStates.Count
+            );
+
+            if (nextIndex == _selectedIndex)
+            {
+                return;
+            }
+
+            _selectedIndex = nextIndex;
+            RefreshCharacterInfo();
+        }
+
+        /// <summary>
+        /// マウスドラッグを終了する。
+        /// ドラッグしていなければクリック選択、ドラッグしていれば最も近いキャラへスナップする。
+        /// </summary>
+        private void EndMouseDrag(Vector2 mousePosition)
+        {
+            bool shouldClickSelect = !_hasMouseDragged;
+
+            _isMouseDragging = false;
+            _dragScrollDirection = 0.0f;
+
+            if (shouldClickSelect)
+            {
+                TrySelectCharacterByScreenPosition(mousePosition);
+                return;
+            }
+
+            if (_previewStates.Count == 0)
+            {
+                return;
+            }
+
+            _selectedIndex = WrapIndex(
+                Mathf.RoundToInt(_dragScrollPosition),
+                _previewStates.Count
+            );
+
+            _dragScrollPosition = _selectedIndex;
+
+            // 離した後は、最も近いキャラが中央に来るように通常ターゲットへ戻す。
+            _isScrolling = true;
+            RefreshSelection();
         }
 
         /// <summary>
@@ -660,7 +878,7 @@ namespace Uraty.Application.Lobby
                 return;
             }
 
-            if (_isScrolling)
+            if (_isMouseDragging || _isScrolling)
             {
                 return;
             }
@@ -889,8 +1107,6 @@ namespace Uraty.Application.Lobby
                 bool wasVisible = previousSlot <= visibleSideCount;
                 bool willVisible = targetSlot <= visibleSideCount;
 
-                // 左側へ押し出されるキャラ。
-                // 右側から出現する動きの逆として、左へ流しながら遠距離サイズへ縮める。
                 bool exitsLeft =
                     wasVisible && previousSlot < scrollAmount;
 
@@ -911,8 +1127,7 @@ namespace Uraty.Application.Lobby
 
                 if (willVisible)
                 {
-                    // 新しく右側から入ってくるキャラは、右奥から開始させる。
-                    if (!wasVisible)
+                    if (!wasVisible && !previewState.Selectable.gameObject.activeSelf)
                     {
                         int startSlot = targetSlot + scrollAmount;
 
@@ -973,8 +1188,6 @@ namespace Uraty.Application.Lobby
                 bool wasVisible = previousSlot <= visibleSideCount;
                 bool willVisible = targetSlot <= visibleSideCount;
 
-                // 右側へ押し出されるキャラ。
-                // 左側から出現する動きの逆として、右へ流しながら遠距離サイズへ縮める。
                 bool exitsRight =
                     wasVisible && previousSlot > visibleSideCount - scrollAmount;
 
@@ -995,8 +1208,7 @@ namespace Uraty.Application.Lobby
 
                 if (willVisible)
                 {
-                    // 新しく左側から入ってくるキャラは、左奥から開始させる。
-                    if (!wasVisible)
+                    if (!wasVisible && !previewState.Selectable.gameObject.activeSelf)
                     {
                         int startSlot = targetSlot - scrollAmount;
 
@@ -1093,7 +1305,10 @@ namespace Uraty.Application.Lobby
                 return 0;
             }
 
-            return (targetIndex - selectedIndex + count) % count;
+            int wrappedSelectedIndex = WrapIndex(selectedIndex, count);
+            int wrappedTargetIndex = WrapIndex(targetIndex, count);
+
+            return (wrappedTargetIndex - wrappedSelectedIndex + count) % count;
         }
 
         /// <summary>
@@ -1106,27 +1321,28 @@ namespace Uraty.Application.Lobby
 
         /// <summary>
         /// スロット位置に応じたスケールを返す。
+        /// 小数スロットにも対応し、ドラッグ中に滑らかに拡縮する。
         /// </summary>
-        private float GetScaleBySlot(int slot)
+        private float GetScaleBySlot(float slot)
         {
-            int distance = Mathf.Abs(slot);
+            float distance = Mathf.Abs(slot);
 
-            return GetScaleByDistance(distance);
-        }
-
-        /// <summary>
-        /// 選択中Indexからの距離に応じて拡大率を返す。
-        /// </summary>
-        private float GetScaleByDistance(int distance)
-        {
-            if (distance == 0)
+            if (distance <= 1.0f)
             {
-                return _selectedScale;
+                return Mathf.Lerp(
+                    _selectedScale,
+                    _nearSideScale,
+                    distance
+                );
             }
 
-            if (distance == 1)
+            if (distance <= 2.0f)
             {
-                return _nearSideScale;
+                return Mathf.Lerp(
+                    _nearSideScale,
+                    _farSideScale,
+                    distance - 1.0f
+                );
             }
 
             return _farSideScale;

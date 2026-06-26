@@ -178,7 +178,7 @@ namespace Uraty.Application.Lobby
             HidePreviewCanvases(_currentPreviewObject);
 
             _currentPreviewObject.transform.localPosition = Vector3.zero;
-            _currentPreviewObject.transform.localRotation = Quaternion.identity;
+            _currentPreviewObject.transform.localRotation = Quaternion.Euler(0.0f, 180.0f, 0.0f);   // 手前を向くように
             _currentPreviewObject.transform.localScale = _previewScale;
         }
 
