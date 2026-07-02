@@ -2,7 +2,8 @@
     "name": "Uraty.Application.Title",
     "rootNamespace": "Uraty.Application.Title",
     "references": [
-        "GUID:46b6679035573ba479604f451d710239"
+        "GUID:46b6679035573ba479604f451d710239",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
