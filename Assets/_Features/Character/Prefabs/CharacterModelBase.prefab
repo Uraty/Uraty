@@ -122,6 +122,7 @@ GameObject:
   - component: {fileID: 7197989968914488443}
   - component: {fileID: 33456693572925344}
   - component: {fileID: -1370823195548082760}
+  - component: {fileID: 5439863261638455638}
   m_Layer: 3
   m_Name: CharacterModelBase
   m_TagString: Untagged
@@ -275,6 +276,8 @@ MonoBehaviour:
     _angleOffsetDegrees: 0
     _positionOffsetLocal: {x: 0, y: 0, z: 0}
     _isPiercing: 0
+    _shouldHealOwnerOnHit: 0
+    _ownerHealPercent: 0
     _delaySeconds: 0
   _attackDisableSeconds: 1
   _superChargePercent: 10
@@ -348,6 +351,8 @@ MonoBehaviour:
     _angleOffsetDegrees: 0
     _positionOffsetLocal: {x: 0, y: 0, z: 0}
     _isPiercing: 0
+    _shouldHealOwnerOnHit: 0
+    _ownerHealPercent: 0
     _delaySeconds: 0
   _attackDisableSeconds: 1
   _superChargePercent: 0
@@ -413,6 +418,20 @@ NavMeshAgent:
   m_BaseOffset: 1
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &5439863261638455638
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8800056277905460767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c38b6baa700c1f418e0216c43481f03, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Feature.Akane_TestCharacter::Uraty.Feature.Akane_TestCharacter.CharacterSelectionData
+  _roleType: 0
+  _teamId: 0
 --- !u!1001 &1234000615350483122
 PrefabInstance:
   m_ObjectHideFlags: 0
