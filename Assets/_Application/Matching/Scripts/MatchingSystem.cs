@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-using Uraty.Shared.Role;
-using Uraty.Shared.Team;
-using Uraty.Shared.Entry;
-using Uraty.Shared.Setting;
-using Uraty.Systems.Input;
 using Uraty.Feature.Akane_TestCharacter;
+using Uraty.Shared.Entry;
+using Uraty.Shared.Role;
+using Uraty.Shared.Setting;
+using Uraty.Shared.Team;
+using Uraty.Systems.Input;
 
 namespace Uraty.Application.Matching
 {
@@ -22,7 +22,7 @@ namespace Uraty.Application.Matching
         [Header("マッチング情報")]
         [SerializeField] private MatchingContext _matchingContext;
 
-        [Header("ゲーム設定")]
+        [Header("キャラクター選択情報")]
         [SerializeField] private CharacterSelectionStore _characterSelectionStore;
 
         [Header("敵チーム設定")]
@@ -108,7 +108,10 @@ namespace Uraty.Application.Matching
 
             if (_characterSelectionStore == null)
             {
-                Debug.LogError($"{nameof(MatchingSystem)}: CharacterSelectionStoreが設定されていません。", this);
+                Debug.LogError(
+                    $"{nameof(MatchingSystem)}: CharacterSelectionStoreが設定されていません。Matching.prefab または MatchingScene の MatchingSystem に CharacterSelectionStore.asset を割り当ててください。",
+                    this);
+
                 return false;
             }
 
@@ -145,7 +148,10 @@ namespace Uraty.Application.Matching
 
             if (selectedCharacterPrefab == null)
             {
-                Debug.LogError($"{nameof(MatchingSystem)}: 選択中のキャラクターPrefabが設定されていません。", this);
+                Debug.LogError(
+                    $"{nameof(MatchingSystem)}: 選択中のキャラクターPrefabが設定されていません。CharacterSelectionStore.asset の Default Character Prefab を確認してください。",
+                    this);
+
                 return false;
             }
 
@@ -155,7 +161,7 @@ namespace Uraty.Application.Matching
             if (characterSelectionData == null)
             {
                 Debug.LogError(
-                    $"{nameof(MatchingSystem)}: 選択中のキャラクターPrefabに{nameof(CharacterSelectionData)}が見つかりません。Prefabに{nameof(CharacterSelectionData)}を追加してください。",
+                    $"{nameof(MatchingSystem)}: 選択中のキャラクターPrefabに {nameof(CharacterSelectionData)} が見つかりません。Prefabに {nameof(CharacterSelectionData)} を追加してください。",
                     selectedCharacterPrefab);
 
                 return false;
@@ -186,16 +192,14 @@ namespace Uraty.Application.Matching
 
         private bool TryAssignBotData()
         {
-            if (_matchingContext == null)
-            {
-                return false;
-            }
-
             List<RoleType> uniqueRoleIds = CreateUniqueRoleIdList();
 
             if (uniqueRoleIds.Count < MatchingContext.SecondaryBotCount)
             {
-                Debug.LogError($"{nameof(MatchingSystem)}: 敵チーム3体に重複なしで割り当てるには、役職候補が3種類以上必要です。", this);
+                Debug.LogError(
+                    $"{nameof(MatchingSystem)}: 敵チーム3体に重複なしで割り当てるには、役職候補が3種類以上必要です。",
+                    this);
+
                 return false;
             }
 
@@ -206,7 +210,10 @@ namespace Uraty.Application.Matching
 
             if (allyCandidateRoleIds.Count < MatchingContext.PrimaryBotCount)
             {
-                Debug.LogError($"{nameof(MatchingSystem)}: 味方Bot2体に重複なしで割り当てるには、プレイヤー役職を除いて2種類以上の役職候補が必要です。", this);
+                Debug.LogError(
+                    $"{nameof(MatchingSystem)}: 味方Bot2体に重複なしで割り当てるには、プレイヤー役職を除いて2種類以上の役職候補が必要です。",
+                    this);
+
                 return false;
             }
 
@@ -217,6 +224,18 @@ namespace Uraty.Application.Matching
             RoleType[] enemyRoleIds = PickRandomRoleIds(
                 uniqueRoleIds,
                 MatchingContext.SecondaryBotCount);
+
+            if (allyRoleIds.Length != MatchingContext.PrimaryBotCount)
+            {
+                Debug.LogError($"{nameof(MatchingSystem)}: 味方Botの役職割り当て数が不足しています。", this);
+                return false;
+            }
+
+            if (enemyRoleIds.Length != MatchingContext.SecondaryBotCount)
+            {
+                Debug.LogError($"{nameof(MatchingSystem)}: 敵Botの役職割り当て数が不足しています。", this);
+                return false;
+            }
 
             ApplyMatchingContextBotData(allyRoleIds, enemyRoleIds);
             ApplyBattleSceneEntry(allyRoleIds, enemyRoleIds);
@@ -249,7 +268,7 @@ namespace Uraty.Application.Matching
 
         private RoleType[] PickRandomRoleIds(List<RoleType> sourceRoleIds, int pickCount)
         {
-            if (sourceRoleIds.Count < pickCount)
+            if (sourceRoleIds == null || sourceRoleIds.Count < pickCount)
             {
                 return new RoleType[0];
             }
@@ -265,14 +284,14 @@ namespace Uraty.Application.Matching
                 shuffledRoleIds[randomIndex] = temporaryRoleId;
             }
 
-            RoleType[] resultRoleIds = new RoleType[pickCount];
+            RoleType[] pickedRoleIds = new RoleType[pickCount];
 
             for (int i = 0; i < pickCount; i++)
             {
-                resultRoleIds[i] = shuffledRoleIds[i];
+                pickedRoleIds[i] = shuffledRoleIds[i];
             }
 
-            return resultRoleIds;
+            return pickedRoleIds;
         }
 
         private void ApplyMatchingContextBotData(
@@ -320,7 +339,7 @@ namespace Uraty.Application.Matching
                 return;
             }
 
-            string targetSceneName = "BattleScene";
+            string targetSceneName = _matchingContext.GameModeData.GameSceneName;
 
             if (string.IsNullOrEmpty(targetSceneName))
             {
