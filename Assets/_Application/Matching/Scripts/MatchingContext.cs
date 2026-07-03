@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using Uraty.Feature.Akane_GameMode;
-using Uraty.Features.Character;
+using Uraty.Shared.Role;
 using Uraty.Shared.Team;
 using Uraty.Features.Stage;
 

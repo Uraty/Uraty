@@ -90,6 +90,14 @@ PrefabInstance:
       propertyPath: _maxHp
       value: 5600
       objectReference: {fileID: 0}
+    - target: {fileID: -3534891964442206321, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
+      propertyPath: _previewDefinition._type
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: -3534891964442206321, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
+      propertyPath: _previewDefinition._throw._isVariableRange
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: -1257273843268544866, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
       propertyPath: _superChargePercent
       value: 20

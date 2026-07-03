@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-using Uraty.Features.Character;
+using Uraty.Shared.Role;
 using Uraty.Shared.Team;
+using Uraty.Shared.Entry;
 using Uraty.Systems.Input;
 
 namespace Uraty.Application.Matching
@@ -25,6 +26,9 @@ namespace Uraty.Application.Matching
         [Header("役職候補")]
         [SerializeField, Tooltip("Botにランダム割り当てできる役職候補")]
         private RoleType[] _assignableRoleIds;
+
+        [Header("Battle Scene Entry")]
+        [SerializeField] private BattleSceneEntry _battleSceneEntry;
 
         private float _elapsedSeconds;
         private bool _hasLoadedScene;
@@ -47,6 +51,12 @@ namespace Uraty.Application.Matching
             if (_assignableRoleIds == null || _assignableRoleIds.Length == 0)
             {
                 Debug.LogError($"{nameof(MatchingSystem)}: 役職候補が設定されていません。");
+                return;
+            }
+
+            if (_battleSceneEntry == null)
+            {
+                Debug.LogError($"{nameof(MatchingSystem)}: BattleSceneEntryが設定されていません。");
                 return;
             }
 
@@ -119,7 +129,7 @@ namespace Uraty.Application.Matching
             RoleType[] enemyRoleIds = PickRandomRoleIds(
                 uniqueRoleIds,
                 MatchingContext.SecondaryBotCount);
-            ApplyBotDataToContext(allyRoleIds, enemyRoleIds);
+            ApplyBattleSceneEntry(allyRoleIds, enemyRoleIds);
             DebugBotData(allyRoleIds, enemyRoleIds);
 
             return true;
@@ -175,29 +185,16 @@ namespace Uraty.Application.Matching
             return resultRoleIds;
         }
 
-        private void ApplyBotDataToContext(RoleType[] allyRoleIds, RoleType[] enemyRoleIds)
+        private void ApplyBattleSceneEntry(
+            RoleType[] allyRoleIds,
+            RoleType[] enemyRoleIds)
         {
-            _matchingContext.ClearBotData();
-
-            TeamId allyTeamId = _matchingContext.PlayerTeamId;
-
-            for (int i = 0; i < MatchingContext.PrimaryBotCount; i++)
-            {
-                _matchingContext.SetBotData(
-                    i,
-                    allyTeamId,
-                    allyRoleIds[i]);
-            }
-
-            for (int i = 0; i < MatchingContext.SecondaryBotCount; i++)
-            {
-                int botIndex = MatchingContext.PrimaryBotCount + i;
-
-                _matchingContext.SetBotData(
-                    botIndex,
-                    _enemyTeamId,
-                    enemyRoleIds[i]);
-            }
+            _battleSceneEntry.SetEntry(
+                _matchingContext.PlayerTeamId,
+                _matchingContext.PlayerRoleId,
+                allyRoleIds,
+                _enemyTeamId,
+                enemyRoleIds);
         }
 
         private void LoadBattleScene()

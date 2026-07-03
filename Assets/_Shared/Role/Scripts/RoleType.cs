@@ -1,4 +1,4 @@
-namespace Uraty.Features.Character
+namespace Uraty.Shared.Role
 {
     public enum RoleType
     {

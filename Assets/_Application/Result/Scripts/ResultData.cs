@@ -1,5 +1,6 @@
 using UnityEngine;
 
+using Uraty.Shared.Role;
 using Uraty.Features.Character;
 
 namespace Uraty.Application.Result

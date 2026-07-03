@@ -644,6 +644,10 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 5874656262276661651, guid: d8c4b40b2fa944c458198a6610f174dc, type: 3}
+      propertyPath: _battleSceneEntry
+      value: 
+      objectReference: {fileID: 11400000, guid: 428935b2b4d5247449229fec1c4401d8, type: 2}
     - target: {fileID: 5916314236306133911, guid: d8c4b40b2fa944c458198a6610f174dc, type: 3}
       propertyPath: _usesCancel
       value: 1

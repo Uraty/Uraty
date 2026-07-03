@@ -1,11 +1,8 @@
 {
-    "name": "Uraty.Application.Reslut",
-    "rootNamespace": "Uraty.Application.Reslut",
+    "name": "Uraty.Shared.Role",
+    "rootNamespace": "Uraty.Shared.Role",
     "references": [
-        "GUID:23c89cf83b9ef45438edac8a0000726e",
-        "GUID:12f6bca580722de41b91f6011da4a584",
-        "GUID:aff03c096e22e514e830c9baff70dd4f",
-        "GUID:fc85b261140d50f4db4914c95b7a8c9c"
+        "Uraty.Shared.Team"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
