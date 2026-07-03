@@ -1208,11 +1208,12 @@ namespace Uraty.Application.Battle
         }
 
         private bool ShouldShowHpUi(
-            CharacterRuntimeEntry entry)
+    CharacterRuntimeEntry entry)
         {
             CharacterStatus status =
                 entry.Status;
 
+            // 味方は常に表示
             if (status.TeamId == _visibleTeamId)
             {
                 return true;

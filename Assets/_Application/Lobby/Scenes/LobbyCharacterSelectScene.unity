@@ -392,6 +392,7 @@ MonoBehaviour:
   _slotSpacing: 2.5
   _moveSpeed: 10
   _rayDistance: 1000
+  _previewRotationY: 180
   _visibleSideCount: 2
   _selectedScale: 2
   _nearSideScale: 1
@@ -400,10 +401,10 @@ MonoBehaviour:
   _characterDescriptionText: {fileID: 1345118777}
   _decideButton: {fileID: 1057750978}
   _closeButton: {fileID: 446670391}
-  _dragThreshold: 80
-  _gamepadInputThreshold: 0.6
   _clickCancelDragPixels: 8
-  _dragScrollPixelsPerStep: 240
+  _dragPixelsPerSlot: 180
+  _dragFollowSpeed: 35
+  _gamepadInputThreshold: 0.6
   _gamepadRepeatSeconds: 0.25
   _dragArea: {fileID: 619568254}
   _firstSelectable: {fileID: 1152635830}
@@ -459,7 +460,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.1764706}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
