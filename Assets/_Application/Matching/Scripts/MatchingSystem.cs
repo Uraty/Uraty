@@ -129,6 +129,7 @@ namespace Uraty.Application.Matching
             RoleType[] enemyRoleIds = PickRandomRoleIds(
                 uniqueRoleIds,
                 MatchingContext.SecondaryBotCount);
+
             ApplyBattleSceneEntry(allyRoleIds, enemyRoleIds);
             DebugBotData(allyRoleIds, enemyRoleIds);
 
