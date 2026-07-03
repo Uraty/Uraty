@@ -117,10 +117,18 @@ namespace Uraty.Application.Battle
         [SerializeField]
         private BattleSceneEntry _battleSceneEntry;
 
+        [Header("Result Scene Entry")]
+        [SerializeField]
+        private ResultSceneEntry _resultSceneEntry;
+
         private readonly Dictionary<GameObject, float>
             _temporaryRevealEndTimeByCharacterObject = new();
 
+        private readonly Dictionary<CharacterStatus, int>
+            _characterIndexByStatus = new();
+
         private bool _hasRequestedResultScene;
+        private bool _isResultEntryInitialized;
 
         private float _remainingBattleSeconds;
         private bool _isBattleTimerRunning;
@@ -183,6 +191,9 @@ namespace Uraty.Application.Battle
 
             _hasRequestedResultScene =
                 false;
+
+            _isResultEntryInitialized =
+                false;
         }
 
         private IEnumerator Start()
@@ -239,6 +250,8 @@ namespace Uraty.Application.Battle
 
             SubscribeBotControllers(
                 playerObject);
+
+            InitializeResultEntry();
 
             StartBattleTimer();
         }
@@ -482,7 +495,7 @@ namespace Uraty.Application.Battle
                 teamId == TeamId.Primary
                     ? new Color(255f / 255f, 85f / 255f, 125f / 255f, 0.7f)     // 味方
                     : new Color(185f / 255f, 225f / 255f, 95f / 255f, 0.7f);     // 敵
-            
+
             Renderer[] renderers =
                 obj.GetComponentsInChildren<Renderer>();
 
@@ -506,7 +519,9 @@ namespace Uraty.Application.Battle
             status.Initialize(teamId);
 
             CharacterRuntimeEntry entry =
-                CreateCharacterRuntimeEntry(obj);
+                CreateCharacterRuntimeEntry(
+                    obj,
+                    roleType);
 
             _characterEntries.Add(entry);
 
@@ -519,11 +534,13 @@ namespace Uraty.Application.Battle
         }
 
         private CharacterRuntimeEntry CreateCharacterRuntimeEntry(
-            GameObject characterObject)
+            GameObject characterObject,
+            RoleType roleType)
         {
             return new CharacterRuntimeEntry(
                 characterObject,
                 characterObject.transform,
+                roleType,
                 GetRequiredComponent<CharacterStatus>(
                     characterObject),
                 GetRequiredComponent<CharacterReveal>(
@@ -1094,6 +1111,199 @@ namespace Uraty.Application.Battle
                         finalDirection);
                 })
                 .AddTo(ref _disposables);
+        }
+
+        private void InitializeResultEntry()
+        {
+            if (_isResultEntryInitialized)
+            {
+                return;
+            }
+
+            if (_resultSceneEntry == null)
+            {
+                Debug.LogError(
+                    $"{nameof(BattleApplication)}: ResultSceneEntry が設定されていません。");
+
+                return;
+            }
+
+            _isResultEntryInitialized =
+                true;
+
+            _resultSceneEntry.Clear();
+            _characterIndexByStatus.Clear();
+
+            for (int i = 0;
+                 i < _characterEntries.Count;
+                 i++)
+            {
+                CharacterRuntimeEntry entry =
+                    _characterEntries[i];
+
+                if (entry == null
+                    || entry.Status == null)
+                {
+                    continue;
+                }
+
+                bool isPlayer =
+                    i == BattleSceneEntry.PlayerIndex;
+
+                _resultSceneEntry.SetCharacterIdentity(
+                    i,
+                    entry.Status.TeamId,
+                    entry.RoleType,
+                    isPlayer);
+
+                _characterIndexByStatus[entry.Status] =
+                    i;
+
+                SubscribeResultCharacterStatus(entry.Status);
+            }
+        }
+
+        private void SubscribeResultCharacterStatus(
+            CharacterStatus status)
+        {
+            if (status == null)
+            {
+                return;
+            }
+
+            status.DamageReceivedStream
+                .Subscribe(HandleResultDamageReceived)
+                .AddTo(ref _disposables);
+
+            status.HealedStream
+                .Subscribe(HandleResultHealed)
+                .AddTo(ref _disposables);
+
+            status.DiedStream
+                .Subscribe(HandleResultDied)
+                .AddTo(ref _disposables);
+
+            status.KilledStream
+                .Subscribe(killerStatus =>
+                {
+                    HandleResultKilled(
+                        status,
+                        killerStatus);
+                })
+                .AddTo(ref _disposables);
+        }
+
+        private void HandleResultDamageReceived(
+            CharacterDamageEvent damageEvent)
+        {
+            if (_resultSceneEntry == null)
+            {
+                return;
+            }
+
+            float amount =
+                Mathf.Max(
+                    0f,
+                    damageEvent.DamageAmount);
+
+            if (amount <= 0f)
+            {
+                return;
+            }
+
+            if (damageEvent.TargetStatus != null
+                && _characterIndexByStatus.TryGetValue(
+                    damageEvent.TargetStatus,
+                    out int targetIndex))
+            {
+                _resultSceneEntry.AddDamageTaken(
+                    targetIndex,
+                    amount);
+            }
+
+            if (damageEvent.AttackerStatus != null
+                && _characterIndexByStatus.TryGetValue(
+                    damageEvent.AttackerStatus,
+                    out int attackerIndex))
+            {
+                _resultSceneEntry.AddDamageDealt(
+                    attackerIndex,
+                    amount);
+            }
+        }
+
+        private void HandleResultHealed(
+            CharacterHealEvent healEvent)
+        {
+            if (_resultSceneEntry == null
+                || healEvent.TargetStatus == null)
+            {
+                return;
+            }
+
+            float amount =
+                Mathf.Max(
+                    0f,
+                    healEvent.HealAmount);
+
+            if (amount <= 0f)
+            {
+                return;
+            }
+
+            if (!_characterIndexByStatus.TryGetValue(
+                    healEvent.TargetStatus,
+                    out int characterIndex))
+            {
+                return;
+            }
+
+            _resultSceneEntry.AddHealingDone(
+                characterIndex,
+                amount);
+        }
+
+        private void HandleResultDied(
+            CharacterStatus deadStatus)
+        {
+            if (_resultSceneEntry == null
+                || deadStatus == null)
+            {
+                return;
+            }
+
+            if (!_characterIndexByStatus.TryGetValue(
+                    deadStatus,
+                    out int characterIndex))
+            {
+                return;
+            }
+
+            _resultSceneEntry.AddDeath(
+                characterIndex);
+        }
+
+        private void HandleResultKilled(
+            CharacterStatus killedStatus,
+            CharacterStatus killerStatus)
+        {
+            if (_resultSceneEntry == null
+                || killedStatus == null
+                || killerStatus == null
+                || killedStatus == killerStatus)
+            {
+                return;
+            }
+
+            if (!_characterIndexByStatus.TryGetValue(
+                    killerStatus,
+                    out int killerIndex))
+            {
+                return;
+            }
+
+            _resultSceneEntry.AddKill(
+                killerIndex);
         }
 
         private void ConfigureBushRevealSensors(
@@ -1728,6 +1938,7 @@ namespace Uraty.Application.Battle
             _characterEntryByObject.Clear();
             _isBotRecoveringByCharacterObject.Clear();
             _spawnerByCharacterObject.Clear();
+            _characterIndexByStatus.Clear();
         }
 
         private GameObject FindNearestVisibleEnemyForBot(
@@ -2089,6 +2300,7 @@ namespace Uraty.Application.Battle
             public CharacterRuntimeEntry(
                 GameObject gameObject,
                 Transform transform,
+                RoleType roleType,
                 CharacterStatus status,
                 CharacterReveal reveal,
                 HPSystem hpUi,
@@ -2100,6 +2312,9 @@ namespace Uraty.Application.Battle
 
                 Transform =
                     transform;
+
+                RoleType =
+                    roleType;
 
                 Status =
                     status;
@@ -2123,6 +2338,11 @@ namespace Uraty.Application.Battle
             }
 
             public Transform Transform
+            {
+                get;
+            }
+
+            public RoleType RoleType
             {
                 get;
             }

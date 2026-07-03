@@ -1348,7 +1348,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Uraty.Application.Mode::Uraty.Application.Mode.WantedSystem
   _battleApplication: {fileID: 1334280527}
-  _resultSceneEntry: {fileID: 0}
+  _resultSceneEntry: {fileID: 11400000, guid: 46ad72bc3d0d4fbb9d7a2be44e5bbd1d, type: 2}
   _initialScore: 1
 --- !u!4 &1469256214
 Transform:
@@ -1766,52 +1766,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1780940536}
   m_CullTransparentMesh: 1
---- !u!1 &1884821154
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1884821156}
-  - component: {fileID: 1884821155}
-  m_Layer: 0
-  m_Name: BattleResultEntryWriter
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1884821155
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1884821154}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2cad5e568a5b4dc893f886cf7130eb84, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Uraty.Application.Battle::Uraty.Application.Battle.BattleResultEntryWriter
-  _battleApplication: {fileID: 1334280527}
-  _resultSceneEntry: {fileID: 11400000, guid: 46ad72bc3d0d4fbb9d7a2be44e5bbd1d, type: 2}
---- !u!4 &1884821156
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1884821154}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 523.8454, y: -0, z: 536.2546}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1997660663
 GameObject:
   m_ObjectHideFlags: 0
@@ -2245,6 +2199,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1397740527}
     - target: {fileID: -6035043067423633329, guid: a2178361e364e6642a09abe774603270, type: 3}
+      propertyPath: _resultSceneEntry
+      value: 
+      objectReference: {fileID: 11400000, guid: 46ad72bc3d0d4fbb9d7a2be44e5bbd1d, type: 2}
+    - target: {fileID: -6035043067423633329, guid: a2178361e364e6642a09abe774603270, type: 3}
       propertyPath: _attackRevealDuration
       value: 0.3
       objectReference: {fileID: 0}
@@ -2383,4 +2341,3 @@ SceneRoots:
   - {fileID: 133622830}
   - {fileID: 600029765}
   - {fileID: 1469256214}
-  - {fileID: 1884821156}
