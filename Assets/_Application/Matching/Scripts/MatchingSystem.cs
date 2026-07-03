@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-using Uraty.Feature.Akane_TestCharacter;
+//using Uraty.Feature.Akane_TestCharacter;
 using Uraty.Shared.Entry;
 using Uraty.Shared.Role;
-using Uraty.Shared.Setting;
+//using Uraty.Shared.Setting;
 using Uraty.Shared.Team;
 using Uraty.Systems.Input;
 
@@ -23,7 +23,7 @@ namespace Uraty.Application.Matching
         [SerializeField] private MatchingContext _matchingContext;
 
         [Header("キャラクター選択情報")]
-        [SerializeField] private CharacterSelectionStore _characterSelectionStore;
+        //[SerializeField] private CharacterSelectionStore _characterSelectionStore;
 
         [Header("敵チーム設定")]
         [SerializeField, Tooltip("敵Botに設定するチームID")]
@@ -36,7 +36,7 @@ namespace Uraty.Application.Matching
         [Header("Battle Scene Entry")]
         [SerializeField] private BattleSceneEntry _battleSceneEntry;
 
-        private GameSettingsData _gameSettingsData;
+        //private GameSettingsData _gameSettingsData;
         private float _elapsedSeconds;
         private bool _hasLoadedScene;
         private bool _isInitialized;
@@ -59,11 +59,11 @@ namespace Uraty.Application.Matching
 
             ApplyGameSettings();
 
-            if (!TryApplySelectedCharacterData())
-            {
-                enabled = false;
-                return;
-            }
+            //if (!TryApplySelectedCharacterData())
+            //{
+            //    enabled = false;
+            //    return;
+            //}
 
             _matchingContext.ClearBotData();
 
@@ -106,14 +106,14 @@ namespace Uraty.Application.Matching
                 return false;
             }
 
-            if (_characterSelectionStore == null)
-            {
-                Debug.LogError(
-                    $"{nameof(MatchingSystem)}: CharacterSelectionStoreが設定されていません。Matching.prefab または MatchingScene の MatchingSystem に CharacterSelectionStore.asset を割り当ててください。",
-                    this);
+            //if (_characterSelectionStore == null)
+            //{
+            //    Debug.LogError(
+            //        $"{nameof(MatchingSystem)}: CharacterSelectionStoreが設定されていません。Matching.prefab または MatchingScene の MatchingSystem に CharacterSelectionStore.asset を割り当ててください。",
+            //        this);
 
-                return false;
-            }
+            //    return false;
+            //}
 
             if (_assignableRoleIds == null || _assignableRoleIds.Length == 0)
             {
@@ -132,50 +132,50 @@ namespace Uraty.Application.Matching
 
         private void ApplyGameSettings()
         {
-            _gameSettingsData = GameSettingsStore.Load();
+            //_gameSettingsData = GameSettingsStore.Load();
 
-            _matchingContext.SetMouseSensitivity(_gameSettingsData.MouseSensitivity);
-            _matchingContext.SetStickSensitivityKey(_gameSettingsData.StickSensitivity);
-            _matchingContext.SetKeyMouseDeadZone(_gameSettingsData.KeyMouseDeadZone);
-            _matchingContext.SetStickDeadZone(_gameSettingsData.StickDeadZone);
-            _matchingContext.SetSeVolume(_gameSettingsData.SeVolume);
-            _matchingContext.SetBgmVolume(_gameSettingsData.BgmVolume);
+            //_matchingContext.SetMouseSensitivity(_gameSettingsData.MouseSensitivity);
+            //_matchingContext.SetStickSensitivityKey(_gameSettingsData.StickSensitivity);
+            //_matchingContext.SetKeyMouseDeadZone(_gameSettingsData.KeyMouseDeadZone);
+            //_matchingContext.SetStickDeadZone(_gameSettingsData.StickDeadZone);
+            //_matchingContext.SetSeVolume(_gameSettingsData.SeVolume);
+            //_matchingContext.SetBgmVolume(_gameSettingsData.BgmVolume);
         }
 
-        private bool TryApplySelectedCharacterData()
-        {
-            GameObject selectedCharacterPrefab = _characterSelectionStore.SelectedCharacterPrefab;
+        //private bool TryApplySelectedCharacterData()
+        //{
+        //    meObject selectedCharacterPrefab = _characterSelectionStore.SelectedCharacterPrefab;
 
-            if (selectedCharacterPrefab == null)
-            {
-                Debug.LogError(
-                    $"{nameof(MatchingSystem)}: 選択中のキャラクターPrefabが設定されていません。CharacterSelectionStore.asset の Default Character Prefab を確認してください。",
-                    this);
+        //    if (selectedCharacterPrefab == null)
+        //    {
+        //        Debug.LogError(
+        //            $"{nameof(MatchingSystem)}: 選択中のキャラクターPrefabが設定されていません。CharacterSelectionStore.asset の Default Character Prefab を確認してください。",
+        //            this);
 
-                return false;
-            }
+        //        return false;
+        //    }
 
-            CharacterSelectionData characterSelectionData =
-                selectedCharacterPrefab.GetComponentInChildren<CharacterSelectionData>(true);
+        //    CharacterSelectionData characterSelectionData =
+        //        selectedCharacterPrefab.GetComponentInChildren<CharacterSelectionData>(true);
 
-            if (characterSelectionData == null)
-            {
-                Debug.LogError(
-                    $"{nameof(MatchingSystem)}: 選択中のキャラクターPrefabに {nameof(CharacterSelectionData)} が見つかりません。Prefabに {nameof(CharacterSelectionData)} を追加してください。",
-                    selectedCharacterPrefab);
+        //    if (characterSelectionData == null)
+        //    {
+        //        Debug.LogError(
+        //            $"{nameof(MatchingSystem)}: 選択中のキャラクターPrefabに {nameof(CharacterSelectionData)} が見つかりません。Prefabに {nameof(CharacterSelectionData)} を追加してください。",
+        //            selectedCharacterPrefab);
 
-                return false;
-            }
+        //        return false;
+        //    }
 
-            _matchingContext.SetPlayerData(
-                characterSelectionData.TeamId,
-                characterSelectionData.RoleType);
+        //    _matchingContext.SetPlayerData(
+        //        characterSelectionData.TeamId,
+        //        characterSelectionData.RoleType);
 
-            Debug.Log(
-                $"{nameof(MatchingSystem)}: PlayerData設定完了 Team={characterSelectionData.TeamId}, Role={characterSelectionData.RoleType}");
+        //    Debug.Log(
+        //        $"{nameof(MatchingSystem)}: PlayerData設定完了 Team={characterSelectionData.TeamId}, Role={characterSelectionData.RoleType}");
 
-            return true;
-        }
+        //    return true;
+        //}
 
         private void CompleteMatching()
         {
