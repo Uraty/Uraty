@@ -2,7 +2,7 @@ using TMPro;
 
 using UnityEngine;
 
-namespace Uraty.Feature.TemplateText
+namespace Uraty.Application.Matching
 {
     public sealed class CreateTips : MonoBehaviour
     {
