@@ -324,6 +324,14 @@ PrefabInstance:
       propertyPath: _superSettings.Array.data[0]._bulletPrefab
       value: 
       objectReference: {fileID: 3889814631699899837, guid: 5265405e7bfef534bb386f823db27161, type: 3}
+    - target: {fileID: 5439863261638455638, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
+      propertyPath: _teamId
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5439863261638455638, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
+      propertyPath: _roleType
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 6250889263525742143, guid: 04aa0e5a506106b46978e9f47882fb2a, type: 3}
       propertyPath: _canvas
       value: 

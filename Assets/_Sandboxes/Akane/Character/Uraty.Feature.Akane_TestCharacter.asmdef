@@ -1,3 +1,17 @@
 {
-	"name": "Uraty.Feature.Akane_TestCharacter"
+    "name": "Uraty.Feature.Akane_TestCharacter",
+    "rootNamespace": "",
+    "references": [
+        "GUID:fc85b261140d50f4db4914c95b7a8c9c",
+        "GUID:b5c31c0c834ee7e4b980691b778889bf"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

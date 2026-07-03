@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-using Uraty.Shared.Role;
-using Uraty.Shared.Team;
+//using Uraty.Feature.Akane_TestCharacter;
 using Uraty.Shared.Entry;
+using Uraty.Shared.Role;
+//using Uraty.Shared.Setting;
+using Uraty.Shared.Team;
 using Uraty.Systems.Input;
 
 namespace Uraty.Application.Matching
@@ -20,8 +22,12 @@ namespace Uraty.Application.Matching
         [Header("マッチング情報")]
         [SerializeField] private MatchingContext _matchingContext;
 
+        [Header("キャラクター選択情報")]
+        //[SerializeField] private CharacterSelectionStore _characterSelectionStore;
+
         [Header("敵チーム設定")]
-        [SerializeField, Tooltip("敵Botに設定するチームID")] private TeamId _enemyTeamId;
+        [SerializeField, Tooltip("敵Botに設定するチームID")]
+        private TeamId _enemyTeamId;
 
         [Header("役職候補")]
         [SerializeField, Tooltip("Botにランダム割り当てできる役職候補")]
@@ -30,44 +36,47 @@ namespace Uraty.Application.Matching
         [Header("Battle Scene Entry")]
         [SerializeField] private BattleSceneEntry _battleSceneEntry;
 
+        //private GameSettingsData _gameSettingsData;
         private float _elapsedSeconds;
         private bool _hasLoadedScene;
+        private bool _isInitialized;
 
         private void Awake()
         {
             Debug.Log($"{nameof(MatchingSystem)}: Awake");
-            if (_gameInput == null)
-            {
-                Debug.LogError($"{nameof(MatchingSystem)}: GameInputが設定されていません。");
-                return;
-            }
 
-            if (_matchingContext == null)
-            {
-                Debug.LogError($"{nameof(MatchingSystem)}: MatchingContextが設定されていません。");
-                return;
-            }
+            _elapsedSeconds = 0.0f;
+            _hasLoadedScene = false;
+            _isInitialized = false;
 
-            if (_assignableRoleIds == null || _assignableRoleIds.Length == 0)
+            if (!CanInitialize())
             {
-                Debug.LogError($"{nameof(MatchingSystem)}: 役職候補が設定されていません。");
-                return;
-            }
-
-            if (_battleSceneEntry == null)
-            {
-                Debug.LogError($"{nameof(MatchingSystem)}: BattleSceneEntryが設定されていません。");
+                enabled = false;
                 return;
             }
 
             _gameInput.EnableUIInput();
 
-            _elapsedSeconds = 0.0f;
-            _hasLoadedScene = false;
+            ApplyGameSettings();
+
+            //if (!TryApplySelectedCharacterData())
+            //{
+            //    enabled = false;
+            //    return;
+            //}
+
+            _matchingContext.ClearBotData();
+
+            _isInitialized = true;
         }
 
         private void Update()
         {
+            if (!_isInitialized)
+            {
+                return;
+            }
+
             if (_hasLoadedScene)
             {
                 return;
@@ -83,13 +92,98 @@ namespace Uraty.Application.Matching
             CompleteMatching();
         }
 
+        private bool CanInitialize()
+        {
+            if (_gameInput == null)
+            {
+                Debug.LogError($"{nameof(MatchingSystem)}: GameInputが設定されていません。", this);
+                return false;
+            }
+
+            if (_matchingContext == null)
+            {
+                Debug.LogError($"{nameof(MatchingSystem)}: MatchingContextが設定されていません。", this);
+                return false;
+            }
+
+            //if (_characterSelectionStore == null)
+            //{
+            //    Debug.LogError(
+            //        $"{nameof(MatchingSystem)}: CharacterSelectionStoreが設定されていません。Matching.prefab または MatchingScene の MatchingSystem に CharacterSelectionStore.asset を割り当ててください。",
+            //        this);
+
+            //    return false;
+            //}
+
+            if (_assignableRoleIds == null || _assignableRoleIds.Length == 0)
+            {
+                Debug.LogError($"{nameof(MatchingSystem)}: 役職候補が設定されていません。", this);
+                return false;
+            }
+
+            if (_battleSceneEntry == null)
+            {
+                Debug.LogError($"{nameof(MatchingSystem)}: BattleSceneEntryが設定されていません。", this);
+                return false;
+            }
+
+            return true;
+        }
+
+        private void ApplyGameSettings()
+        {
+            //_gameSettingsData = GameSettingsStore.Load();
+
+            //_matchingContext.SetMouseSensitivity(_gameSettingsData.MouseSensitivity);
+            //_matchingContext.SetStickSensitivityKey(_gameSettingsData.StickSensitivity);
+            //_matchingContext.SetKeyMouseDeadZone(_gameSettingsData.KeyMouseDeadZone);
+            //_matchingContext.SetStickDeadZone(_gameSettingsData.StickDeadZone);
+            //_matchingContext.SetSeVolume(_gameSettingsData.SeVolume);
+            //_matchingContext.SetBgmVolume(_gameSettingsData.BgmVolume);
+        }
+
+        //private bool TryApplySelectedCharacterData()
+        //{
+        //    meObject selectedCharacterPrefab = _characterSelectionStore.SelectedCharacterPrefab;
+
+        //    if (selectedCharacterPrefab == null)
+        //    {
+        //        Debug.LogError(
+        //            $"{nameof(MatchingSystem)}: 選択中のキャラクターPrefabが設定されていません。CharacterSelectionStore.asset の Default Character Prefab を確認してください。",
+        //            this);
+
+        //        return false;
+        //    }
+
+        //    CharacterSelectionData characterSelectionData =
+        //        selectedCharacterPrefab.GetComponentInChildren<CharacterSelectionData>(true);
+
+        //    if (characterSelectionData == null)
+        //    {
+        //        Debug.LogError(
+        //            $"{nameof(MatchingSystem)}: 選択中のキャラクターPrefabに {nameof(CharacterSelectionData)} が見つかりません。Prefabに {nameof(CharacterSelectionData)} を追加してください。",
+        //            selectedCharacterPrefab);
+
+        //        return false;
+        //    }
+
+        //    _matchingContext.SetPlayerData(
+        //        characterSelectionData.TeamId,
+        //        characterSelectionData.RoleType);
+
+        //    Debug.Log(
+        //        $"{nameof(MatchingSystem)}: PlayerData設定完了 Team={characterSelectionData.TeamId}, Role={characterSelectionData.RoleType}");
+
+        //    return true;
+        //}
+
         private void CompleteMatching()
         {
             _hasLoadedScene = true;
 
             if (!TryAssignBotData())
             {
-                Debug.LogError($"{nameof(MatchingSystem)}: Botの役職割り当てに失敗したため、BattleSceneへ遷移しません。");
+                Debug.LogError($"{nameof(MatchingSystem)}: Botの役職割り当てに失敗したため、BattleSceneへ遷移しません。", this);
                 return;
             }
 
@@ -98,16 +192,14 @@ namespace Uraty.Application.Matching
 
         private bool TryAssignBotData()
         {
-            if (_matchingContext == null)
-            {
-                return false;
-            }
-
             List<RoleType> uniqueRoleIds = CreateUniqueRoleIdList();
 
             if (uniqueRoleIds.Count < MatchingContext.SecondaryBotCount)
             {
-                Debug.LogError($"{nameof(MatchingSystem)}: 敵チーム3体に重複なしで割り当てるには、役職候補が3種類以上必要です。");
+                Debug.LogError(
+                    $"{nameof(MatchingSystem)}: 敵チーム3体に重複なしで割り当てるには、役職候補が3種類以上必要です。",
+                    this);
+
                 return false;
             }
 
@@ -118,7 +210,10 @@ namespace Uraty.Application.Matching
 
             if (allyCandidateRoleIds.Count < MatchingContext.PrimaryBotCount)
             {
-                Debug.LogError($"{nameof(MatchingSystem)}: 味方Bot2体に重複なしで割り当てるには、プレイヤー役職を除いて2種類以上の役職候補が必要です。");
+                Debug.LogError(
+                    $"{nameof(MatchingSystem)}: 味方Bot2体に重複なしで割り当てるには、プレイヤー役職を除いて2種類以上の役職候補が必要です。",
+                    this);
+
                 return false;
             }
 
@@ -160,7 +255,7 @@ namespace Uraty.Application.Matching
 
         private RoleType[] PickRandomRoleIds(List<RoleType> sourceRoleIds, int pickCount)
         {
-            if (sourceRoleIds.Count < pickCount)
+            if (sourceRoleIds == null || sourceRoleIds.Count < pickCount)
             {
                 return new RoleType[0];
             }
@@ -176,14 +271,39 @@ namespace Uraty.Application.Matching
                 shuffledRoleIds[randomIndex] = temporaryRoleId;
             }
 
-            RoleType[] resultRoleIds = new RoleType[pickCount];
+            RoleType[] pickedRoleIds = new RoleType[pickCount];
 
             for (int i = 0; i < pickCount; i++)
             {
-                resultRoleIds[i] = shuffledRoleIds[i];
+                pickedRoleIds[i] = shuffledRoleIds[i];
             }
 
-            return resultRoleIds;
+            return pickedRoleIds;
+        }
+
+        private void ApplyMatchingContextBotData(
+            RoleType[] allyRoleIds,
+            RoleType[] enemyRoleIds)
+        {
+            _matchingContext.ClearBotData();
+
+            for (int i = 0; i < allyRoleIds.Length; i++)
+            {
+                _matchingContext.SetBotData(
+                    i,
+                    _matchingContext.PlayerTeamId,
+                    allyRoleIds[i]);
+            }
+
+            for (int i = 0; i < enemyRoleIds.Length; i++)
+            {
+                int botIndex = MatchingContext.PrimaryBotCount + i;
+
+                _matchingContext.SetBotData(
+                    botIndex,
+                    _enemyTeamId,
+                    enemyRoleIds[i]);
+            }
         }
 
         private void ApplyBattleSceneEntry(
@@ -202,7 +322,7 @@ namespace Uraty.Application.Matching
         {
             if (_matchingContext.GameModeData == null)
             {
-                Debug.LogError($"{nameof(MatchingSystem)}: GameModeDataが設定されていません。");
+                Debug.LogError($"{nameof(MatchingSystem)}: GameModeDataが設定されていません。", this);
                 return;
             }
 
@@ -210,16 +330,16 @@ namespace Uraty.Application.Matching
 
             if (string.IsNullOrEmpty(targetSceneName))
             {
-                Debug.LogError($"{nameof(MatchingSystem)}: GameModeDataの遷移先Scene名が空です。");
+                Debug.LogError($"{nameof(MatchingSystem)}: GameModeDataの遷移先Scene名が空です。", this);
                 return;
             }
 
-            SceneManager.LoadScene("BattleScene");
+            SceneManager.LoadScene(targetSceneName);
         }
 
         private void DebugBotData(RoleType[] allyRoleIds, RoleType[] enemyRoleIds)
         {
-            Debug.Log($"PlayerRole: {_matchingContext.PlayerRoleId}");
+            Debug.Log($"Player: Team={_matchingContext.PlayerTeamId}, Role={_matchingContext.PlayerRoleId}");
 
             for (int i = 0; i < allyRoleIds.Length; i++)
             {
