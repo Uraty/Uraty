@@ -1,50 +1,93 @@
 using UnityEngine;
 using UnityEngine.UI;
 
+using Uraty.Shared.Entry;
+using Uraty.Shared.Role;
+using Uraty.Shared.Team;
+
 namespace Uraty.Application.Result
 {
     public class ResultPlayerData : MonoBehaviour
     {
+        [Header("Result Entry")]
+        [SerializeField]
+        private ResultSceneEntry _resultSceneEntry;
+
         [Header("テキスト")]
-        [SerializeField] private Text[] _resultPlayerDataTexts;
+        [SerializeField]
+        private Text[] _resultPlayerDataTexts;
 
         [Header("キャラクター")]
-        [SerializeField] private GameObject _assassinPrefab;
+        [SerializeField]
+        private GameObject _assassinPrefab;
 
-        [SerializeField] private GameObject _attackerPrefab;
+        [SerializeField]
+        private GameObject _attackerPrefab;
 
-        [SerializeField] private GameObject _fighterPrefab;
+        [SerializeField]
+        private GameObject _fighterPrefab;
 
-        [SerializeField] private GameObject _sniperPrefab;
+        [SerializeField]
+        private GameObject _sniperPrefab;
 
         [Header("キャラクター生成位置")]
-        [SerializeField] private Transform[] _characterSpawnPositions;
+        [SerializeField]
+        private Transform[] _characterSpawnPositions;
 
         private GameObject[] _playerObjects;
 
         private void Start()
         {
-            _playerObjects =
-                new GameObject[_characterSpawnPositions.Length];
+            int spawnCount = _characterSpawnPositions != null
+                ? _characterSpawnPositions.Length
+                : 0;
 
-            SetResultPlayerData(0, "Fighter", 1000, 500, 5, 5);
-            SetResultPlayerData(1, "Fighter", 1100, 400, 4, 6);
-            SetResultPlayerData(2, "Fighter", 1200, 300, 3, 7);
-            SetResultPlayerData(3, "Fighter", 1300, 200, 2, 8);
-            SetResultPlayerData(4, "Fighter", 1400, 100, 1, 9);
-            SetResultPlayerData(5, "Fighter", 1500, 0, 0, 10);
+            _playerObjects =
+                new GameObject[spawnCount];
+
+            if (_resultSceneEntry == null
+                || !_resultSceneEntry.HasEntry)
+            {
+                Debug.LogWarning(
+                    $"{nameof(ResultPlayerData)}: ResultSceneEntry に結果データがありません。");
+
+                return;
+            }
+
+            int characterCount = Mathf.Min(
+                ResultSceneEntry.CharacterCount,
+                spawnCount,
+                _resultPlayerDataTexts != null
+                    ? _resultPlayerDataTexts.Length
+                    : 0);
+
+            for (int i = 0; i < characterCount; i++)
+            {
+                if (!_resultSceneEntry.TryGetCharacter(
+                        i,
+                        out ResultCharacterEntry entry)
+                    || entry == null)
+                {
+                    continue;
+                }
+
+                SetResultPlayerData(
+                    i,
+                    entry);
+            }
         }
 
         private void SetResultPlayerData(
             int playerIndex,
-            string roleType,
-            int damage,
-            int heal,
-            int kill,
-            int death)
+            ResultCharacterEntry entry)
         {
-            if (playerIndex >= _resultPlayerDataTexts.Length ||
-                playerIndex >= _characterSpawnPositions.Length)
+            if (entry == null)
+            {
+                return;
+            }
+
+            if (playerIndex >= _resultPlayerDataTexts.Length
+                || playerIndex >= _characterSpawnPositions.Length)
             {
                 Debug.LogWarning(
                     $"範囲外アクセス : {playerIndex}");
@@ -52,38 +95,97 @@ namespace Uraty.Application.Result
                 return;
             }
 
-            _resultPlayerDataTexts[playerIndex].text =
-                $"{roleType}" +
-                $"\nDAMAGE\t: {damage}" +
-                $"\nHEAL\t\t: {heal}" +
-                $"\nKILL\t\t\t: {kill}" +
-                $"\nDEATH\t\t: {death}";
+            Text targetText = _resultPlayerDataTexts[playerIndex];
+
+            if (targetText != null)
+            {
+                targetText.text =
+                    $"{entry.RoleType}" +
+                    $"\nTEAM\t\t: {entry.TeamId}" +
+                    $"\nRESULT\t: {ResolveResultText(entry.TeamId)}" +
+                    $"\nWANTED\t: {entry.WantedScore}" +
+                    $"\nDAMAGE\t: {Mathf.RoundToInt(entry.DamageDealt)}" +
+                    $"\nTAKEN\t\t: {Mathf.RoundToInt(entry.DamageTaken)}" +
+                    $"\nHEAL\t\t: {Mathf.RoundToInt(entry.HealingDone)}" +
+                    $"\nKILL\t\t: {entry.KillCount}" +
+                    $"\nDEATH\t\t: {entry.DeathCount}";
+            }
+
+            GameObject prefab = GetCharacterPrefab(entry.RoleType);
+
+            if (prefab == null)
+            {
+                Debug.LogWarning(
+                    $"{entry.RoleType} 用のResult表示Prefabが設定されていません。");
+
+                return;
+            }
 
             _playerObjects[playerIndex] =
                 Instantiate(
-                    _fighterPrefab,
+                    prefab,
                     _characterSpawnPositions[playerIndex].position,
                     _characterSpawnPositions[playerIndex].rotation);
 
             _playerObjects[playerIndex].AddComponent<RotateObject>();
 
-            Canvas canvas = _playerObjects[playerIndex].GetComponentInChildren<Canvas>(true);
+            Canvas canvas =
+                _playerObjects[playerIndex]
+                    .GetComponentInChildren<Canvas>(true);
+
             if (canvas != null)
             {
                 canvas.gameObject.SetActive(false);
             }
 
             int resultFrontLayer = LayerMask.NameToLayer("ResultFrontObj");
+
             if (resultFrontLayer == -1)
             {
                 return;
             }
 
-            SetLayerRecursively(_playerObjects[playerIndex], resultFrontLayer);
+            SetLayerRecursively(
+                _playerObjects[playerIndex],
+                resultFrontLayer);
+        }
+
+        private GameObject GetCharacterPrefab(RoleType roleType)
+        {
+            return roleType switch
+            {
+                RoleType.Assassin => _assassinPrefab,
+                RoleType.Attacker => _attackerPrefab,
+                RoleType.Fighter => _fighterPrefab,
+                RoleType.Sniper => _sniperPrefab,
+                _ => _fighterPrefab
+            };
+        }
+
+        private string ResolveResultText(TeamId teamId)
+        {
+            if (_resultSceneEntry == null)
+            {
+                return BattleResultType.None.ToString();
+            }
+
+            if (_resultSceneEntry.WinnerTeamId == TeamId.None)
+            {
+                return BattleResultType.Draw.ToString();
+            }
+
+            return _resultSceneEntry.WinnerTeamId == teamId
+                ? BattleResultType.Win.ToString()
+                : BattleResultType.Lose.ToString();
         }
 
         private void SetLayerRecursively(GameObject target, int layer)
         {
+            if (target == null)
+            {
+                return;
+            }
+
             target.layer = layer;
 
             foreach (Transform child in target.transform)

@@ -53,6 +53,9 @@ namespace Uraty.Features.Character
 
         private readonly Subject<CharacterStatus> _diedSubject = new();
         private readonly Subject<CharacterStatus> _killedSubject = new();
+        private readonly Subject<CharacterDamageEvent> _damageReceivedSubject = new();
+        private readonly Subject<CharacterDamageEvent> _damageDealtSubject = new();
+        private readonly Subject<CharacterHealEvent> _healedSubject = new();
 
         private float _currentHp;
         private bool _isDead;
@@ -80,6 +83,9 @@ namespace Uraty.Features.Character
 
         public Observable<CharacterStatus> DiedStream => _diedSubject;
         public Observable<CharacterStatus> KilledStream => _killedSubject;
+        public Observable<CharacterDamageEvent> DamageReceivedStream => _damageReceivedSubject;
+        public Observable<CharacterDamageEvent> DamageDealtStream => _damageDealtSubject;
+        public Observable<CharacterHealEvent> HealedStream => _healedSubject;
 
         public bool CanAttack =>
             !_isDead &&
@@ -127,6 +133,9 @@ namespace Uraty.Features.Character
         {
             _diedSubject.Dispose();
             _killedSubject.Dispose();
+            _damageReceivedSubject.Dispose();
+            _damageDealtSubject.Dispose();
+            _healedSubject.Dispose();
         }
 
         public void Initialize(TeamId teamId)
@@ -246,7 +255,24 @@ namespace Uraty.Features.Character
                 return;
             }
 
+            float previousHp = _currentHp;
+
             _currentHp = Mathf.Min(_maxHp, _currentHp + validAmount);
+
+            float actualHealAmount =
+                Mathf.Max(
+                    0f,
+                    _currentHp - previousHp);
+
+            if (actualHealAmount <= 0f)
+            {
+                return;
+            }
+
+            _healedSubject.OnNext(
+                new CharacterHealEvent(
+                    this,
+                    actualHealAmount));
         }
 
         private void ApplyDamage(
@@ -267,13 +293,78 @@ namespace Uraty.Features.Character
 
             InterruptRecovery();
 
+            CharacterStatus attackerStatus =
+                ResolveAttackerStatus(attackerObject);
+
+            float previousHp = _currentHp;
+
             _currentHp = Mathf.Max(0f, _currentHp - validDamage);
+
+            float actualDamageAmount =
+                Mathf.Max(
+                    0f,
+                    previousHp - _currentHp);
+
+            if (actualDamageAmount > 0f)
+            {
+                PublishDamageEvent(
+                    attackerStatus,
+                    actualDamageAmount);
+            }
 
             if (_currentHp <= 0f)
             {
                 Die(
                     attackerObject);
             }
+        }
+
+        private CharacterStatus ResolveAttackerStatus(GameObject attackerObject)
+        {
+            if (attackerObject == null)
+            {
+                return null;
+            }
+
+            if (!attackerObject.TryGetComponent(out CharacterStatus attackerStatus))
+            {
+                return null;
+            }
+
+            if (attackerStatus == this)
+            {
+                return null;
+            }
+
+            return attackerStatus;
+        }
+
+        private void PublishDamageEvent(
+            CharacterStatus attackerStatus,
+            float actualDamageAmount)
+        {
+            CharacterDamageEvent damageEvent =
+                new CharacterDamageEvent(
+                    attackerStatus,
+                    this,
+                    actualDamageAmount);
+
+            _damageReceivedSubject.OnNext(
+                damageEvent);
+
+            if (attackerStatus == null)
+            {
+                return;
+            }
+
+            attackerStatus.PublishDamageDealt(
+                damageEvent);
+        }
+
+        private void PublishDamageDealt(CharacterDamageEvent damageEvent)
+        {
+            _damageDealtSubject.OnNext(
+                damageEvent);
         }
 
         private void UpdateRecovery()

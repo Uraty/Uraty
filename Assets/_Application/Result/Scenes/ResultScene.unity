@@ -1079,6 +1079,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: adf9ad227a5336f4bb872aff383efbfe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Uraty.Application.Reslut::Uraty.Application.Result.ResultPlayerData
+  _resultSceneEntry: {fileID: 11400000, guid: 46ad72bc3d0d4fbb9d7a2be44e5bbd1d, type: 2}
   _resultPlayerDataTexts:
   - {fileID: 1709238338}
   - {fileID: 205805313}
