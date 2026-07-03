@@ -225,19 +225,6 @@ namespace Uraty.Application.Matching
                 uniqueRoleIds,
                 MatchingContext.SecondaryBotCount);
 
-            if (allyRoleIds.Length != MatchingContext.PrimaryBotCount)
-            {
-                Debug.LogError($"{nameof(MatchingSystem)}: 味方Botの役職割り当て数が不足しています。", this);
-                return false;
-            }
-
-            if (enemyRoleIds.Length != MatchingContext.SecondaryBotCount)
-            {
-                Debug.LogError($"{nameof(MatchingSystem)}: 敵Botの役職割り当て数が不足しています。", this);
-                return false;
-            }
-
-            ApplyMatchingContextBotData(allyRoleIds, enemyRoleIds);
             ApplyBattleSceneEntry(allyRoleIds, enemyRoleIds);
             DebugBotData(allyRoleIds, enemyRoleIds);
 
