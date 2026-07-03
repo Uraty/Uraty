@@ -13,6 +13,8 @@ using Uraty.Features.Character;
 using Uraty.Features.Player;
 using Uraty.Features.Timer;
 using Uraty.Shared.Team;
+using Uraty.Shared.Role;
+using Uraty.Shared.Entry;
 using Uraty.Systems.Camera;
 using Uraty.Systems.Input;
 
@@ -111,6 +113,10 @@ namespace Uraty.Application.Battle
         [SerializeField]
         private float _attackRevealDuration = 1.0f;
 
+        [Header("Battle Scene Entry")]
+        [SerializeField]
+        private BattleSceneEntry _battleSceneEntry;
+
         private readonly Dictionary<GameObject, float>
             _temporaryRevealEndTimeByCharacterObject = new();
 
@@ -187,28 +193,36 @@ namespace Uraty.Application.Battle
 
             _input.Player.Enable();
 
-            RoleType[] roleTypes =
-                (RoleType[])Enum.GetValues(
-                    typeof(RoleType));
+            GameObject playerObject;
 
-            int selectedIndex =
-                Array.IndexOf(
-                    roleTypes,
-                    _fallbackPlayerRoleType);
-
-            if (selectedIndex < 0)
+            if (!TrySpawnCharactersFromBattleSceneEntry(out playerObject))
             {
-                selectedIndex = 0;
-            }
+                Debug.LogWarning(
+                    $"{nameof(BattleApplication)}: BattleSceneEntryから生成できなかったため、Fallback生成を使います。");
 
-            GameObject playerObject =
-                SpawnPlayerTeam(
+                RoleType[] roleTypes =
+                    (RoleType[])Enum.GetValues(
+                        typeof(RoleType));
+
+                int selectedIndex =
+                    Array.IndexOf(
+                        roleTypes,
+                        _fallbackPlayerRoleType);
+
+                if (selectedIndex < 0)
+                {
+                    selectedIndex = 0;
+                }
+
+                playerObject =
+                    SpawnPlayerTeam(
+                        roleTypes,
+                        selectedIndex);
+
+                SpawnEnemyTeam(
                     roleTypes,
                     selectedIndex);
-
-            SpawnEnemyTeam(
-                roleTypes,
-                selectedIndex);
+            }
 
             UpdateReloadBarVisibility(
                 playerObject);
@@ -322,6 +336,78 @@ namespace Uraty.Application.Battle
                 "Battle timer completed. Change scene to Result.");
 
             SceneManager.LoadScene("ResultScene");
+        }
+
+        private bool TrySpawnCharactersFromBattleSceneEntry(
+    out GameObject playerObject)
+        {
+            playerObject =
+                null;
+
+            if (_battleSceneEntry == null)
+            {
+                Debug.LogError(
+                    $"{nameof(BattleApplication)}: BattleSceneEntry が設定されていません。");
+
+                return false;
+            }
+
+            if (!_battleSceneEntry.TryConsume(
+                    out TeamId[] teamIds,
+                    out RoleType[] roleTypes))
+            {
+                Debug.LogError(
+                    $"{nameof(BattleApplication)}: BattleSceneEntry に情報がありません。");
+
+                return false;
+            }
+
+            if (teamIds.Length != BattleSceneEntry.CharacterCount
+                || roleTypes.Length != BattleSceneEntry.CharacterCount)
+            {
+                Debug.LogError(
+                    $"{nameof(BattleApplication)}: BattleSceneEntry の配列数が不正です。");
+
+                return false;
+            }
+
+            for (int i = 0; i < BattleSceneEntry.CharacterCount; i++)
+            {
+                if (!HasCharacterPrefab(roleTypes[i]))
+                {
+                    Debug.LogError(
+                        $"{nameof(BattleApplication)}: {roleTypes[i]} のPrefabが未登録です。");
+
+                    return false;
+                }
+            }
+
+            for (int i = 0; i < BattleSceneEntry.CharacterCount; i++)
+            {
+                GameObject characterObject =
+                    SpawnCharacter(
+                        roleTypes[i],
+                        teamIds[i]);
+
+                if (i == BattleSceneEntry.PlayerIndex)
+                {
+                    playerObject =
+                        characterObject;
+
+                    _visibleTeamId =
+                        teamIds[i];
+                }
+            }
+
+            if (playerObject == null)
+            {
+                Debug.LogError(
+                    $"{nameof(BattleApplication)}: Player用Characterが生成されませんでした。");
+
+                return false;
+            }
+
+            return true;
         }
 
         private GameObject SpawnPlayerTeam(
@@ -1527,6 +1613,33 @@ namespace Uraty.Application.Battle
             }
 
             return null;
+        }
+
+        private bool HasCharacterPrefab(
+            RoleType roleType)
+        {
+            if (_roleCharacterPrefabEntries == null)
+            {
+                return false;
+            }
+
+            foreach (RoleCharacterPrefabEntry entry
+                     in _roleCharacterPrefabEntries)
+            {
+                if (entry == null)
+                {
+                    continue;
+                }
+
+                if (entry.RoleType != roleType)
+                {
+                    continue;
+                }
+
+                return entry.CharacterPrefab != null;
+            }
+
+            return false;
         }
 
         private GameObject FindCharacterPrefab(
