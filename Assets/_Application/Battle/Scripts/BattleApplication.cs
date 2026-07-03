@@ -1218,12 +1218,17 @@ namespace Uraty.Application.Battle
                 return true;
             }
 
-            if (status.IsInsideBush)
+            if (IsTemporarilyRevealed(entry.GameObject))
             {
-                return false;
+                return true;
             }
 
-            return true;
+            if (IsInsideVisibleTeamRevealRange(entry))
+            {
+                return true;
+            }
+
+            return !status.IsInsideBush;
         }
 
         private static void SetCharacterHpUiVisibleIfChanged(

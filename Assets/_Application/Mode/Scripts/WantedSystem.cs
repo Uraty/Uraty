@@ -7,8 +7,9 @@ using R3;
 using UnityEngine;
 
 using Uraty.Application.Battle;
-using Uraty.Shared.Team;
 using Uraty.Features.Character;
+using Uraty.Shared.Entry;
+using Uraty.Shared.Team;
 
 namespace Uraty.Application.Mode
 {
@@ -21,6 +22,10 @@ namespace Uraty.Application.Mode
         [SerializeField]
         private BattleApplication _battleApplication;
 
+        [Header("Result Entry")]
+        [SerializeField]
+        private ResultSceneEntry _resultSceneEntry;
+
         [Header("Score")]
         [SerializeField, Min(0)]
         private int _initialScore = 1;
@@ -31,6 +36,9 @@ namespace Uraty.Application.Mode
 
         private readonly Dictionary<CharacterStatus, IDisposable>
             _killedSubscriptionByStatus = new();
+
+        private readonly Dictionary<CharacterStatus, int>
+            _characterIndexByStatus = new();
 
         private readonly Subject<CharacterStatus> _scoreChangedSubject = new();
 
@@ -60,6 +68,7 @@ namespace Uraty.Application.Mode
                 HasSpawnedCharacter);
 
             RegisterCharactersFromBattleApplication();
+            WriteModeResultToEntry();
         }
 
         /// <summary>
@@ -100,6 +109,8 @@ namespace Uraty.Application.Mode
                 killedSubscription);
 
             PublishScoreChanged(status);
+            WriteCharacterScoreToEntry(status);
+            WriteModeResultToEntry();
         }
 
         /// <summary>
@@ -132,6 +143,9 @@ namespace Uraty.Application.Mode
             }
 
             _scoreByStatus.Remove(status);
+            _characterIndexByStatus.Remove(status);
+
+            WriteModeResultToEntry();
         }
 
         /// <summary>
@@ -230,6 +244,7 @@ namespace Uraty.Application.Mode
             _killedSubscriptionByStatus.Clear();
             _scoreByStatus.Clear();
             _scoreByTeamId.Clear();
+            _characterIndexByStatus.Clear();
         }
 
         private bool HasSpawnedCharacter()
@@ -240,6 +255,8 @@ namespace Uraty.Application.Mode
 
         private void RegisterCharactersFromBattleApplication()
         {
+            _characterIndexByStatus.Clear();
+
             for (int i = 0;
                  i < _battleApplication.CharacterCount;
                  i++)
@@ -251,6 +268,7 @@ namespace Uraty.Application.Mode
                     continue;
                 }
 
+                _characterIndexByStatus[status] = i;
                 RegisterCharacter(status);
             }
         }
@@ -340,6 +358,8 @@ namespace Uraty.Application.Mode
                 validScore - previousScore);
 
             PublishScoreChanged(status);
+            WriteCharacterScoreToEntry(status);
+            WriteModeResultToEntry();
         }
 
         private int GetInitialScore()
@@ -377,6 +397,7 @@ namespace Uraty.Application.Mode
             _scoreByTeamId[teamId] = nextScore;
 
             PublishTeamScoreChanged(teamId);
+            WriteModeResultToEntry();
         }
 
         private void PublishScoreChanged(CharacterStatus status)
@@ -397,6 +418,58 @@ namespace Uraty.Application.Mode
             }
 
             _teamScoreChangedSubject.OnNext(teamId);
+        }
+
+        private void WriteCharacterScoreToEntry(CharacterStatus status)
+        {
+            if (status == null)
+            {
+                return;
+            }
+
+            if (!_characterIndexByStatus.TryGetValue(
+                    status,
+                    out int characterIndex))
+            {
+                return;
+            }
+
+            _resultSceneEntry.SetWantedScore(
+                characterIndex,
+                GetScoreOrDefault(status));
+        }
+
+        private void WriteModeResultToEntry()
+        {
+            int primaryScore = GetTeamScoreOrDefault(TeamId.Primary);
+            int secondaryScore = GetTeamScoreOrDefault(TeamId.Secondary);
+
+            _resultSceneEntry.SetTeamScore(
+                TeamId.Primary,
+                primaryScore);
+
+            _resultSceneEntry.SetTeamScore(
+                TeamId.Secondary,
+                secondaryScore);
+
+            _resultSceneEntry.SetWinnerTeamId(
+                ResolveWinnerTeamId(
+                    primaryScore,
+                    secondaryScore));
+        }
+
+        private static TeamId ResolveWinnerTeamId(
+            int primaryScore,
+            int secondaryScore)
+        {
+            if (primaryScore == secondaryScore)
+            {
+                return TeamId.None;
+            }
+
+            return primaryScore > secondaryScore
+                ? TeamId.Primary
+                : TeamId.Secondary;
         }
 
         private void OnDestroy()
