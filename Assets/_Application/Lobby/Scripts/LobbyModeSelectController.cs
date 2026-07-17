@@ -55,6 +55,9 @@ namespace Uraty.Application.Lobby
         [Header("Input")]
         [SerializeField] private InputActionReference _cancelActionReference;
 
+        [Header("Audio")]
+        [SerializeField] private LobbyAudioController _audioController;
+
         private readonly List<ModeButtonView> _modeButtonViews = new();
 
         /// <summary>
@@ -141,6 +144,8 @@ namespace Uraty.Application.Lobby
         /// </summary>
         private void OnModeButtonClicked(GameModeData mode)
         {
+            _audioController?.PlayButtonPressedSe();
+
             SelectMode(mode, true);
         }
 

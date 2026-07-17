@@ -77,6 +77,9 @@ namespace Uraty.Application.Lobby
         [Header("Input")]
         [SerializeField] private InputActionReference _cancelActionReference;
 
+        [Header("Audio")]
+        [SerializeField] private LobbyAudioController _lobbyAudioController;
+
         /// <summary>
         /// 現在のSlider値を設定データとして取得する。
         /// LobbyからBattleへ設定値を渡すときにも使用できる。
@@ -238,6 +241,9 @@ namespace Uraty.Application.Lobby
         private void SaveSettings()
         {
             GameSettingsStore.Save(CurrentSettings);
+
+            // 保存した音量を、再生中のAudioSourceへ即反映する
+            _lobbyAudioController?.ApplyVolumeSettings();
         }
 
         private void HandleCancelPerformed(InputAction.CallbackContext context)
