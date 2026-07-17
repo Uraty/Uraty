@@ -27,6 +27,18 @@ namespace Uraty.Features.Character
         [SerializeField, Min(0f)]
         private float _superChargePercent = 0f;
 
+        [Title("Super Audio")]
+        [Tooltip("SE再生に使用するAudioSource。未設定の場合は同じGameObjectから取得し、存在しなければ自動で追加する")]
+        [SerializeField]
+        private AudioSource _audioSource;
+
+        [Tooltip("弾を1発生成するたびに再生するSE")]
+        [SerializeField]
+        private AudioClip _superSe;
+
+        [SerializeField, Range(0f, 1f)]
+        private float _superSeVolume = 1f;
+
         [Title("Super Move")]
         [SerializeField]
         private bool _isSuperMoveEnabled = true;
@@ -83,6 +95,12 @@ namespace Uraty.Features.Character
             if (_characterMove == null)
             {
                 TryGetComponent(out _characterMove);
+            }
+
+            if (_audioSource == null && !TryGetComponent(out _audioSource))
+            {
+                _audioSource = gameObject.AddComponent<AudioSource>();
+                _audioSource.playOnAwake = false;
             }
         }
 
@@ -168,6 +186,8 @@ namespace Uraty.Features.Character
                 spawnPosition,
                 spawnRotation);
 
+            PlaySuperSe();
+
             if (bulletObject.TryGetComponent(out CharacterBullet bullet))
             {
                 bullet.Initialize(
@@ -184,6 +204,17 @@ namespace Uraty.Features.Character
             }
         }
 
+        private void PlaySuperSe()
+        {
+            if (_audioSource == null || _superSe == null)
+            {
+                return;
+            }
+
+            _audioSource.PlayOneShot(
+                _superSe,
+                _superSeVolume);
+        }
 
         private void BeginSuperMove(Vector3 direction)
         {
