@@ -27,18 +27,6 @@ namespace Uraty.Features.Character
         [SerializeField, Min(0f)]
         private float _superChargePercent = 10f;
 
-        [Title("Attack Audio")]
-        [Tooltip("SE再生に使用するAudioSource。未設定の場合は同じGameObjectから取得し、存在しなければ自動で追加する")]
-        [SerializeField]
-        private AudioSource _audioSource;
-
-        [Tooltip("弾を1発生成するたびに再生するSE")]
-        [SerializeField]
-        private AudioClip _attackSe;
-
-        [SerializeField, Range(0f, 1f)]
-        private float _attackSeVolume = 1f;
-
         [Title("Attack Move")]
         [SerializeField]
         private bool _isAttackMoveEnabled = true;
@@ -97,11 +85,6 @@ namespace Uraty.Features.Character
                 TryGetComponent(out _characterMove);
             }
 
-            if (_audioSource == null && !TryGetComponent(out _audioSource))
-            {
-                _audioSource = gameObject.AddComponent<AudioSource>();
-                _audioSource.playOnAwake = false;
-            }
         }
 
         public void Attack(Vector3 aimDirectionWorld)
@@ -186,7 +169,7 @@ namespace Uraty.Features.Character
                 spawnPosition,
                 spawnRotation);
 
-            PlayAttackSe();
+            _status.NotifyAttackBulletSpawned();
 
             if (bulletObject.TryGetComponent(out CharacterBullet bullet))
             {
@@ -200,20 +183,9 @@ namespace Uraty.Features.Character
                     _superChargePercent,
                     setting.IsPiercing,
                     setting.ShouldHealOwnerOnHit,
-                    setting.OwnerHealPercent);
+                    setting.OwnerHealPercent,
+                    isSuperBullet: false);
             }
-        }
-
-        private void PlayAttackSe()
-        {
-            if (_audioSource == null || _attackSe == null)
-            {
-                return;
-            }
-
-            _audioSource.PlayOneShot(
-                _attackSe,
-                _attackSeVolume);
         }
 
         private void BeginSkillMove(Vector3 direction)

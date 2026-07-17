@@ -516,7 +516,9 @@ namespace Uraty.Application.Battle
                 GetRequiredComponent<CharacterStatus>(
                     obj);
 
-            status.Initialize(teamId);
+            status.Initialize(
+                teamId,
+                (int)roleType);
 
             CharacterRuntimeEntry entry =
                 CreateCharacterRuntimeEntry(

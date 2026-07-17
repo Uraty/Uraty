@@ -114,6 +114,7 @@ GameObject:
   - component: {fileID: 7179965540641218944}
   - component: {fileID: -1381102960665348235}
   - component: {fileID: -6497995452392812755}
+  - component: {fileID: 6389526090186738241}
   - component: {fileID: 3961964901468283456}
   - component: {fileID: 1490220000781514627}
   - component: {fileID: -1257273843268544866}
@@ -185,6 +186,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterStatus
   _animator: {fileID: 606937982945558161}
+  _audio: {fileID: 6389526090186738241}
   _teamId: 0
   _maxHp: 100
   _recoveryStartDelaySeconds: 3
@@ -194,6 +196,65 @@ MonoBehaviour:
   _reloadRecoveryPerSecond: 1
   _currentReloadCount: 0
   _currentSuperChargePercent: 0
+--- !u!114 &6389526090186738241
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8800056277905460767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23b85f54f4854df7839f12ab4feea802, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Uraty.Features.Character::Uraty.Features.Character.CharacterAudio
+  _audioSource: {fileID: 0}
+  _defaultRoleType: 0
+  _roleAudioSettings:
+  - _roleType: 0
+    _displayName: Fighter
+    _attackSe: {fileID: 8300000, guid: 97c2c0568f73b2a421a5c446ca2f6b1b, type: 3}
+    _reloadSe: {fileID: 8300000, guid: e09ea8deafcb07bfe6ea4ca546c364c2, type: 3}
+    _superSe: {fileID: 8300000, guid: cfe5937c386049a88b437d82d693f360, type: 3}
+    _superHealSe: {fileID: 0}
+  - _roleType: 1
+    _displayName: Sniper
+    _attackSe: {fileID: 8300000, guid: 14bfdada0d037cfbc918cc1429d61ef3, type: 3}
+    _reloadSe: {fileID: 8300000, guid: 7e03fba0358ff88a6987fd7124fe0bac, type: 3}
+    _superSe: {fileID: 8300000, guid: fbb9db1b7dddc69ed4bfe5ebb3be4edd, type: 3}
+    _superHealSe: {fileID: 0}
+  - _roleType: 2
+    _displayName: Attacker
+    _attackSe: {fileID: 8300000, guid: cb0701538787c966873ed18e06991dcc, type: 3}
+    _reloadSe: {fileID: 8300000, guid: 71f3cc9b2fc112453bf3c23d9168ee21, type: 3}
+    _superSe: {fileID: 8300000, guid: 87d43164ce62024e990f548ee16837d8, type: 3}
+    _superHealSe: {fileID: 0}
+  - _roleType: 3
+    _displayName: Assassin
+    _attackSe: {fileID: 8300000, guid: 88809f8af6cb78892d6f0e4ac62b3a39, type: 3}
+    _reloadSe: {fileID: 8300000, guid: d5a6f627b8efade7db56f9fddbbc11fa, type: 3}
+    _superSe: {fileID: 8300000, guid: 02afd3069fdca0ccd3ac56489450de8f, type: 3}
+    _superHealSe: {fileID: 0}
+  - _roleType: 4
+    _displayName: Healer
+    _attackSe: {fileID: 8300000, guid: 1895714805fe2ea23a3e26b21dc9533d, type: 3}
+    _reloadSe: {fileID: 8300000, guid: 73ec0d43e2706cdf8b97ae06dbb903cd, type: 3}
+    _superSe: {fileID: 8300000, guid: 19b50d8259870da7e1f451f3154ddf6d, type: 3}
+    _superHealSe: {fileID: 8300000, guid: 7c2c5c7f7f0987cdb72ad68f45e9ace4, type: 3}
+  _attackVolume: 1
+  _reloadVolume: 1
+  _superVolume: 1
+  _superHealVolume: 1
+  _deadSe: {fileID: 8300000, guid: 2383a32f0f30b7ba45d341b01a4b519d, type: 3}
+  _deadVolume: 1
+  _healSe: {fileID: 8300000, guid: 96d0bba492e834d6d7eee6fa7d618781, type: 3}
+  _healVolume: 1
+  _noAmmoSe: {fileID: 8300000, guid: a216d0b4d40a59a1a28f18f3427efe11, type: 3}
+  _noAmmoVolume: 1
+  _respawnSe: {fileID: 8300000, guid: dfaa5bc5b69a317565da31acbd3346df, type: 3}
+  _respawnVolume: 1
+  _superReadySe: {fileID: 8300000, guid: b09d262ba19553c26b4faeeb47e0614e, type: 3}
+  _superReadyVolume: 1
 --- !u!114 &3961964901468283456
 MonoBehaviour:
   m_ObjectHideFlags: 0
