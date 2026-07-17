@@ -15,6 +15,9 @@ namespace Uraty.Features.Character
         [SerializeField]
         private Animator _animator;
 
+        [SerializeField]
+        private CharacterAudio _audio;
+
         [Header("Team")]
         [SerializeField]
         private TeamId _teamId = TeamId.None;
@@ -63,6 +66,8 @@ namespace Uraty.Features.Character
 
         private float _recoveryElapsedSeconds;
         private float _nextRecoveryTimeSeconds;
+        private bool _hasPlayedRecoveryHealSe;
+        private bool _hasPlayedSuperHealSeForCurrentUse;
 
         private bool _canAttack = true;
         private float _attackDisableRemainingSeconds;
@@ -99,6 +104,11 @@ namespace Uraty.Features.Character
 
         private void Awake()
         {
+            if (_audio == null)
+            {
+                TryGetComponent(out _audio);
+            }
+
             ResetHealth();
         }
 
@@ -140,13 +150,29 @@ namespace Uraty.Features.Character
 
         public void Initialize(TeamId teamId)
         {
+            Initialize(
+                teamId,
+                0);
+        }
+
+        public void Initialize(
+            TeamId teamId,
+            int roleTypeValue)
+        {
             _teamId = teamId;
+
+            if (_audio != null)
+            {
+                _audio.Initialize(roleTypeValue);
+            }
+
             ResetHealth();
         }
 
         public void Respawn()
         {
             ResetHealth();
+            _audio?.PlayRespawn();
         }
 
         public void SetInsideBush(bool isInsideBush)
@@ -154,10 +180,26 @@ namespace Uraty.Features.Character
             _isInsideBush = isInsideBush;
         }
 
+        public void NotifyAttackBulletSpawned()
+        {
+            _audio?.PlayAttack();
+        }
+
+        public void NotifySuperBulletSpawned()
+        {
+            _audio?.PlaySuper();
+        }
+
         public bool TryBeginAttack(float attackDisableSeconds)
         {
-            if (!CanAttack)
+            if (_isDead || !_canAttack)
             {
+                return false;
+            }
+
+            if (_currentReloadCount < AttackReloadCost)
+            {
+                _audio?.PlayNoAmmo();
                 return false;
             }
 
@@ -184,6 +226,8 @@ namespace Uraty.Features.Character
                     0f,
                     _currentSuperChargePercent - MaxSuperChargePercent);
 
+            _hasPlayedSuperHealSeForCurrentUse = false;
+
             InterruptRecovery();
             DisableAttack(attackDisableSeconds);
 
@@ -204,10 +248,17 @@ namespace Uraty.Features.Character
                 return;
             }
 
+            bool wasSuperReady = IsSuperReady;
+
             _currentSuperChargePercent =
                 Mathf.Min(
                     MaxSuperChargePercent,
                     _currentSuperChargePercent + validPercent);
+
+            if (!wasSuperReady && IsSuperReady)
+            {
+                _audio?.PlaySuperReady();
+            }
         }
 
         public bool ReceiveBulletHit(
@@ -243,16 +294,42 @@ namespace Uraty.Features.Character
 
         public void Heal(float amount)
         {
-            if (_isDead)
+            float actualHealAmount =
+                ApplyHeal(amount);
+
+            if (actualHealAmount > 0f)
+            {
+                _audio?.PlayHeal();
+            }
+        }
+
+        public void HealFromSuper(float amount)
+        {
+            float actualHealAmount =
+                ApplyHeal(amount);
+
+            if (actualHealAmount <= 0f
+                || _hasPlayedSuperHealSeForCurrentUse)
             {
                 return;
+            }
+
+            _hasPlayedSuperHealSeForCurrentUse = true;
+            _audio?.PlaySuperHeal();
+        }
+
+        private float ApplyHeal(float amount)
+        {
+            if (_isDead)
+            {
+                return 0f;
             }
 
             float validAmount = Mathf.Max(0f, amount);
 
             if (validAmount <= 0f)
             {
-                return;
+                return 0f;
             }
 
             float previousHp = _currentHp;
@@ -266,13 +343,15 @@ namespace Uraty.Features.Character
 
             if (actualHealAmount <= 0f)
             {
-                return;
+                return 0f;
             }
 
             _healedSubject.OnNext(
                 new CharacterHealEvent(
                     this,
                     actualHealAmount));
+
+            return actualHealAmount;
         }
 
         private void ApplyDamage(
@@ -417,11 +496,27 @@ namespace Uraty.Features.Character
                 return;
             }
 
+            float previousReloadCount =
+                _currentReloadCount;
+
             _currentReloadCount =
                 Mathf.Min(
                     _maxReloadCount,
                     _currentReloadCount
                     + _reloadRecoveryPerSecond * Time.deltaTime);
+
+            int previousCompletedReloadCount =
+                Mathf.FloorToInt(previousReloadCount);
+
+            int currentCompletedReloadCount =
+                Mathf.FloorToInt(_currentReloadCount);
+
+            for (int completedReloadCount = previousCompletedReloadCount;
+                 completedReloadCount < currentCompletedReloadCount;
+                 completedReloadCount++)
+            {
+                _audio?.PlayReload();
+            }
         }
 
         private void HealByRecoveryPercent()
@@ -430,13 +525,24 @@ namespace Uraty.Features.Character
                 _maxHp *
                 (_recoveryAmountPercent / 100f);
 
-            Heal(healAmount);
+            float actualHealAmount =
+                ApplyHeal(healAmount);
+
+            if (actualHealAmount <= 0f
+                || _hasPlayedRecoveryHealSe)
+            {
+                return;
+            }
+
+            _hasPlayedRecoveryHealSe = true;
+            _audio?.PlayHeal();
         }
 
         private void InterruptRecovery()
         {
             _recoveryElapsedSeconds = 0f;
             _nextRecoveryTimeSeconds = _recoveryStartDelaySeconds;
+            _hasPlayedRecoveryHealSe = false;
         }
 
         private void DisableAttack(float seconds)
@@ -496,6 +602,8 @@ namespace Uraty.Features.Character
             {
                 return;
             }
+
+            _audio?.PlayDead();
 
             _isDead = true;
             _currentHp = 0f;

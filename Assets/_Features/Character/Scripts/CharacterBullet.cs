@@ -21,6 +21,7 @@ namespace Uraty.Features.Character
         private bool _isPiercing;
         private bool _shouldHealOwnerOnHit;
         private float _ownerHealPercent;
+        private bool _isSuperBullet;
 
         private Vector3 _startPosition;
         private GameObject _owner;
@@ -39,7 +40,8 @@ namespace Uraty.Features.Character
             float superChargePercent,
             bool isPiercing,
             bool shouldHealOwnerOnHit,
-            float ownerHealPercent)
+            float ownerHealPercent,
+            bool isSuperBullet)
         {
             direction.y = 0f;
 
@@ -56,6 +58,7 @@ namespace Uraty.Features.Character
             _isPiercing = isPiercing;
             _shouldHealOwnerOnHit = shouldHealOwnerOnHit;
             _ownerHealPercent = Mathf.Max(0f, ownerHealPercent);
+            _isSuperBullet = isSuperBullet;
 
             _startPosition = transform.position;
             _owner = owner;
@@ -201,6 +204,12 @@ namespace Uraty.Features.Character
             float healAmount =
                 ownerStatus.MaxHp *
                 (_ownerHealPercent / 100f);
+
+            if (_isSuperBullet)
+            {
+                ownerStatus.HealFromSuper(healAmount);
+                return;
+            }
 
             ownerStatus.Heal(healAmount);
         }

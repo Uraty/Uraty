@@ -84,6 +84,7 @@ namespace Uraty.Features.Character
             {
                 TryGetComponent(out _characterMove);
             }
+
         }
 
         public void Super(Vector3 aimDirectionWorld)
@@ -168,6 +169,8 @@ namespace Uraty.Features.Character
                 spawnPosition,
                 spawnRotation);
 
+            _status.NotifySuperBulletSpawned();
+
             if (bulletObject.TryGetComponent(out CharacterBullet bullet))
             {
                 bullet.Initialize(
@@ -180,10 +183,10 @@ namespace Uraty.Features.Character
                     _superChargePercent,
                     setting.IsPiercing,
                     setting.ShouldHealOwnerOnHit,
-                    setting.OwnerHealPercent);
+                    setting.OwnerHealPercent,
+                    isSuperBullet: true);
             }
         }
-
 
         private void BeginSuperMove(Vector3 direction)
         {
