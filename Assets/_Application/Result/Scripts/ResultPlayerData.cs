@@ -131,7 +131,7 @@ namespace Uraty.Application.Result
                 3 => $"DRAW",
                 2 => $"LOSE",
                 1 => $"WIN",
-                _ => string.Empty
+                _ => $"UNKNOWN"
             };
 
             Debug.Log(
